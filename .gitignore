@@ -1,1 +1,13 @@
-node_modules
+node_modules/
+.next/
+dist/
+build/
+
+frontend/.next/
+frontend/node_modules/
+backend/node_modules/
+
+.env
+.env.local
+*.log
+coverage/
