@@ -1,0 +1,265 @@
+.AddProductOverlay {
+  position: fixed;
+  top: 0;
+  left: 0; /* 🔥 QUAN TRỌNG */
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3); /* làm mờ nền */
+  z-index: 9999999; /* cao hơn sidebar */
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+#root {
+  width: 100%;
+}
+
+.AddProductForm {
+  width: 100%;
+  height: 100%;
+
+  background: #fff;
+
+  padding: 20px 40px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden; /* giữ */
+}
+
+.AddProductForm h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #005bb5;
+}
+
+.AddProductForm h3 {
+  margin-top: 20px;
+  color: #333;
+}
+
+.AddProductForm label {
+  font-weight: bold;
+  margin-top: 12px;
+  display: block;
+}
+
+.AddProductForm input,
+.AddProductForm select,
+.AddProductForm textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.AddProductForm textarea {
+  resize: vertical;
+}
+
+.textarea1 {
+  height: 40px;
+}
+
+.textarea2 {
+  height: 150px;
+}
+
+.CarRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btnAddCar {
+  background: #0d6efd;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  border: none;
+  cursor: pointer;
+}
+
+.btnAddCar:hover {
+  opacity: 0.85;
+}
+
+.Row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 30px;
+}
+
+.ActionRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btnSubmit {
+  background: #0d6efd;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+}
+
+.btnClose {
+  background: #dc3545;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+}
+
+.btnSubmit:hover,
+.btnClose:hover {
+  opacity: 0.85;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.PopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.PopupHeader H2 {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.btnCloseTop {
+  font-size: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* ảnh preview */
+.ImagePreview {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.ImagePreview img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.FormGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 4fr 1fr; /* LEFT to, RIGHT nhỏ */
+  gap: 30px;
+  align-items: start;
+  min-height: 0;
+}
+
+.LeftCol {
+  overflow-y: auto;
+  padding-right: 10px;
+  height: 100%;
+}
+
+.RightCol {
+  overflow-y: auto;
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  height: 100%;
+}
+
+/* CHỈ editor chi tiết */
+.DescriptionEditor .ql-editor {
+  min-height: 600px;
+}
+
+/* TIÊU ĐỀ */
+.ShortEditor .ql-editor {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  overflow: hidden;
+}
+
+.ql-editor {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.ShortEditor .ql-container {
+  min-height: unset !important;
+  height: 40px !important;
+}
+
+.ShortEditor .ql-editor {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px;
+  overflow-y: hidden;
+  padding: 6px 10px;
+}
+
+.LeftCol label {
+  margin-top: 15px;
+}
+
+.LeftCol input {
+  width: 100%;
+}
+
+/* chia 2 input đầu */
+.Row2 {
+  display: grid;
+  grid-template-columns: 1fr 5fr;
+  gap: 20px;
+}
+
+.Row3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 20px;
+}
+
+.truncate-1-line {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

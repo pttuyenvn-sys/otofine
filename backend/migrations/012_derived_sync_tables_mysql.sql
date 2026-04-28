@@ -1,0 +1,3 @@
+-- Superseded: derived sync tables (product_aliases, car_model_meta, etc.) are defined
+-- in the live/production MySQL database. Sync services in `backend/services/*Service.js`
+-- target that schema only — do not CREATE these tables from the app repo.

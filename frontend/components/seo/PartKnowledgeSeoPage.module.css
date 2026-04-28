@@ -1,0 +1,126 @@
+/* Dedicated SEO Part page — standalone layout (no homepage product cards). */
+
+.shell {
+  min-height: 100vh;
+  background: #fafbfc;
+}
+
+.mainContent {
+  width: 100%;
+}
+
+.container {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* —— Breadcrumb —— */
+.breadcrumb {
+  font-size: 0.9375rem;
+  color: #5c6b7a;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.bcSep {
+  margin: 0 6px;
+  color: #9aa8b5;
+}
+
+.bcCurrent {
+  color: #24303a;
+}
+
+.bcLink {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.bcLink:hover {
+  text-decoration: underline;
+}
+
+/* —— H1 —— */
+.pageTitle {
+  margin: 0 0 20px;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  font-weight: 700;
+  color: #152028;
+  line-height: 1.25;
+}
+
+.gallery {
+  margin: 24px 0 8px;
+}
+
+.galleryInner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.galleryItem {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eef1f4;
+}
+
+.galleryItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (min-width: 900px) {
+  .galleryInner {
+    flex-wrap: wrap;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .galleryItem {
+    width: 100%;
+    max-width: 140px;
+    height: 140px;
+  }
+}
+
+.galleryEmpty {
+  margin: 0;
+  color: #5c6b7a;
+  font-size: 0.95rem;
+}
+
+.emptyProducts {
+  padding: 28px;
+  border: 1px dashed #cfd9e4;
+  border-radius: 12px;
+  text-align: center;
+  color: #5c6b7a;
+}
+
+.emptyProductsTitle {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: #374955;
+}
+
+.emptyProductsSub {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.faqMuted {
+  color: #516070;
+  font-size: 0.95rem;
+}

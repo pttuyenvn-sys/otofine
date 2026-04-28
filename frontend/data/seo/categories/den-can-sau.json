@@ -1,0 +1,41 @@
+{
+  "label": "đèn cản sau",
+  "intro": "Đèn cản sau (cụm sương mù/đèn hậu tích hợp trên cản — tùy cấu hình) giúp **tín hiệu, chiếu sáng phụ** và an toàn khi lùi, phanh, hoặc khi sương mù. Tên thương mại từng hãng có thể gọi khác nhau; bạn cần đối theo mã, đời xe và cấu hình ống kính/LED.",
+  "purpose": "Cung cấp ánh sáng và tín hiệu cho phía sau xe, hỗ trợ quan sát môi trường tối, mưa, hoặc giao thông tấp nập. Trong thực tế, độ sáng giảm, mờ nứt vỡ, hấp hơi, hoặc lỗi mạch điều khiển sẽ ảnh hưởng tới tầm nhìn và thông điệp khi tới người tham gia giao thông phía sau.",
+  "signs": [
+    "Một hoặc nhiều bóng/LED sáng yếu, chớp, hoặc sáng lệch màu so với bên còn lại.",
+    "Vỡ ốp, hấp hơi bên trong, nứt chân cài — dễ lệch ánh, thấm nước, về lâu dài ăn mòc điện.",
+    "Cảm giác cài đạt bị tụt, ốc gãy — cần kiểm tra lại pat, cao su chống rung, và siết theo tài liệu."
+  ],
+  "buyingTips": [
+    "Chụp mã, tem in trên cụm cũ; so tuỳ chọn ống tối, LED, tích hợp dây tín hiệu — từng đời có thể khác.",
+    "Hỏi tình trạng hàng: mới, theo xe tháo, còn cân chỉnh vị trí, có vết nứt không.",
+    "Khi cân nhắc thay từ hàng sưu tầm, kiểm tra cả giắc, chốt nước, độ ăn khớp ốp cản — tránh cài cứng."
+  ],
+  "mistakes": [
+    "Mua theo tên sản phẩm từ trên mạng mà không đụng mã vật lý, dễ lệch plug hoặc lệch vị lắp.",
+    "Bỏ qua tình trạng ốc chân đế — lắp tạm có thể gây cộng hưởng, ăn tường, vỡ thêm ốp."
+  ],
+  "maintenance": "Rửa nhẹ, tránh tia áp lực trực tiếp lên ốc điện. Kiểm tra theo tình trạng môi trường: bụi, sương, muối đường. Thay từng cặp nếu bên còn lại đang suy hao tương tự, để ánh cân. Khi cần, đưa cả cụm đi kiểm chẩn điện tại xưởng.",
+  "installNotes": "Cần tháo cản, phối ốc đúng mô-men; một số xe có cảm biến va/khoảng cách gắn trên/ gần đèn. Đi dây nối theo tài liệu, băng cách ly chống chập. Nếu không rõ, nên dùng thợ — **Otofine không nêu mô-men cụ thể từng mã ở bài tổng hợp này**.",
+  "oemVsAftermarket": "**Chính hãng / OEM** theo tài liệu dòng xe: thường ăn cài nhanh, ít cân chỉnh. **Thay thế tương đương** cần kiểm tra tiêu chuẩn E, kiểm định ánh, và tương thích giắc. Luôn đối mã, không tin quảng cáo dạng tuyệt đối. Khi còn băn khoăn, quay về tài sản trên sổ hoặc hình sản phẩm cũ.",
+  "whereToBuy": "Trên Otofine, bạn xem **giá công bố**, gọi shop xác minh, hỏi tồn, hình thật, bảo hành. Bảo quản khi lắp/ship — đèn bằng kính/nhựa, tránh cấn.",
+  "faq": [
+    {
+      "q": "Đèn cản sau có phải lúc nào cũng tách theo từng bên trái/phải không?",
+      "a": "Tùy cấu hình. Nhiều xe bán từng bên, một số bán cả cặp, một số bán cả bar kèm. Bạn cầm mã, chụp quanh cụm cũ để đảm bảo."
+    },
+    {
+      "q": "Có tự thay ở nhà được không?",
+      "a": "Một số bài tưởng tượng tưởng đơn giản, nhưng cản/tháo ốc có thể cần nâng/nâng từ, đụng tới dây an toàn cảm biến. Nên cân nhắc nếu chưa quen."
+    }
+  ],
+  "internalLinks": [
+    { "label": "Đèn cản sau ô tô (danh mục)", "href": "/den-can-sau-o-to" }
+  ],
+  "relatedIntents": [
+    "giá bao nhiêu",
+    "chính hãng hyundai",
+    "đèn hậu cản santa fe"
+  ]
+}

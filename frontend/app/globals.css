@@ -1,0 +1,253 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 260px;
+  --bg: #0b1220;
+  --muted: #6b7280;
+  --accent: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Tránh lệch căn giữa khi thanh cuộn dọc xuất hiện (viewport hẹp đi ~15px bên phải) */
+html {
+  scrollbar-gutter: stable;
+}
+
+body,
+html {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+/* Skeleton tải chunk Home (next/dynamic) — tránh nhảy layout */
+.home-page-loading {
+  min-height: 60vh;
+  padding: 24px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.home-page-loading__bar {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 25%, #e2e8f0 45%, #eef2f7 65%);
+  background-size: 200% 100%;
+  animation: home-page-loading-shimmer 1.1s ease-in-out infinite;
+  margin-bottom: 14px;
+}
+
+.home-page-loading__bar--short {
+  width: 42%;
+}
+
+.home-page-loading__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (min-width: 769px) {
+  .home-page-loading__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.home-page-loading__card {
+  aspect-ratio: 1 / 1.15;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e8ecf2 45%, #f3f4f6 65%);
+  background-size: 200% 100%;
+  animation: home-page-loading-shimmer 1.1s ease-in-out infinite;
+}
+
+@keyframes home-page-loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.app-root {
+  display: flex;
+  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background: #f7fafc;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: linear-gradient(180deg, #071126, #0b1730);
+  color: #dbeafe;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.brand .logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #04201a;
+}
+
+.brand .title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.nav {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav a {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #dbeafe;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nav a.active {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  padding: 28px;
+  padding-bottom: 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #e6edf3;
+  color: #0f172a;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.table th,
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid #eef2f6;
+  text-align: left;
+}
+
+.table th {
+  background: #fbfdff;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.thumbnail {
+  width: 74px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+
+  .app-root {
+    flex-direction: column;
+  }
+
+  .main-content {
+    padding: 14px;
+  }
+}

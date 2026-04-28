@@ -1,0 +1,233 @@
+/**
+ * SEO article inject — sits inside Home listing column below products.
+ * Commerce-first article stack + unified bottom card.
+ */
+
+.seo-ab-root {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 0 48px;
+  box-sizing: border-box;
+}
+
+/* Hero intro — replaces flat paragraph strip */
+.seo-ab-hero-intro {
+  max-width: 900px;
+  margin: 0 auto 24px;
+  padding: 20px 20px 20px 22px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #1a73e8;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+.seo-ab-hero-intro :global(p) {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+/* —— Single article column (matches .seo-article-card) —— */
+.seo-ab-unified-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 32px;
+  max-width: 900px;
+  margin: 24px auto 0;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+/* —— Unified bottom card (shops + FAQ + related) —— */
+.seo-bc-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 32px;
+  max-width: 900px;
+  margin: 32px auto 0;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.seo-bc-section:not(:first-child) {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid #eef1f5;
+}
+
+.seo-bc-heading {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #152028;
+}
+
+.seo-bc-shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.seo-bc-shop-list > li:not(:first-child) {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef1f5;
+}
+
+.seo-bc-shop-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seo-bc-shop-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.seo-bc-shop-name {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: #111827;
+  line-height: 1.35;
+}
+
+.seo-bc-shop-meta {
+  margin-top: 4px;
+  font-size: 0.9375rem;
+  color: #5c6775;
+}
+
+.seo-bc-shop-phone {
+  display: inline-block;
+  margin-top: 8px;
+  font-weight: 600;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.seo-bc-shop-phone:hover {
+  text-decoration: underline;
+}
+
+.seo-bc-shop-phone-muted {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.9375rem;
+  color: #9aa8b5;
+}
+
+.seo-bc-shop-actions {
+  flex-shrink: 0;
+}
+
+.seo-bc-shop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #1a73e8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.seo-bc-shop-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* FAQ accordion */
+.seo-bc-faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.seo-bc-faq-item {
+  border: 1px solid #e8ecf0;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+.seo-bc-faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.45;
+  user-select: none;
+}
+
+.seo-bc-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.seo-bc-faq-item summary::after {
+  content: "+";
+  float: right;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.seo-bc-faq-item[open] summary::after {
+  content: "−";
+}
+
+.seo-bc-faq-answer {
+  padding: 0 16px 14px;
+  font-size: 0.9625rem;
+  line-height: 1.65;
+  color: #374955;
+}
+
+.seo-ab-faq-pre {
+  font-size: 0.85rem;
+  overflow-x: auto;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* Related — two columns */
+.seo-bc-related-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .seo-bc-related-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.seo-bc-related-grid a {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 0.9625rem;
+  line-height: 1.5;
+}
+
+.seo-bc-related-grid a:hover {
+  text-decoration: underline;
+}

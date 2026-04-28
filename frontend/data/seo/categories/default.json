@@ -1,0 +1,40 @@
+{
+  "label": "phụ tùng ô tô chung",
+  "intro": "Mỗi loại phụ tùng có vị trí và công dụng riêng trên xe. Khi tìm hàng, bạn cần đối chiếu **đúng mã theo sổ bảo dưỡng** hoặc theo tình trạng thực tế, vì cùng tên gọi nhưng vẫn có thể khác biệt theo đời xe, phiên bản thị trường hoặc tùy chọn từ nhà sản xuất.",
+  "purpose": "Phụ tùng đóng vai trò bảo dưỡng, thay thế hao mòn hoặc sửa chữa sự cố. Lựa chọn đúng mặt hàng phù hợp tình trạng xe giúp vận hành ổn định và an toàn hơn theo từng bài toán sửa chữa.",
+  "signs": [
+    "Hao mòn bất thường, tiếng ồn lạ, rung hoặc cảm giác lệch so với thói quen vận hành.",
+    "Cảnh báo trên táp-lô (nếu liên quan) hoặc tình trạng ăn mòn, nứt, mờ, mất ánh sáng — tùy nhóm hàng."
+  ],
+  "buyingTips": [
+    "Ưu tiên mã in trên hàng cũ / biên bảo hành / hình chụp rõ, đối chiếu cùng đại lý khi cần.",
+    "Hỏi rõ tình trạng mới/đã qua sử dụng, bảo hành và hình thức lắp (nếu cần thợ chuyên).",
+    "So sánh từ nhiều nguồn để thấy khoảng giá, nhưng không chọn theo rẻ tuyệt đối nếu thiếu thông tin xuất xứ."
+  ],
+  "mistakes": [
+    "Mua theo tên mà không đối mã, dẫn đến lệch đời xe hoặc lệch phiên bản thị trường.",
+    "Bỏ qua kiểm tra vết nứt, vênh, cân chỉnh khi mua hàng tháo thùng từ xe khác."
+  ],
+  "maintenance": "Theo sổ bảo dưỡng gợi ý của hãng và tình hình sử dụng thực tế. Nếu di chuyển nhiều nơi bụi, địa hình gồ ghề, hoặc tải nặng, nên rút ngắn chu kỳ kiểm tra phù hợp.",
+  "installNotes": "Nên bảo quản bề mặt, tránh va đập, siết đúng mô-men theo tài liệu khi cần. Lắp sai có thể gây rò rỉ, lệch hoặc tăng ăn mòn. Khi nghi ngờ, dừng xe và kiểm tra tại xưởng.",
+  "oemVsAftermarket": "Hàng theo dây chuyền chính hãng thường đi kèm bảo hành rõ, đồng bộ tài liệu. Phụ tùng thay thế phù hợp (aftermarket) có thể tối ưu ngân sách; bạn cần đủ thông về mã, tiêu chuẩn và độ tương thích với thế hệ xe của bạn. Otofine không bịa thông số: hãy kiểm tra theo sổ xe / mã trên sản phẩm cũ.",
+  "whereToBuy": "Otofine tập hợp nhiều cửa hàng, gọi nhanh để xác nhận tồn, **giá công bố tại bài** và tình trạng hàng trước khi mua. Chọn món có hình thật, thông tin shop rõ ràng.",
+  "faq": [
+    {
+      "q": "Làm sao biết cần thay sớm hay có thể dùng thêm?",
+      "a": "Căn cứ cảm giác vận hành, tình trạng thực tế, và tài liệu đề xuất. Nên kiểm tra tại xưởng nếu có nghi ngờ an toàn."
+    },
+    {
+      "q": "Có cần về hãng chính hãng cho mọi món là không?",
+      "a": "Tùy mức độ an toàn và bảo dưỡng. Với bài toán tài chính, phụ tùng thay thế đạt chuẩn vẫn dùng được, miễn là đúng ứng dụng và mã tương thích."
+    }
+  ],
+  "internalLinks": [
+    { "label": "Phụ tùng ô tô", "href": "/phu-tung-o-to" }
+  ],
+  "relatedIntents": [
+    "giá công bảng",
+    "mua chính hãng",
+    "đúng mã theo đời xe"
+  ]
+}

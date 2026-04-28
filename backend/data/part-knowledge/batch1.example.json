@@ -1,0 +1,13 @@
+[
+  {
+    "slug": "batch1-example-brake-pad",
+    "category_name": "Braking",
+    "english_name": "Example brake pad",
+    "system_group": "foundation_brake",
+    "seo_priority": 5,
+    "function_text": "Converts hydraulic pressure into friction at the disc.",
+    "symptoms_text": "Squeal, long pedal, vibration under braking.",
+    "replace_interval_text": "Inspect every service; replace per wear indicator.",
+    "faq_text": "Q: Why squeal? A: Often glaze or worn hardware."
+  }
+]

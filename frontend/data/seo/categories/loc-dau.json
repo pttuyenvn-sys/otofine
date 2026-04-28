@@ -1,0 +1,28 @@
+{
+  "label": "lọc dầu",
+  "intro": "Lọc dầu giữ tạp chất trong dầu động cơ, giảm tải lên cơ cấu bôi trơn. Thay theo sổ bảo dưỡng, nhưng bạn vẫn cần **đúng theo ứng dụng** vì tắc lọc, lọc giả, hoặc lắp sai có thể gây chảy cạn, tăng tải bơm.",
+  "purpose": "Lọc bẩn theo từng chu kỳ dầu, giúp bảo vệ ổ trục, tăng, van phân phối. Khi tắc, áp dầu có thể tăng, rò, hoặc tạo tạp cặn tích lũy.",
+  "signs": [
+    "Bảo dưỡng dầu quá hẹp so với thực tế, hoặc sử dụng môi trường bụi nhiều.",
+    "Dầu cạn bất thường, bơm dầu kêu, hoặc cảnh báo cảm biến (tùy xe).",
+    "Mỏng vỡ vỏ, rò, hoặc lọc cũ lắc khi mở nắp."
+  ],
+  "buyingTips": [
+    "Đối mã OEM khi cần; hàng tương đương cần tiêu chuẩn tương thích.",
+    "Không cần tích trữ quá nhiều: lọc cần bảo quản nơi khô.",
+    "Só sánh giá nhiều nguồn trên Otofine trước khi cọc ngoài."
+  ],
+  "mistakes": [
+    "Khoá quá tay nắp, rách ren.",
+    "Dùng lọc không tương ứng vì tưởng mọi lọc giống nhau."
+  ],
+  "maintenance": "Tùy dầu và điều kiện (city, tải, sườn dốc). Tài liệu hãng là gốc; sớm hơn nếu tải nặng.",
+  "installNotes": "Bôi mỏng mỡ vòng đệm mới, siết cân, kiểm tra o-ring còn liền. Xả dầu nóng/đúng sẵn ủng, xử lý dầu thải đúng quy định.",
+  "oemVsAftermarket": "OEM/ chính hãng: quen kích thước, tab bám. Tương đương: kiểm tiêu chuẩn lọc, áp, kích.",
+  "whereToBuy": "Chọn trên Otofine cửa hàng có tồn, minh bạch giá, gọi hỏi sản xuất lọc.",
+  "faq": [
+    { "q": "Có cần thay cùng mỗi lần dầu không?", "a": "Theo tài liệu hãng; nhiều bài 1.000–15.000 km, nhưng tùy dầu và tải." }
+  ],
+  "internalLinks": [ { "label": "Lọc dầu ô tô", "href": "/loc-dau-o-to" } ],
+  "relatedIntents": [ "bảo dưỡng dầu", "giá lọc dầu", "đúng mã" ]
+}

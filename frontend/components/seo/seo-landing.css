@@ -1,0 +1,278 @@
+/* Bổ sung cho landing SEO — không đụng rule Home ngoài phạm vi .seo-landing-* */
+
+/*
+ * Trang [slug] dùng chung .container với Home (grid 300px | 1fr).
+ * Nhiều node con (nav, h1, .content-grid) bị auto-place từng ô → vỡ layout
+ * (nav 300px, H1 cột phải, lưới lệch...).
+ * Một wrapper .seo-landing-main span full hàng: grid-column 1 / -1.
+ */
+.seo-landing-main {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Lưới: một cột — tránh cột 240px trống (SEO không có sidebar phải như Home) */
+.seo-landing-main .content-grid.seo-landing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
+  align-items: start;
+}
+
+/* Cùng độ rộng cột sản phẩm Home (~690px), căn giữa trang */
+.seo-landing-main .content-grid-primary {
+  width: 100%;
+  max-width: min(690px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.seo-landing-main .seo-breadcrumb,
+.seo-landing-main .page-title.seo-landing-h1 {
+  max-width: min(690px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seo-landing-main .seo-landing-lead {
+  max-width: min(72ch, min(690px, 100%));
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seo-landing-main .seo-landing-footer-note {
+  max-width: min(690px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Empty state */
+.seo-empty-state {
+  margin: 8px 0 16px;
+  padding: 20px 18px;
+  text-align: center;
+  background: linear-gradient(180deg, #fafcff 0%, #fff 100%);
+  border: 1px solid var(--of-border, #d0ddee);
+  border-radius: var(--of-radius-lg, 5px);
+  box-shadow: var(--of-shadow-sm, 0 4px 20px rgba(10, 35, 64, 0.06));
+}
+
+.seo-empty-state__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--of-text, #1a2332);
+  margin: 0 0 8px;
+}
+
+.seo-empty-state__sub {
+  font-size: 14px;
+  color: var(--of-muted, #5a6b7d);
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+
+.seo-empty-state__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  color: #fff;
+  background: var(--of-cta, linear-gradient(135deg, #e85d1a, #ff8a3d));
+  box-shadow: 0 5px 16px rgba(242, 108, 34, 0.3);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.seo-empty-state__cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.seo-breadcrumb {
+  font-size: 14px;
+  color: var(--of-muted, #5a6b7d);
+  margin-bottom: 10px;
+  padding: 0 4px;
+  line-height: 1.45;
+}
+
+.seo-breadcrumb a {
+  color: var(--of-primary, #1a5fb4);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.seo-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.seo-bc-sep {
+  opacity: 0.55;
+  margin: 0 5px;
+}
+
+.seo-bc-current {
+  font-weight: 800;
+  color: var(--of-text, #1a2332);
+}
+
+.seo-landing-lead {
+  font-size: 15px;
+  color: var(--of-muted, #5a6b7d);
+  margin: 0 0 16px;
+  line-height: 1.65;
+  padding: 0 4px;
+  max-width: 72ch;
+}
+
+.seo-landing-grid {
+  margin-top: 4px;
+}
+
+.seo-empty-msg {
+  padding: 20px 16px;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.seo-empty-msg a {
+  color: var(--of-primary, #1a5fb4);
+  font-weight: 600;
+}
+
+.seo-card-title {
+  font-size: inherit;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.seo-shop-name {
+  font-size: inherit;
+  font-weight: 700;
+  margin: 0;
+}
+
+.seo-landing-footer-note {
+  margin-top: 20px;
+  padding: 16px 4px 8px;
+  font-size: 14px;
+  color: var(--of-muted, #5a6b7d);
+  line-height: 1.65;
+  border-top: 1px solid var(--of-border, #d0ddee);
+}
+
+.page-btn.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Internal links homepage */
+.seo-internal-links {
+  margin-top: 28px;
+  padding: 20px 16px 24px;
+  border-radius: var(--of-radius-lg, 5px);
+  background: linear-gradient(
+    180deg,
+    rgba(240, 246, 255, 0.65),
+    rgba(255, 255, 255, 0.9)
+  );
+  border: 1px solid rgba(208, 221, 238, 0.85);
+}
+
+.seo-internal-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--of-primary, #1a5fb4);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.seo-internal-sub {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--of-muted, #5a6b7d);
+  margin: 10px 0 8px;
+}
+
+.seo-internal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.seo-internal-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--of-primary-dark, #154a8c);
+  background: #fff;
+  border: 1px solid #c9ddf5;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.seo-internal-link {
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.seo-internal-link:hover {
+  background: var(--of-blue-100, #e3eefc);
+  box-shadow: var(--of-shadow-sm, 0 4px 20px rgba(10, 35, 64, 0.06));
+}
+
+/* Thẻ SP: Link phủ card + pointer-events — tránh <a> lồng <a> (tel) gây lỗi hydration
+   (parent .product đã có position: relative, overflow: hidden) */
+.seo-product-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  text-decoration: none;
+}
+
+.seo-product-card__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.seo-product-card__inner {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.seo-product-card__inner a.phone.phone-click {
+  pointer-events: auto;
+  position: relative;
+  z-index: 3;
+  cursor: pointer;
+}

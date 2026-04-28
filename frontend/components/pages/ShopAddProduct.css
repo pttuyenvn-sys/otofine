@@ -1,0 +1,128 @@
+.PopupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.PopupForm {
+  background: white;
+  padding: 25px;
+  width: 630px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 10px;
+  animation: fadeIn 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.PopupForm h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #005bb5;
+}
+
+.PopupForm h3 {
+  margin-top: 20px;
+  color: #333;
+}
+
+.PopupForm label {
+  font-weight: bold;
+  margin-top: 12px;
+  display: block;
+}
+
+.PopupForm input,
+.PopupForm select,
+.PopupForm textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.PopupForm textarea {
+  resize: vertical;
+}
+
+.textarea1 {
+  height: 40px;
+}
+
+.textarea2 {
+  height: 150px;
+}
+
+.CarRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btnAddCar {
+  background: #0d6efd;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  border: none;
+  cursor: pointer;
+}
+
+.btnAddCar:hover {
+  opacity: 0.85;
+}
+
+.Row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 30px;
+}
+
+.ActionRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btnSubmit {
+  background: #0d6efd;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+}
+
+.btnClose {
+  background: #dc3545;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+}
+
+.btnSubmit:hover,
+.btnClose:hover {
+  opacity: 0.85;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

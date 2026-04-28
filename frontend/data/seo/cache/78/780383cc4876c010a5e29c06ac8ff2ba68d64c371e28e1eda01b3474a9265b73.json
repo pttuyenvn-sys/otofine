@@ -1,0 +1,406 @@
+{
+  "formatVersion": 1,
+  "slug": "khay-do-loc-khong-khi-o-to",
+  "contextHash": "ad3a983c2c1bea69063f3374d3338014fc19253b8796a2e195ebab2b0735d747",
+  "generatedAt": "2026-04-27T23:58:46.314Z",
+  "locked": false,
+  "signals": {
+    "productsCount": 1,
+    "priceMin": 320000,
+    "priceMax": 320000
+  },
+  "article": {
+    "title": "Khay đỡ lọc không khí ô tô",
+    "metaTitle": "Khay đỡ lọc không khí ô tô giá tốt, đúng xe | Otofine",
+    "metaDescription": "Mua khay đỡ lọc không khí ô tô: so sánh giá, nhiều cửa hàng, minh bạch. Hiện có 1 sản phẩm gợi ý. Xem mẹo chọn đúng mã, Khay đỡ lọc không khí trên Otofine.",
+    "lead": {
+      "type": "p",
+      "segments": [
+        {
+          "type": "text",
+          "text": "Có "
+        },
+        {
+          "type": "strong",
+          "text": "1"
+        },
+        {
+          "type": "text",
+          "text": " gợi ý từ nhiều nguồn; bạn hãy lọc theo nhu cầu."
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "la-gi",
+        "level": 2,
+        "title": "Khay đỡ lọc không khí ô tô là gì?",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Mỗi loại phụ tùng có vị trí và công dụng riêng trên xe. Khi tìm hàng, bạn cần đối chiếu "
+              },
+              {
+                "type": "strong",
+                "text": "đúng mã theo sổ bảo dưỡng"
+              },
+              {
+                "type": "text",
+                "text": " hoặc theo tình trạng thực tế, vì cùng tên gọi nhưng vẫn có thể khác biệt theo đời xe, phiên bản thị trường hoặc tùy chọn từ nhà sản xuất."
+              }
+            ]
+          },
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Phụ tùng đóng vai trò bảo dưỡng, thay thế hao mòn hoặc sửa chữa sự cố. Lựa chọn đúng mặt hàng phù hợp tình trạng xe giúp vận hành ổn định và an toàn hơn theo từng bài toán sửa chữa."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "khi-nao-thay",
+        "level": 2,
+        "title": "Khi nào nên thay Khay đỡ lọc không khí ô tô?",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Dấu hiệu chỉ mang tính gợi ý — không thay cho chẩn đoán tại xưởng. Nên kiểm tra thực tế theo mã, đời xe và tình trạng phụ tùng cũ (nếu còn)."
+              }
+            ]
+          },
+          {
+            "type": "ul",
+            "items": [
+              "Hao mòn bất thường, tiếng ồn lạ, rung hoặc cảm giác lệch so với thói quen vận hành.",
+              "Cảnh báo trên táp-lô (nếu liên quan) hoặc tình trạng ăn mòn, nứt, mờ, mất ánh sáng — tùy nhóm hàng."
+            ]
+          },
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Nếu cảm giác bất thường (an toàn, phanh, ánh sáng, vận hành), "
+              },
+              {
+                "type": "strong",
+                "text": "ưu tiên dừng kiểm tra"
+              },
+              {
+                "type": "text",
+                "text": " tại nơi có thiết bị, không tự thử theo cảm tính khi chưa rõ tài liệu."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "gia",
+        "level": 2,
+        "title": "Giá Khay đỡ lọc không khí ô tô hiện nay",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Trang đang ghi nhận "
+              },
+              {
+                "type": "strong",
+                "text": "1"
+              },
+              {
+                "type": "text",
+                "text": " sản phẩm gợi ý, "
+              },
+              {
+                "type": "strong",
+                "text": "1"
+              },
+              {
+                "type": "text",
+                "text": " nguồn cửa hàng khác nhau (ước lượng từ dữ liệu hiện tại). Khoảng giá: từ "
+              },
+              {
+                "type": "strong",
+                "text": "320.000 đ"
+              },
+              {
+                "type": "text",
+                "text": " trở lên (theo dữ liệu công bố trên trang). Giá thay đổi theo từng mã, tình trạng hàng, và từng shop — bạn dùng bảng dưới để hình dung, rồi gọi xác nhận."
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "caption": "Một số sản phẩm gợi ý (có thể thay đổi theo thời gian thực)",
+            "columns": [
+              {
+                "key": "stt",
+                "label": "#"
+              },
+              {
+                "key": "ten",
+                "label": "Gợi ý"
+              },
+              {
+                "key": "gia",
+                "label": "Giá công bố"
+              }
+            ],
+            "rows": [
+              {
+                "stt": 1,
+                "ten": "Khay đỡ lọc không khí Toyota Innova 2006-2016",
+                "gia": "320.000đ"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cach-chon",
+        "level": 2,
+        "title": "Cách chọn đúng loại phù hợp xe",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Quy tắc an toàn: ưu tiên mã, tem, hình sản phẩm, và tình trạng. Với từng hãng/đời, biến thể cấu hình (option) có thể khác; vì vậy cần "
+              },
+              {
+                "type": "strong",
+                "text": "thống nhất theo tài sản cũ"
+              },
+              {
+                "type": "text",
+                "text": " trước khi quyết định."
+              }
+            ]
+          },
+          {
+            "type": "ul",
+            "items": [
+              "Ưu tiên mã in trên hàng cũ / biên bảo hành / hình chụp rõ, đối chiếu cùng đại lý khi cần.",
+              "Hỏi rõ tình trạng mới/đã qua sử dụng, bảo hành và hình thức lắp (nếu cần thợ chuyên).",
+              "So sánh từ nhiều nguồn để thấy khoảng giá, nhưng không chọn theo rẻ tuyệt đối nếu thiếu thông tin xuất xứ."
+            ]
+          },
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Nếu bạn đang tìm theo xe — cần kiểm tra theo tài sản, không chỉ tên sản phẩm từ trên mạng."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "so-sanh",
+        "level": 2,
+        "title": "So sánh hàng chính hãng, OEM và thay thế",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Hàng theo dây chuyền chính hãng thường đi kèm bảo hành rõ, đồng bộ tài liệu. Phụ tùng thay thế phù hợp (aftermarket) có thể tối ưu ngân sách; bạn cần đủ thông về mã, tiêu chuẩn và độ tương thích với thế hệ xe của bạn. Otofine không bịa thông số: hãy kiểm tra theo sổ xe / mã trên sản phẩm cũ."
+              }
+            ]
+          },
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Tùy môn hàng, từng bài sửa tài chính khác nhau. Otofine khuyên bạn quy đổi quy chuẩn an toàn khi cần (phanh, treo, điện, đèn…). Bài viết ở mức tổng hợp, không cung cấp số mô-men hay kích từng loại."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sai-lam",
+        "level": 2,
+        "title": "Sai lầm thường gặp",
+        "blocks": [
+          {
+            "type": "ul",
+            "items": [
+              "Mua theo tên mà không đối mã, dẫn đến lệch đời xe hoặc lệch phiên bản thị trường.",
+              "Bỏ qua kiểm tra vết nứt, vênh, cân chỉnh khi mua hàng tháo thùng từ xe khác."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bao-duong",
+        "level": 2,
+        "title": "Bảo dưỡng & kiểm tra",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Theo sổ bảo dưỡng gợi ý của hãng và tình hình sử dụng thực tế. Nếu di chuyển nhiều nơi bụi, địa hình gồ ghề, hoặc tải nặng, nên rút ngắn chu kỳ kiểm tra phù hợp."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "lap-dat",
+        "level": 2,
+        "title": "Lưu ý khi lắp đặt và sử dụng",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Nên bảo quản bề mặt, tránh va đập, siết đúng mô-men theo tài liệu khi cần. Lắp sai có thể gây rò rỉ, lệch hoặc tăng ăn mòn. Khi nghi ngờ, dừng xe và kiểm tra tại xưởng."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mua-uy-tin",
+        "level": 2,
+        "title": "Mua ở đâu uy tín, giá minh bạch?",
+        "blocks": [
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Otofine tập hợp nhiều cửa hàng, gọi nhanh để xác nhận tồn, "
+              },
+              {
+                "type": "strong",
+                "text": "giá công bố tại bài"
+              },
+              {
+                "type": "text",
+                "text": " và tình trạng hàng trước khi mua. Chọn món có hình thật, thông tin shop rõ ràng."
+              }
+            ]
+          },
+          {
+            "type": "p",
+            "segments": [
+              {
+                "type": "text",
+                "text": "Trên sàn, bạn so sánh "
+              },
+              {
+                "type": "strong",
+                "text": "nhiều nguồn"
+              },
+              {
+                "type": "text",
+                "text": ", thấy "
+              },
+              {
+                "type": "strong",
+                "text": "giá công bố"
+              },
+              {
+                "type": "text",
+                "text": " và số liên hệ, trước khi đến/ship. Tiêu đề trang phản ánh đúng "
+              },
+              {
+                "type": "strong",
+                "text": "ý định tìm"
+              },
+              {
+                "type": "text",
+                "text": " mà nhiều người dùng tìm tới Otofine."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "faq",
+        "level": 2,
+        "title": "Câu hỏi thường gặp",
+        "blocks": [
+          {
+            "type": "faq",
+            "items": [
+              {
+                "q": "Làm sao biết cần thay sớm hay có thể dùng thêm?",
+                "a": "Căn cứ cảm giác vận hành, tình trạng thực tế, và tài liệu đề xuất. Nên kiểm tra tại xưởng nếu có nghi ngờ an toàn."
+              },
+              {
+                "q": "Có cần về hãng chính hãng cho mọi món là không?",
+                "a": "Tùy mức độ an toàn và bảo dưỡng. Với bài toán tài chính, phụ tùng thay thế đạt chuẩn vẫn dùng được, miễn là đúng ứng dụng và mã tương thích."
+              },
+              {
+                "q": "Khay đỡ lọc không khí ô tô mua ở đâu?",
+                "a": "Trên Otofine bạn liên hệ trực tiếp cửa hàng: gọi, Zalo, hoặc mở trang sản phẩm. Giá công bố tại từng bài, có thể thay đổi; vui lòng xác nhận trước khi cọc."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "duong-dan",
+        "level": 2,
+        "title": "Đường dẫn liên quan",
+        "blocks": [
+          {
+            "type": "links",
+            "items": [
+              {
+                "label": "Phụ tùng ô tô",
+                "href": "/phu-tung-o-to"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "faq": [
+      {
+        "q": "Làm sao biết cần thay sớm hay có thể dùng thêm?",
+        "a": "Căn cứ cảm giác vận hành, tình trạng thực tế, và tài liệu đề xuất. Nên kiểm tra tại xưởng nếu có nghi ngờ an toàn."
+      },
+      {
+        "q": "Có cần về hãng chính hãng cho mọi món là không?",
+        "a": "Tùy mức độ an toàn và bảo dưỡng. Với bài toán tài chính, phụ tùng thay thế đạt chuẩn vẫn dùng được, miễn là đúng ứng dụng và mã tương thích."
+      },
+      {
+        "q": "Khay đỡ lọc không khí ô tô mua ở đâu?",
+        "a": "Trên Otofine bạn liên hệ trực tiếp cửa hàng: gọi, Zalo, hoặc mở trang sản phẩm. Giá công bố tại từng bài, có thể thay đổi; vui lòng xác nhận trước khi cọc."
+      }
+    ],
+    "images": [
+      {
+        "src": "https://img.otofine.com/shops/1/885480K020.webp",
+        "alt": "Khay đỡ lọc không khí ô tô — gợi ý sản phẩm 1",
+        "caption": "Khay đỡ lọc không khí Toyota Innova 2006-2016"
+      }
+    ],
+    "wordCountApprox": 1100,
+    "source": "template_kb"
+  }
+}

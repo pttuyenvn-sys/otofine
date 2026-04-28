@@ -1,0 +1,475 @@
+/* Đồng bộ với pages/products/Product.css — tránh ghi đè layout khi ProductTable import file này */
+.AdminChitiet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 48px;
+  background-color: white;
+}
+
+.ProductListWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.AdminTieude {
+  display: flex;
+  height: 35px;
+  background-color: white;
+  color: #444;
+  background: linear-gradient(to top right, #dad7d7, #ffffff);
+  font-size: 10px;
+  font-weight: bold;
+  align-items: center;
+  margin-top: 0;
+  padding-left: 10px;
+  gap: 10px;
+  border-radius: 2px;
+}
+
+/* ====== TEXT BÊN TRÁI ====== */
+.TieudeText {
+  font-size: 15px;
+  color: #333;
+  margin: 0;
+}
+
+/* ====== NHÓM NÚT BÊN PHẢI ====== */
+.TieudeButtons {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Style chung cho nút */
+.TieudeButtons button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 500;
+  height: 30px;
+  width: auto;
+}
+
+.TieudeButtons label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 500;
+  height: 18px;
+  width: auto;
+}
+
+/* Màu của từng nút */
+
+.btnThemMoi {
+  background: var(--color-primary);
+}
+
+.btn-primary {
+  background: orangered;
+}
+
+.btnNhap {
+  background: #059963;
+}
+
+.btnXuat {
+  background: #066b3c;
+}
+
+.btnXoa {
+  display: flex;
+  background: #dc3545;
+  width: 35px;
+  justify-content: center;
+  border: 1px solid #dc3545;
+  border-radius: 5px;
+  color: white;
+}
+
+.btnSua {
+  min-width: 60px;
+  border: 1px solid orange;
+  border-radius: 5px;
+  background-color: orange;
+}
+
+.btnXemanh {
+  min-width: 60px;
+  border: 1px solid rgb(41, 107, 41);
+  border-radius: 5px;
+  background: rgb(41, 107, 41);
+  color: white;
+}
+/* Hover */
+.TieudeButtons button:hover {
+  opacity: 0.85;
+}
+
+/* Nút Tìm kiếm */
+.btnTimKiem {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+  height: 30px;
+  width: 118px;
+}
+
+.btnTimKiem:hover {
+  opacity: 0.85;
+}
+
+.btnChonLai {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+  height: 30px;
+  width: 118px;
+}
+
+.btnChonLai:hover {
+  opacity: 0.85;
+}
+
+/* ====== LAYOUT CHUNG ====== */
+.AdminTimkiem {
+  padding: 4px 10px 6px;
+  background: white;
+  border: 1px solid #c7c9cc;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.TimkiemGrid {
+  display: grid;
+  grid-template-columns: max-content max-content auto;
+  gap: 4px 14px;
+  align-items: center;
+}
+
+/* ====== MỖI CỘT ====== */
+.TimkiemColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ====== 1 dòng label + input/select — ô ngắn cố định ====== */
+.TimkiemRow {
+  display: grid;
+  grid-template-columns: 100px max-content;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  height: auto;
+  position: relative; /* giữ label đúng vị trí */
+  z-index: 1;
+}
+
+/* LABEL */
+.TimkiemRow label {
+  font-size: 13px;
+  color: #333;
+  font-weight: bold;
+  text-align: right;
+}
+
+/* INPUT + SELECT */
+.TimkiemRow select {
+  width: 200px;
+  max-width: 200px;
+  border: 1px solid #c7c9cc;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 13px;
+  color: #575656;
+  min-height: 26px;
+  box-sizing: border-box;
+}
+.TimkiemRow input {
+  width: 200px;
+  max-width: 200px;
+  min-height: 26px;
+  border: 1px solid #c7c9cc;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 13px;
+  color: var(--color-primary);
+  box-sizing: border-box;
+}
+
+.progress-container {
+  width: 300px;
+  height: 20px;
+  background: #eee;
+  margin: 10px 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #0d6efd;
+  color: white;
+  text-align: center;
+  line-height: 20px;
+  font-size: 12px;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Hiển thị select mờ khi đang ở -- Tất cả -- */
+.select-muted {
+  color: #aaa; /* chữ mờ khi chưa chọn */
+}
+
+/* bình thường, chữ đậm */
+.select-normal {
+  color: #444;
+}
+
+/* placeholder input mờ */
+.AdminTimkiem input::placeholder {
+  color: #aaa;
+  opacity: 1;
+}
+
+.TimkiemActions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  margin-left: 2px;
+  padding-top: 0;
+  align-self: stretch;
+  justify-content: center;
+}
+
+/* Bọc bảng — flex + min-height để cuộn trong main-content, không cắt dòng cuối */
+.AdminDulieuTable {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Bảng */
+.AdminDulieuTable table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  min-width: 1500px; /* Tránh bị bóp khi nhiều cột */
+  color: #333;
+}
+
+.AdminDulieuTable th {
+  border: 1px solid #ddd;
+  padding: 5px 8px;
+  white-space: nowrap; /* Không xuống dòng */
+  font-size: 14px;
+}
+.AdminDulieuTable td {
+  border: 1px solid #ddd;
+  padding: 0 8px;
+  white-space: nowrap; /* Không xuống dòng */
+  font-size: 14px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.SuggestWrapper {
+  position: relative;
+}
+
+/* Danh sách gợi ý */
+.SuggestList {
+  position: absolute;
+  top: 100%; /* Nằm ngay dưới input, không ảnh hưởng layout */
+  left: 0;
+  right: 0;
+
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+
+  max-height: 240px;
+  overflow-y: auto;
+
+  z-index: 9999; /* Quan trọng! Để luôn nổi lên trên */
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* Đẹp & dễ nhìn */
+}
+
+/* Từng dòng gợi ý */
+.SuggestList li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap; /* không xuống dòng */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.SuggestList li:hover {
+  background: #f0f0f0;
+}
+
+.PopupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45); /* nền tối mờ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999; /* cao nhất để che mọi thứ */
+}
+
+.PopupConfirm {
+  background: white;
+  width: 360px;
+  padding: 25px 20px;
+  border-radius: 8px;
+  text-align: center;
+  animation: popupFadeIn 0.2s ease;
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.PopupConfirm h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: #333;
+  font-weight: bold;
+}
+
+.PopupConfirm p {
+  font-size: 15px;
+  color: #444;
+  margin-bottom: 20px;
+}
+
+/* Nút */
+.PopupButtons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.btnYes,
+.btnNo {
+  padding: 8px 22px;
+  font-size: 15px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btnYes {
+  background: #dc3545; /* đỏ */
+}
+
+.btnNo {
+  background: #0d6efd; /* xanh */
+}
+
+.btnYes:hover,
+.btnNo:hover {
+  opacity: 0.85;
+}
+
+/* Animation mở popup */
+@keyframes popupFadeIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Cột checkbox + ShopID */
+.cell-shop {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* tăng cho rõ */
+}
+
+/* checkbox đẹp hơn */
+.cell-shop input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Căn giữa theo chiều dọc toàn bảng */
+.AdminDulieuTable td,
+.AdminDulieuTable th {
+  vertical-align: middle;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px; /* khoảng cách giữa nút */
+  align-items: center;
+  flex-wrap: nowrap; /* không xuống dòng */
+}
+
+/* đảm bảo nút không bị xuống dòng */
+.action-buttons button {
+  min-width: 50px; /* 👈 quan trọng */
+  height: 23px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}

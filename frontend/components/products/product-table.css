@@ -1,0 +1,52 @@
+.product-table-wrapper {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.product-table th,
+.product-table td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.product-table th {
+  background: #f3f3f3;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.product-table td {
+  white-space: normal;
+}
+
+.btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.btn-view {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.btn-edit {
+  background: #f9a825;
+  color: #000;
+}
+
+.btn-delete {
+  background: #d32f2f;
+  color: #fff;
+}
