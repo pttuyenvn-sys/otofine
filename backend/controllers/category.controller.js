@@ -151,6 +151,7 @@ async function computePopularCategoriesFromProductListView() {
       ) AS score
     FROM per_cat
     WHERE rn = 1
+      AND product_count > 0
     ORDER BY score DESC, product_count DESC, category_norm ASC
     LIMIT 8
     `,
@@ -159,7 +160,7 @@ async function computePopularCategoriesFromProductListView() {
   return (rows || []).map((r) => {
     const name = formatCategoryLabel(r.samplePartName);
     return {
-      name,
+      category_name: name,
       samplePartName: r.samplePartName,
       categoryNorm: r.categoryNorm,
       productCount: Number(r.productCount) || 0,
@@ -223,6 +224,7 @@ async function computePopularCategoriesFromProducts() {
     WHERE rn = 1
       AND cat_key IS NOT NULL
       AND TRIM(cat_key) != ''
+      AND product_count > 0
     ORDER BY score DESC, product_count DESC, cat_key ASC
     LIMIT 8
     `,
@@ -231,7 +233,7 @@ async function computePopularCategoriesFromProducts() {
   return (rows || []).map((r) => {
     const name = formatCategoryLabel(r.samplePartName);
     return {
-      name,
+      category_name: name,
       samplePartName: r.samplePartName,
       categoryNorm: r.categoryNorm,
       productCount: Number(r.productCount) || 0,

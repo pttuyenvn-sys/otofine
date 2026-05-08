@@ -56,6 +56,7 @@ function RelatedCategories({ categories, currentCategory }) {
           <Link 
             key={index}
             href={`/${category.toLowerCase().replace(/\s+/g, '-')}-o-to`}
+            prefetch={false}
             className="related-category-card"
           >
             <div className="related-category-content">
@@ -130,7 +131,7 @@ function CategoryBreadcrumb({ items }) {
             {index === items.length - 1 ? (
               <span className="breadcrumb-current">{item.name}</span>
             ) : (
-              <Link href={item.href} className="breadcrumb-link">
+              <Link href={item.href} className="breadcrumb-link" prefetch={false}>
                 {item.name}
               </Link>
             )}
@@ -270,7 +271,7 @@ export default function CategorySeoContent({
               <FiPhoneCall className="cta-icon" />
               Gọi ngay 1900 1234
             </a>
-            <Link href="/shop" className="cta-button cta-button-secondary">
+            <Link href="/shop" className="cta-button cta-button-secondary" prefetch={false}>
               Xem tất cả sản phẩm
             </Link>
           </div>
@@ -353,8 +354,7 @@ export function CategorySeoContentWithProducts({
                   )}
                   <Link 
                     href={product.slug ? `/product/${encodeURIComponent(product.slug)}` : `/product/${product.id}`}
-                    className="product-link"
-                  >
+                    className="product-link" prefetch={false}>
                     Xem chi tiết
                   </Link>
                 </div>

@@ -42,7 +42,7 @@ export default function AdminForgotPassword() {
         <p className="text-gray-700 text-sm pt-2">{msg}</p>
 
         <p className="text-center text-sm text-blue-600 mt-2 hover:underline">
-          <Link href="/admin/login">Quay lại đăng nhập</Link>
+          <Link href="/admin/login" prefetch={false}>Quay lại đăng nhập</Link>
         </p>
       </form>
     </AuthCard>

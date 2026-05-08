@@ -27,5 +27,6 @@ export function buildHomeListQueryKey(s) {
     f.transmission,
     f.drivetrain,
     f.bodyType,
+    f.city,
   ].join("\0");
 }

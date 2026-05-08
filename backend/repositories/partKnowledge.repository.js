@@ -60,6 +60,21 @@ async function getMysqlColumnSet() {
   return mysqlColumnSet;
 }
 
+/*
+ * MIGRATION SUGGESTION:
+ * If canonical_name column is missing from part_knowledge table, run:
+ *
+ * ALTER TABLE part_knowledge
+ * ADD COLUMN canonical_name VARCHAR(512) NULL
+ * AFTER name_en;
+ *
+ * Then add FULLTEXT index:
+ * ALTER TABLE part_knowledge
+ * ADD FULLTEXT INDEX ft_canonical_name (canonical_name, name_vi, name_en, summary, body);
+ *
+ * This improves search relevance by matching against canonical part names.
+ */
+
 async function getWritableColumnsForCurrentMysqlSchema() {
   const columns = await getMysqlColumnSet();
   return WRITABLE_COLUMNS.filter((column) => columns.has(column));
@@ -157,7 +172,7 @@ function toApiRow(row) {
     slug: row.slug,
     nameVi: row.name_vi,
     nameEn: row.name_en,
-    canonicalName: row.canonical_name,
+    canonicalName: row.canonical_name ?? null, // Safe fallback if column missing
     aliasesJson: row.aliases_json,
     regionalAliasesJson: row.regional_aliases_json,
     summary: row.summary,
@@ -246,33 +261,96 @@ function bindMssqlRow(request, row) {
 
 async function listPartKnowledgeMysql({ page, limit, q } = {}) {
   const paging = clampPagination(page, limit);
-  const params = [];
-  let where = "WHERE 1=1";
-  if (q) {
-    where += " AND (slug LIKE ? OR name_vi LIKE ? OR name_en LIKE ? OR category_name LIKE ?)";
-    const like = `%${String(q).trim()}%`;
-    params.push(like, like, like, like);
+  const qTrim = q ? String(q).trim() : "";
+
+  if (!qTrim) {
+    const [[countRow]] = await mysqlPool.query(
+      `SELECT COUNT(*) AS total FROM part_knowledge WHERE 1=1`,
+    );
+    const [rows] = await mysqlPool.query(
+      `SELECT * FROM part_knowledge WHERE 1=1 ORDER BY ai_priority DESC, id DESC LIMIT ? OFFSET ?`,
+      [paging.limit, paging.offset],
+    );
+    return {
+      rows: rows.map(toApiRow),
+      page: paging.page,
+      limit: paging.limit,
+      total: Number(countRow.total) || 0,
+    };
   }
 
-  const [[countRow]] = await mysqlPool.query(
-    `SELECT COUNT(*) AS total FROM part_knowledge ${where}`,
-    params,
+  // --- Phase 1: LIKE search (slug, name_vi, name_en, category_name, aliases_json) ---
+  const like = `%${qTrim}%`;
+  const likeWhere = "WHERE (slug LIKE ? OR name_vi LIKE ? OR name_en LIKE ? OR category_name LIKE ? OR aliases_json LIKE ?)";
+  const likeParams = [like, like, like, like, like];
+
+  const [likeRows] = await mysqlPool.query(
+    `SELECT *,
+       CASE
+         WHEN slug = ? THEN 1
+         WHEN name_vi = ? THEN 2
+         WHEN aliases_json LIKE ? THEN 3
+         ELSE 4
+       END AS _rank
+     FROM part_knowledge
+     ${likeWhere}
+     ORDER BY _rank ASC, ai_priority DESC, id DESC
+     LIMIT ?`,
+    [qTrim, qTrim, like, ...likeParams, 20],
   );
-  const [rows] = await mysqlPool.query(
-    `
-    SELECT *
-    FROM part_knowledge
-    ${where}
-    ORDER BY ai_priority DESC, id DESC
-    LIMIT ? OFFSET ?
-    `,
-    [...params, paging.limit, paging.offset],
-  );
+
+  console.log("[PART SEARCH] q:", qTrim, "| like rows:", likeRows.length);
+
+  if (likeRows.length > 0) {
+    return {
+      rows: likeRows.map(toApiRow),
+      page: paging.page,
+      limit: 20,
+      total: likeRows.length,
+    };
+  }
+
+  // --- Phase 2: FULLTEXT fallback ---
+  const ftTerms = qTrim
+    .split(/[\s\-]+/)
+    .filter((t) => t.length >= 2)
+    .map((t) => `+${t}*`)
+    .join(" ");
+
+  let ftRows = [];
+  if (ftTerms) {
+    // Detect if canonical_name column exists
+    const columnSet = await getMysqlColumnSet();
+    const hasCanonicalName = columnSet.has("canonical_name");
+
+    // Use MATCH with available columns only
+    const matchColumns = hasCanonicalName
+      ? "canonical_name, name_vi, name_en, summary, body"
+      : "name_vi, name_en, summary, body";
+
+    try {
+      [ftRows] = await mysqlPool.query(
+        `SELECT *, MATCH(${matchColumns}) AGAINST(? IN BOOLEAN MODE) AS _rel
+         FROM part_knowledge
+         WHERE MATCH(${matchColumns}) AGAINST(? IN BOOLEAN MODE)
+         ORDER BY _rel DESC, ai_priority DESC, id DESC
+         LIMIT ?`,
+        [ftTerms, ftTerms, 20],
+      );
+    } catch (err) {
+      // If FULLTEXT fails, log and return empty results instead of crashing
+      console.error("[PART SEARCH] FULLTEXT query failed:", err.message);
+      ftRows = [];
+    }
+  }
+
+  console.log("[PART SEARCH] q:", qTrim, "| fulltext rows:", ftRows.length, "| terms:", ftTerms);
+
   return {
-    rows: rows.map(toApiRow),
+    rows: ftRows.map(toApiRow),
     page: paging.page,
-    limit: paging.limit,
-    total: Number(countRow.total) || 0,
+    limit: 20,
+    total: ftRows.length,
   };
 }
 

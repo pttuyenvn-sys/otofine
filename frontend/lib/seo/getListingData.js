@@ -1,13 +1,25 @@
 import { API_BASE } from "@/lib/config";
 import { parseLandingSlug } from "./parseLandingSlug";
 
+function appendListingParam(params, key, value) {
+  if (value == null) return;
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (!t) return;
+    if (t.toLowerCase() === "null" || t.toLowerCase() === "undefined") return;
+    params.set(key, t);
+    return;
+  }
+  params.set(key, String(value));
+}
+
 export async function fetchProductList(filters, page = 1) {
   const params = new URLSearchParams();
   params.set("page", String(Math.max(1, Number(page) || 1)));
-  if (filters.brand) params.set("brand", filters.brand);
-  if (filters.model) params.set("model", filters.model);
-  if (filters.year) params.set("year", filters.year);
-  if (filters.category) params.set("category", filters.category);
+  appendListingParam(params, "brand", filters.brand);
+  appendListingParam(params, "model", filters.model);
+  appendListingParam(params, "year", filters.year);
+  appendListingParam(params, "category", filters.category);
 
   const url = `${API_BASE}/products/list?${params.toString()}`;
   const res = await fetch(url, { next: { revalidate: 120 } });

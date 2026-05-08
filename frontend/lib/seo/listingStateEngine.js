@@ -1,5 +1,5 @@
-import { buildHomePageTitle, EMPTY_HOME_FILTERS } from "@/lib/seo/homePageTitle";
-import { buildHomeListingUrl } from "@/lib/seo/parseHomeListingSlug";
+import { buildHomePageTitle, classifyListingTier, EMPTY_HOME_FILTERS } from "@/lib/seo/homePageTitle";
+import { buildUrlFromH1 } from "@/lib/seo/parseHomeListingSlug";
 
 /**
  * @param {Record<string, string> | undefined | null} filters
@@ -19,44 +19,66 @@ function normalizeFilters(filters) {
 
 /**
  * @param {{
- *   selectedCategory?: string,
- *   filters?: Record<string, string> | null,
- *   page?: number,
+ *   category?: string,
+ *   brand?: string,
+ *   model?: string,
+ *   year?: string,
+ *   location?: string,
  *   keyword?: string,
+ *   page?: number,
  *   sort?: string,
  * }} input
  */
 export function buildListingState({
-  selectedCategory,
-  filters,
-  page = 1,
+  category = "",
+  brand = "",
+  model = "",
+  year = "",
+  location = "",
   keyword = "",
+  page = 1,
   sort = "",
 }) {
-  const cat = String(selectedCategory ?? "").trim();
-  const nf = normalizeFilters(filters);
-  const kw = String(keyword ?? "").trim();
-  const st = String(sort ?? "").trim();
+  const cat = String(category).trim();
+  const br = String(brand).trim();
+  const mo = String(model).trim();
+  const yr = String(year).trim();
+  const loc = String(location).trim();
+  const kw = String(keyword).trim();
+  const st = String(sort).trim();
   const p = Math.max(1, Number(page) || 1);
 
-  const h1 = buildHomePageTitle(cat, nf);
-  const url = buildHomeListingUrl(h1, { q: kw, page: p });
+  const state = {
+    category: cat,
+    brand: br,
+    model: mo,
+    year: yr,
+    location: loc,
+  };
+
+  const h1 = buildHomePageTitle(state);
+  const { tier, label: tierLabel } = classifyListingTier(state);
+  const url = buildUrlFromH1(h1, { q: kw, page: p });
 
   const qMark = url.indexOf("?");
   const slug = (qMark === -1 ? url : url.slice(0, qMark)) || "/";
-  /** With leading "?"; empty when no query segment (e.g. "" or "?q=a&page=2"). */
   const queryString = qMark === -1 ? "" : `?${url.slice(qMark + 1)}`;
 
   const stateKey = JSON.stringify({
-    selectedCategory: cat,
-    filters: nf,
-    page: p,
+    category: cat,
+    brand: br,
+    model: mo,
+    year: yr,
+    location: loc,
     keyword: kw,
+    page: p,
     sort: st,
   });
 
   return {
     h1,
+    tier,
+    tierLabel,
     url,
     slug,
     queryString,

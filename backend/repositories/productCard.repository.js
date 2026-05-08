@@ -1,5 +1,24 @@
 import { pool } from "../config/db.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import {
+  isPresentNonEmptyFilterString,
+  normalizeListFilterYear,
+} from "../utils/listingQueryNormalize.js";
+
+function normalizeText(str = "") {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sqlLowerTrim(expr) {
+  return `LOWER(TRIM(${expr}))`;
+}
 
 /**
  * @typedef {Awaited<ReturnType<typeof import("../utils/productsTableColumns.server.js").getProductsColumnsResolved>>} ProductsSchemaAdapter
@@ -36,7 +55,7 @@ function compatibilityLineSubselect(pc) {
           )
         ))
         FROM product_car_applications pax
-        INNER JOIN car_models cmx ON cmx.id = pax.carModelId
+        LEFT JOIN car_models cmx ON cmx.id = pax.carModelId
         WHERE pax.productId = ${pc.idExpr("p")}
         ORDER BY pax.id ASC
         LIMIT 1
@@ -96,40 +115,60 @@ function homeCardSelectBody(pc) {
 function appendCardFacetFilters(whereParts, params, pc, ord, facet) {
   const { brand, model, year, category, keywordWords } = facet;
   const pid = pc.idExpr("p");
+  const locationName = String(facet.city || facet.location || "").trim();
 
-  if (brand) {
+  if (facet.cityId) {
+    const cid = Number(facet.cityId);
+    if (Number.isFinite(cid) && cid > 0) {
+      whereParts.push(` AND s.provinceId = ? `);
+      params.push(cid);
+    }
+  } else if (locationName) {
+    const locationLower = locationName.toLowerCase();
+    whereParts.push(` AND (
+      ${sqlLowerTrim("ap.tinh_tp")} = ?
+      OR ${sqlLowerTrim("REPLACE(ap.tinh_tp, 'TP ', '')")} = ?
+      OR ${sqlLowerTrim("ap.tinh_tp")} LIKE ?
+    ) `);
+    params.push(locationLower, locationLower, `%${locationLower}`);
+  }
+
+  if (isPresentNonEmptyFilterString(brand)) {
     whereParts.push(` AND EXISTS (
       SELECT 1 FROM product_car_applications pa
       INNER JOIN car_models cm ON cm.id = pa.carModelId
-      WHERE pa.productId = ${pid} AND cm.hang_xe = ?
+      WHERE pa.productId = ${pid} AND ${sqlLowerTrim("cm.hang_xe")} = ?
     ) `);
-    params.push(brand);
+    params.push(String(brand).trim().toLowerCase());
   }
 
-  if (model) {
+  if (isPresentNonEmptyFilterString(model)) {
     whereParts.push(` AND EXISTS (
       SELECT 1 FROM product_car_applications pa2
       INNER JOIN car_models cm2 ON cm2.id = pa2.carModelId
-      WHERE pa2.productId = ${pid} AND cm2.ten_xe = ?
+      WHERE pa2.productId = ${pid} AND ${sqlLowerTrim("cm2.ten_xe")} = ?
     ) `);
-    params.push(model);
+    params.push(String(model).trim().toLowerCase());
   }
 
-  if (year) {
+  const yearNum = normalizeListFilterYear(year);
+  if (yearNum != null) {
     whereParts.push(` AND EXISTS (
       SELECT 1 FROM product_car_applications pa3
       WHERE pa3.productId = ${pid}
         AND pa3.year_from <= ? AND pa3.year_to >= ?
     ) `);
-    params.push(year, year);
+    params.push(yearNum, yearNum);
   }
 
-  if (category) {
+  if (isPresentNonEmptyFilterString(category)) {
+    // Match category using same normalization as category controller
+    const normCat = normalizeText(category);
     whereParts.push(`
-      AND ${pc.nameNormalizedLowerExpr("p")}
-        = LOWER(TRIM(REGEXP_REPLACE(?, '\\\\s+', ' ')))
+      AND REPLACE(REPLACE(${pc.partNameExpr("p")}, 'đ', 'd'), 'Đ', 'd')
+        REGEXP ?
     `);
-    params.push(category);
+    params.push(`^${normCat}(\\\\s|$)`);
   }
 
   const pn = pc.partNumberExpr("p");
@@ -245,6 +284,7 @@ export async function fetchCardsLiveFiltered({
   year,
   category,
   keywordWords,
+  cityId,
 }) {
   const pc = await getProductsColumnsResolved();
   const ord = pc.orderExprQualified("p");
@@ -257,6 +297,7 @@ export async function fetchCardsLiveFiltered({
     year,
     category,
     keywordWords,
+    cityId,
     cursorUpdatedAt,
     cursorId,
   });
@@ -322,6 +363,7 @@ export async function fetchHomeCardsLiveFiltered({
   year,
   category,
   keywordWords,
+  cityId,
 }) {
   const pc = await getProductsColumnsResolved();
   const ord = pc.orderExprQualified("p");
@@ -334,6 +376,7 @@ export async function fetchHomeCardsLiveFiltered({
     year,
     category,
     keywordWords,
+    cityId,
     cursorUpdatedAt,
     cursorId,
   });

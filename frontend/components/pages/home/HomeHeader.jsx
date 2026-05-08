@@ -24,7 +24,7 @@ export default function HomeHeader({
         >
           Chọn xe
         </button>
-        <Link href="/" className="of-mobile-logo" prefetch>
+        <Link href="/" className="of-mobile-logo" prefetch={false}>
           <Image
             src="/logo.png"
             alt="Otofine"
@@ -33,7 +33,6 @@ export default function HomeHeader({
             priority
             sizes="120px"
             className="of-mobile-logo__img"
-            style={{ width: "auto", height: "auto" }}
           />
         </Link>
         <button
@@ -51,9 +50,7 @@ export default function HomeHeader({
           <Link
             href="/"
             className="of-brand"
-            prefetch
-            aria-label="Otofine — về trang chủ"
-          >
+            aria-label="Otofine — về trang chủ" prefetch={false}>
             <Image
               src="/logo.png"
               alt="Otofine — phụ tùng ô tô"
@@ -62,34 +59,30 @@ export default function HomeHeader({
               priority
               sizes="180px"
               className="of-brand__img"
-              style={{ width: "auto", height: "auto" }}
+
             />
           </Link>
-          {searchDesktop}
           <nav
             className="of-top-nav"
             aria-label="Điều hướng chính"
           >
-            <Link href="/" className="of-top-nav__link" prefetch>
+            <Link href="/" className="of-top-nav__link" prefetch={false}>
               Trang chủ
             </Link>
             <span className="of-top-nav__link of-top-nav__link--muted">
               Tin &amp; hướng dẫn
             </span>
           </nav>
+          {searchDesktop}
           <div className="of-top-header__ctas">
             <Link
               href="/shop/login"
-              className="of-btn-ghost of-btn-ghost--sm"
-              prefetch
-            >
+              className="of-btn-ghost of-btn-ghost--sm" prefetch={false}>
               Đăng nhập
             </Link>
             <Link
               href="/shop/register"
-              className="of-cta-seller of-btn-cta of-btn-cta--lg"
-              prefetch
-            >
+              className="of-cta-seller of-btn-cta of-btn-cta--lg" prefetch={false}>
               Bán cùng Otofine
             </Link>
           </div>

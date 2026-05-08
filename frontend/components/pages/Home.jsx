@@ -9,16 +9,14 @@ import React, {
   startTransition,
 } from "react";
 import { FiClock, FiPhoneCall } from "react-icons/fi";
+// Link import kept for other usage in file, leave untouched
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { getProductDetailHref } from "@/lib/productDetailHref";
 import { API_BASE } from "@/lib/config";
 import { fetchJsonCached } from "@/lib/clientJsonCache";
 import {
-  EMPTY_HOME_FILTERS,
   buildHomePageTitle,
 } from "@/lib/seo/homePageTitle";
-import { buildHomeListQueryKey } from "@/lib/seo/homeListQueryKey";
 import {
   FALLBACK_SEO_TOP_BRANDS,
   FALLBACK_SEO_HOT_MODELS,
@@ -30,19 +28,274 @@ import {
 } from "@/lib/seo/dynamicListingSeoComposer";
 import { useListingController } from "@/components/pages/hooks/useListingController";
 import HomeHeader from "@/components/pages/home/HomeHeader";
+// Remove any notion of filters/slug logic from PopularCategoriesBox.
+// Usage must only have onCtaClick and needed UI display props.
 import PopularCategoriesBox from "@/components/pages/home/PopularCategoriesBox";
 import { SearchSuggestThumb } from "@/components/pages/home/HomeImages";
 import { HomeProductCard } from "@/components/pages/home/HomeProductCard";
 import VehicleQuickPanel from "@/components/pages/home/VehicleQuickPanel";
+import PartKnowledgeSeoPage from "@/components/seo/PartKnowledgeSeoPage";
 import "@/components/seo/seo-landing.css";
 import "./Home.css";
 
+// ===== CANONICAL URL SYNC HELPERS =====
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+function slugify(str) {
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+function displayFromSlug(slug) {
+  return String(slug || "")
+    .split("-")
+    .filter(Boolean)
+    .map((x) => x.charAt(0).toUpperCase() + x.slice(1))
+    .join(" ");
+}
+
+function rowName(row) {
+  return String(row?.canonical_name || row?.category_name || row?.name || row?.brand || row || "").trim();
+}
+
+function cleanQueryValue(value) {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const low = trimmed.toLowerCase();
+    if (low === "null" || low === "undefined") return null;
+    return trimmed;
+  }
+  return value;
+}
+
+function buildDbBackedPageTitle({ categoryName, hasCategory, brand, model, year, location }) {
+  const loc = String(location || "").trim();
+
+  if (!hasCategory && !brand && !model && !year && !loc) {
+    return "Phụ tùng ô tô chính hãng giá tốt";
+  }
+
+  if (hasCategory && !brand && !model && !year && !loc) {
+    return `${categoryName} ô tô`;
+  }
+
+  const parts = [hasCategory ? categoryName : "Phụ tùng"];
+  if (brand) parts.push(brand);
+  if (model) parts.push(model);
+  if (year) parts.push(year);
+
+  let title = parts.filter(Boolean).join(" ");
+  if (loc) title += ` tại ${loc}`;
+  return title;
+}
+
+const KNOWN_VEHICLE_BRANDS = [
+  "toyota",
+  "kia",
+  "mazda",
+  "honda",
+  "hyundai",
+  "ford",
+  "mitsubishi",
+  "nissan",
+  "suzuki",
+  "chevrolet",
+  "isuzu",
+  "mercedes-benz",
+  "mercedes",
+  "bmw",
+  "audi",
+  "lexus",
+  "vinfast",
+  "peugeot",
+  "volkswagen",
+  "subaru",
+  "volvo",
+  "daewoo",
+];
+
+function buildPathFromState({ category, brand, model, year, location }) {
+  const parts = [];
+  const hasCategory = !!String(category || "").trim();
+  const hasContext = !!(brand || model || year || location);
+
+  if (hasCategory) {
+    parts.push(slugify(category));
+    if (!hasContext) parts.push("o-to");
+  } else if (hasContext) {
+    parts.push("phu-tung");
+  }
+
+  if (brand) parts.push(slugify(brand));
+  if (model) parts.push(slugify(model));
+  if (year) parts.push(String(year));
+
+  if (location) {
+    parts.push("tai");
+    parts.push(slugify(location));
+  }
+
+  const slug = parts.filter(Boolean).join("-");
+  return slug ? `/${slug}` : "/";
+}
+
+function parseUrlState(pathname, { categories = [], brands = [], locations = [], vehicleHot = null } = {}) {
+  const rawSlug = String(pathname || "").replace(/^\//, "").replace(/\/$/, "");
+
+  if (!rawSlug) {
+    return { category: "", brand: "", model: "", year: "", location: "" };
+  }
+
+  let tokens = rawSlug.split("-").filter(Boolean);
+  let location = "";
+  const taiIndex = tokens.lastIndexOf("tai");
+  if (taiIndex >= 0) {
+    const locSlug = tokens.slice(taiIndex + 1).join("-");
+    const loc = locations.find((x) => x?.slug === locSlug || slugify(String(x?.name || "").replace(/^TP\s+/i, "")) === locSlug);
+    location = loc?.name ? String(loc.name).replace(/^TP\s+/i, "").trim() : displayFromSlug(locSlug);
+    tokens = tokens.slice(0, taiIndex);
+  }
+
+  let year = "";
+  if (/^(19|20)\d{2}$/.test(tokens[tokens.length - 1] || "")) {
+    year = tokens.pop();
+  }
+
+  let category = "";
+  let isPartVehicle = false;
+  let categoryRows = [];
+  if (tokens[0] === "phu" && tokens[1] === "tung") {
+    isPartVehicle = true;
+    tokens = tokens.slice(2);
+  }
+
+  if (!isPartVehicle) {
+    categoryRows = categories
+      .map((row) => ({ row, name: rowName(row), slug: slugify(rowName(row)) }))
+      .filter((x) => x.slug)
+      .sort((a, b) => b.slug.length - a.slug.length);
+    const joined = tokens.join("-");
+    const match = categoryRows.find((x) =>
+      joined === x.slug ||
+      joined === `${x.slug}-o-to` ||
+      joined.startsWith(`${x.slug}-`)
+    );
+    if (match) {
+      category = match.name;
+      tokens = tokens.slice(match.slug.split("-").length);
+      if (tokens[0] === "o" && tokens[1] === "to") tokens = tokens.slice(2);
+    } else if (joined.endsWith("-o-to")) {
+      const rawSlug = joined.replace(/-o-to$/, "");
+
+      const exactMatch = categoryRows.find(
+        (x) => x.slug === rawSlug
+      );
+
+      category = exactMatch?.name || displayFromSlug(rawSlug);
+
+      tokens = [];
+    }
+  }
+
+  const brandRows = brands
+    .map((row) => ({ name: rowName(row), slug: slugify(rowName(row)) }))
+    .filter((x) => x.slug)
+    .sort((a, b) => b.slug.length - a.slug.length);
+  const knownBrandRows = KNOWN_VEHICLE_BRANDS.map((name) => ({
+    name: displayFromSlug(name),
+    slug: slugify(name),
+  }));
+  const allBrandRows = [...brandRows, ...knownBrandRows].sort(
+    (a, b) => b.slug.length - a.slug.length,
+  );
+  const rest = tokens.join("-");
+  let brandStartIndex = 0;
+  let brandMatch = allBrandRows.find(
+    (x) => rest === x.slug || rest.startsWith(`${x.slug}-`),
+  );
+  if (!brandMatch && !isPartVehicle) {
+    for (let i = 1; i < tokens.length; i += 1) {
+      const tail = tokens.slice(i).join("-");
+
+      const match = allBrandRows.find(
+        (x) => tail === x.slug || tail.startsWith(`${x.slug}-`)
+      );
+
+      if (match) {
+        brandMatch = match;
+        brandStartIndex = i;
+
+        if (!category) {
+          const categorySlug = tokens.slice(0, i).join("-");
+
+          const categoryMatch = categoryRows.find(
+            (x) => x.slug === categorySlug
+          );
+
+          category =
+            categoryMatch?.name ||
+            displayFromSlug(categorySlug);
+        }
+      }
+    }
+  }
+
+  const brand =
+    brandMatch?.name ||
+    (brandMatch?.slug ? displayFromSlug(brandMatch.slug) : "");
+
+  if (brandMatch) {
+    tokens = tokens.slice(
+      brandMatch.slug.split("-").length
+    );
+  }
+
+  const modelSlug = tokens.join("-");
+
+  const modelRows = vehicleHot?.modelRows || [];
+
+  const modelMatch = modelRows.find((row) => {
+    const sameBrand =
+      !brand ||
+      String(row.brand || "").toLowerCase() ===
+      String(brand).toLowerCase();
+
+    return (
+      sameBrand &&
+      slugify(row.model) === slugify(modelSlug)
+    );
+  });
+
+  const model =
+    modelMatch?.model ||
+    (modelSlug ? displayFromSlug(modelSlug) : "");
+
+  const parsedState = {
+    category,
+    brand,
+    model,
+    year,
+    location,
+  };
+
+  console.log("PARSED FILTER", parsedState);
+
+  return parsedState;
+}
+// ===== END HELPERS =====
+
 export { buildHomePageTitle };
 
-const EMPTY_FILTERS = EMPTY_HOME_FILTERS;
-
-const SUGGEST_FETCH_DEBOUNCE_MS = 400;
-
+const SUGGEST_FETCH_DEBOUNCE_MS = 200;
 const RECENT_SEARCHES_KEY = "otofine_recent_searches_v1";
 const QUICK_VEHICLE_STORAGE_KEY = "otofine_vehicle_quick_v1";
 
@@ -102,39 +355,47 @@ function buildProductIntent(rawCategory, displayH1) {
 }
 
 export default function Home({
-  initialFromSlug = null,
   premiumArticle = null,
-  /** Một entity duy nhất cho trang SEO (slug, H1, danh mục, part id) — ưu tiên hơn state cũ / localStorage. */
-  seoListingContext = null,
+  initialVehicleFilter = null,
 } = {}) {
-  const pathname = usePathname();
-  const isSlugSeoPage = pathname !== "/" || Boolean(seoListingContext);
+  // SYSTEM: STATE is the ONLY source of truth for filters
+  const pathname = usePathname() || "";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const keywordFromUrl = searchParams.get("keyword") || "";
+  const slug = pathname.replace(/^\//, "");
+  const [seoData, setSeoData] = useState(null);
+  const finalSeoData =
+    seoData || premiumArticle;
+  const seoArticleSlug = slug;
+
   const [open, setOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [mobileFilter, setMobileFilter] = useState(false);
-  /** Text đang gõ — chỉ ảnh hưởng suggest + filter danh mục sidebar, không fetch list giữa. */
   const [searchInputValue, setSearchInputValue] = useState("");
   const {
-    selectedCategory,
-    setSelectedCategory,
-    filters,
-    setFilters,
+    category,
+    setCategory,
+    brand,
+    setBrand,
+    model,
+    setModel,
+    year,
+    setYear,
+    location,
+    setLocation,
+    keyword,
+    setKeyword,
     page,
     setPage,
-    committedKeyword,
-    setCommittedKeyword,
-    listSort,
-    setListSort,
-    pageTitle,
+    sort,
+    setSort,
+    tier,
+    tierLabel,
     listingState,
-    currentListingUrl,
-  } = useListingController({
-    initialFromSlug,
-    seoListingContext,
-  });
-  const [searchTrigger, setSearchTrigger] = useState(0);
+  } = useListingController();
+
   const [brands, setBrands] = useState([]);
-  /** Gợi ý chip SEO cuối trang: 8 hãng + 12 dòng (API /filter/vehicle-hot, có fallback). */
   const [seoVehicleHot, setSeoVehicleHot] = useState(null);
   const [models, setModels] = useState([]);
   const [years, setYears] = useState([]);
@@ -147,7 +408,14 @@ export default function Home({
   });
   const [categories, setCategories] = useState([]);
 
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef(null);
+
   const [products, setProducts] = useState([]);
+  const lastFetchKeyRef = useRef(null);
+  const isFirstLoadUrlStateRef = useRef(true);
   const [listError, setListError] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [listBootstrapping, setListBootstrapping] = useState(true);
@@ -159,13 +427,11 @@ export default function Home({
   const [, setSuggestLoading] = useState(false);
   const [suggestPanelOpen, setSuggestPanelOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
-  /** Sắp xếp khi gọi /products/list (không có từ khóa). */
-  /** Cột trái: tìm nhanh / gần đây — mặc định thu gọn, gõ tìm sẽ đóng. */
+  const [categorySuggestions, setCategorySuggestions] = useState([]);
   const [leftPopularOpen, setLeftPopularOpen] = useState(false);
   const [leftRecentOpen, setLeftRecentOpen] = useState(false);
 
-  /** Quick flow: draft cho 3 bước; Advanced: giữ select + logic cũ (áp ngay khi đổi). */
-  const [filterUiMode, setFilterUiMode] = useState("quick");
+  // Quick Filter UI
   const [quickStep, setQuickStep] = useState(1);
   const [quickDraft, setQuickDraft] = useState({
     brand: "",
@@ -176,165 +442,270 @@ export default function Home({
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
   const [draftYears, setDraftYears] = useState([]);
   const [draftYearsLoading, setDraftYearsLoading] = useState(false);
-  const resolvedArticle = useMemo(() => {
-    if (isSlugSeoPage) return premiumArticle || null;
+
+  const dbCategoryName = useMemo(() => {
+    const categorySlug = slugify(category);
+    if (!categorySlug) return "";
+
+    const match = (categories || []).find((row) => {
+      const name = rowName(row);
+      const slugs = [
+        name,
+        row?.canonical_slug,
+        row?.category_slug,
+        row?.slug,
+      ]
+        .map(slugify)
+        .filter(Boolean);
+      return slugs.some((value) => value === categorySlug || value.replace(/-o-to$/, "") === categorySlug);
+    });
+
+    return match ? rowName(match) : category;
+  }, [categories, category]);
+
+  const dbLocationName = useMemo(() => {
+    const locationSlug = slugify(location);
+    if (!locationSlug) return "";
+
+    const match = (availableLocations || []).find((row) => {
+      const name = String(row?.name || "").replace(/^TP\s+/i, "").trim();
+      const slugs = [name, row?.slug].map(slugify).filter(Boolean);
+      return slugs.includes(locationSlug);
+    });
+
+    return match?.name ? String(match.name).replace(/^TP\s+/i, "").trim() : location;
+  }, [availableLocations, location]);
+
+  const pageTitle = useMemo(
+    () =>
+      buildDbBackedPageTitle({
+        categoryName: dbCategoryName,
+        hasCategory: Boolean(String(category || "").trim()),
+        brand,
+        model,
+        year,
+        location: dbLocationName,
+      }),
+    [dbCategoryName, category, brand, model, year, dbLocationName],
+  );
+
+  const urlState = useMemo(
+    () => ({ category, brand, model, year, location }),
+    [category, brand, model, year, location],
+  );
+
+  const navigateToState = useCallback(
+    (patch) => {
+      const nextState = { ...urlState, ...patch };
+      console.log("SET FILTER:", nextState);
+      if (Object.prototype.hasOwnProperty.call(patch, "category")) {
+        setCategory(nextState.category || "");
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "brand")) {
+        setBrand(nextState.brand || "");
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "model")) {
+        setModel(nextState.model || "");
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "year")) {
+        setYear(nextState.year || "");
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "location")) {
+        setLocation(nextState.location || "");
+      }
+
+      const newUrl = buildPathFromState(nextState);
+      if (window.location.pathname !== newUrl) {
+        router.replace(newUrl, { scroll: false });
+      }
+    },
+    [router, urlState, setCategory, setBrand, setModel, setYear, setLocation],
+  );
+
+  useEffect(() => {
+    if (!isFirstLoadUrlStateRef.current) return;
+
+    if (
+      !brands.length ||
+      !categories.length ||
+      !seoVehicleHot?.modelRows?.length
+    ) {
+      return;
+    }
+
+    let parsed;
+
+    // 🔥 ưu tiên server SEO context
+    if (initialVehicleFilter?.parsed) {
+      parsed = {
+        category: "",
+        brand: initialVehicleFilter.parsed.brand || "",
+        model: initialVehicleFilter.parsed.model || "",
+        year: initialVehicleFilter.parsed.year
+          ? String(initialVehicleFilter.parsed.year)
+          : "",
+        location:
+          initialVehicleFilter.parsed.locationName || "",
+      };
+    } else {
+      parsed = parseUrlState(pathname, {
+        categories,
+        brands,
+        locations: availableLocations,
+        vehicleHot: seoVehicleHot,
+      });
+    }
+
+    isFirstLoadUrlStateRef.current = false;
+
+    startTransition(() => {
+      setCategory(parsed.category || "");
+      setBrand(parsed.brand || "");
+      setModel(parsed.model || "");
+      setYear(parsed.year || "");
+      setLocation(parsed.location || "");
+
+      setKeyword(keywordFromUrl);
+
+      setPage(1);
+    });
+
+  }, [
+    pathname,
+    keywordFromUrl,
+    categories,
+    brands,
+    availableLocations,
+    seoVehicleHot,
+    initialVehicleFilter,
+  ]);
+
+
+  useEffect(() => {
+    const activeSlug = String(slug || "").trim().replace(/^\//, "");
+    if (!activeSlug) {
+      setSeoData(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchSeo() {
+      try {
+        const res = await fetch(
+          `${API_BASE}/seo-page/${encodeURIComponent(activeSlug)}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) {
+          if (!cancelled) setSeoData(null);
+          return;
+        }
+        const json = await res.json();
+        if (!cancelled) setSeoData(json);
+        console.log("SEO CLIENT FETCH", {
+          slug: activeSlug,
+          seoSlugExtracted: json?.context?.baseSlug || json?.part?.slug || null,
+          hasSeo: !!json,
+        });
+      } catch (err) {
+        console.error("SEO fetch error:", err);
+        if (!cancelled) setSeoData(null);
+      }
+    }
+
+    fetchSeo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  // Popular Category Click Handler: always use startTransition logic (reset keyword/page)
+  const handlePopularCategoryClick = useCallback((cat) => {
+    const nextCategory = String(
+      typeof cat === "string"
+        ? cat
+        : cat?.canonical_name ||
+        cat?.category ||
+        cat?.category_name ||
+        cat?.name ||
+        ""
+    ).trim();
+
+    if (!nextCategory) return;
+
+    startTransition(() => {
+      navigateToState({ category: nextCategory });
+      setKeyword("");
+      setPage(1);
+    });
+  }, [navigateToState, setKeyword, setPage]);
+
+  // For SEO and fallback article: use current state for filters
+  const finalArticle = useMemo(() => {
+    if (finalSeoData) return finalSeoData;
     return {
       source: "dynamic",
       content: buildDynamicListingSeoContent({
         h1: pageTitle,
-        products,
-        selectedCategory,
-        filters,
+        products: [],
+        filters: {
+          brand,
+          model,
+          year,
+          location,
+        },
         knowledgeRows: [],
+        tier,
       }),
     };
-  }, [isSlugSeoPage, premiumArticle, pageTitle, products, selectedCategory, filters]);
+  }, [finalSeoData, pageTitle, brand, model, year, location, tier]);
 
-  const router = useRouter();
   const listFetchAbortRef = useRef(null);
   const suggestAbortRef = useRef(null);
   const carBoxRef = useRef(null);
-  /** Bao input + gợi ý SP + list danh mục — dùng cho mousedown "click ngoài" (khác .search-combo cũ). */
   const searchPanelRef = useRef(null);
   const searchPanelMobileRef = useRef(null);
   const ofSearchInputDesktopRef = useRef(null);
   const ofSearchInputMobileRef = useRef(null);
   const vehiclePanelWasOpenRef = useRef(false);
-  /** key: "d-{name}" sidebar desktop / "m-{name}" drawer mobile — scrollIntoView khi chọn danh mục */
   const categoryItemRefs = useRef(new Map());
 
-  const filtersRef = useRef(filters);
-  const selectedCategoryRef = useRef(selectedCategory);
-  filtersRef.current = filters;
-  selectedCategoryRef.current = selectedCategory;
-
+  // Reset all filters to base home state
   const applyBaseHome = useCallback(() => {
     startTransition(() => {
+      setCategory("");
+      setBrand("");
+      setModel("");
+      setYear("");
+      setLocation("");
+      router.replace("/", { scroll: false });
+      setKeyword("");
       setPage(1);
-      setSearchInputValue("");
-      setCommittedKeyword("");
-      setSelectedCategory("");
-      setFilters({ ...EMPTY_FILTERS });
     });
     setOpen(false);
     setMobileFilter(false);
-  }, []);
+  }, [router, setCategory, setBrand, setModel, setYear, setLocation, setKeyword, setPage]);
 
-  /**
-   * Một nguồn duy nhất: chọn danh mục cột trái (list + URL sync qua `currentListingUrl` + router.replace).
-   * Khi `clearSearch`: bỏ tìm theo từ khóa (đang gõ hoặc đã commit) — tránh còn `q` + /products/search khi chọn mục.
-   */
-  const applyCategoryFilter = useCallback(
-    (name, { clearSearch = false, fromMobileDrawer = false } = {}) => {
-      const item = (name == null ? "" : String(name)).trim();
-      if (!item) return;
-      startTransition(() => {
-        setPage(1);
-        setSelectedCategory(item);
-        if (clearSearch) {
-          setSearchInputValue("");
-          setCommittedKeyword("");
-        }
-      });
-      setSuggestPanelOpen(false);
-      if (fromMobileDrawer) setMobileMenu(false);
-    },
-    [],
-  );
-
-  const applyCategoryFromChip = useCallback(
-    (name) => {
-      applyCategoryFilter(name, { clearSearch: false });
-    },
-    [applyCategoryFilter],
-  );
-
+  // Vehicle Quick Select Handler (ALIGNED: sets brand/model/year/page, clears lower when upper changed)
   const applyVehicleQuickFilter = useCallback(
-    (brand, model) => {
+    (brandVal, modelVal) => {
       startTransition(() => {
+        navigateToState({ brand: brandVal, model: modelVal || "", year: "" });
+        setKeyword("");
         setPage(1);
-        setSearchInputValue("");
-        setCommittedKeyword("");
-        setSelectedCategory("");
-        setFilters({
-          ...EMPTY_FILTERS,
-          brand: brand || "",
-          model: model || "",
-        });
       });
-      setOpen(false);
-      setMobileFilter(false);
     },
-    [],
+    [navigateToState, setKeyword, setPage],
   );
 
-  const appendListFilters = useCallback((params) => {
-    Object.entries(filtersRef.current).forEach(([k, v]) => {
-      if (v) params.append(k, v);
-    });
-    const sc = selectedCategoryRef.current;
-    if (sc) params.append("category", sc);
-  }, []);
-
-  const listQueryKey = useMemo(
-    () =>
-      buildHomeListQueryKey({
-        page,
-        searchTrigger,
-        committedKeyword,
-        listSort,
-        selectedCategory,
-        filters,
-      }),
-    [
-      page,
-      searchTrigger,
-      committedKeyword,
-      listSort,
-      selectedCategory,
-      filters.brand,
-      filters.model,
-      filters.year,
-      filters.engine,
-      filters.displacement,
-      filters.transmission,
-      filters.drivetrain,
-      filters.bodyType,
-    ],
-  );
-
-  const suggestFilterKey = useMemo(
-    () =>
-      [
-        selectedCategory,
-        filters.brand,
-        filters.model,
-        filters.year,
-        filters.engine,
-        filters.displacement,
-        filters.transmission,
-        filters.drivetrain,
-        filters.bodyType,
-      ].join("\0"),
-    [
-      selectedCategory,
-      filters.brand,
-      filters.model,
-      filters.year,
-      filters.engine,
-      filters.displacement,
-      filters.transmission,
-      filters.drivetrain,
-      filters.bodyType,
-    ],
-  );
-
+  // Save recent searches to localStorage
   const saveRecentSearch = useCallback((term) => {
     const t = (term || "").trim();
     if (!t) return;
     try {
       const prev = JSON.parse(
-        localStorage.getItem(RECENT_SEARCHES_KEY) || "[]",
+        localStorage.getItem(RECENT_SEARCHES_KEY) || "[]"
       );
       const arr = Array.isArray(prev) ? prev : [];
       const next = [t, ...arr.filter((x) => x !== t)].slice(0, 8);
@@ -345,38 +716,55 @@ export default function Home({
     }
   }, []);
 
-  /** Áp keyword đã submit: list + URL đổi theo đây; không gọi khi chỉ onChange ô tìm kiếm. */
+  // ALIGNED: submitCommittedSearch only sets state and resets, NO router or URL logic
   const submitCommittedSearch = useCallback(
     (explicitTerm) => {
       const raw =
         explicitTerm !== undefined && explicitTerm !== null
           ? String(explicitTerm)
           : searchInputValue;
+
       const t = raw.trim();
+
       if (t) saveRecentSearch(t);
+
       startTransition(() => {
-        setCommittedKeyword(t);
-        setSearchInputValue(t);
-        setSelectedCategory("");
+        // 🔥 reset category (QUAN TRỌNG NHẤT)
+        setCategory("");
+
+        const slug = buildPathFromState({
+          category: "", // giữ nguyên để URL đúng
+          brand,
+          model,
+          year,
+          location,
+        });
+
+        const params = new URLSearchParams();
+        if (t) params.set("keyword", t);
+
+        router.replace(`${slug}?${params.toString()}`, { scroll: false });
+
+        // 🔥 trigger lại data fetch
+        setKeyword(t);
         setPage(1);
       });
-      setSearchTrigger(Date.now());
+
       setSuggestPanelOpen(false);
     },
-    [searchInputValue, saveRecentSearch],
+    [searchInputValue, brand, model, year, location]
   );
 
   const clearSearchCommitted = useCallback(() => {
     startTransition(() => {
       setSearchInputValue("");
-      setCommittedKeyword("");
+      setKeyword("");
       setPage(1);
     });
-    setSearchTrigger(Date.now());
     setSuggestPanelOpen(false);
-  }, []);
+  }, [setKeyword, setPage]);
 
-  /** Cùng HomeProductCard / getProductDetailHref — vào trang chi tiết (client navigation). */
+  // View product detail (navigate internally), using only state
   const handleQuickProductClick = useCallback(
     (row, fromMobileSearch) => {
       if (!row) return;
@@ -385,113 +773,27 @@ export default function Home({
         setMobileMenu(false);
         setMobileFilter(false);
       }
-      router.push(getProductDetailHref(row));
+      // IN PRODUCTION: replace with page navigation logic, for now: window.location
+      window.location.href = getProductDetailHref(row);
     },
-    [router],
+    [],
   );
 
-  /* Cuộn mép sidebar: đưa mục đang active vào giữa khung nhìn */
-  useEffect(() => {
-    if (!selectedCategory) return;
-    let cancelled = false;
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        const kd = `d-${selectedCategory}`;
-        const km = `m-${selectedCategory}`;
-        const el = mobileMenu
-          ? categoryItemRefs.current.get(km) ??
-            categoryItemRefs.current.get(kd)
-          : categoryItemRefs.current.get(kd) ??
-            categoryItemRefs.current.get(km);
-        el?.scrollIntoView({ block: "center", behavior: "smooth" });
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(id);
-    };
-  }, [selectedCategory, mobileMenu]);
-
-  /* Cuộn tới mép trên danh sách SP (dưới H1 sticky), scroll-margin-top trong CSS bù header + tiêu đề */
-  const scrollProductsIntoView = useCallback(() => {
-    setTimeout(() => {
-      productListAnchorRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 30);
-  }, []);
-
-
-  const onPopularCta = useCallback(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
-      setMobileFilter(true);
-    } else {
-      setOpen(true);
-    }
-    scrollProductsIntoView();
-  }, [scrollProductsIntoView]);
-
-  const focusHomeSearch = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const m = window.matchMedia("(max-width: 768px)").matches;
-    (m ? ofSearchInputMobileRef : ofSearchInputDesktopRef).current?.focus();
-  }, []);
-
-  useEffect(() => {
-    if (searchInputValue.trim()) {
-      setLeftPopularOpen(false);
-      setLeftRecentOpen(false);
-    }
-  }, [searchInputValue]);
-
-  const filteredCategories = useMemo(
-    () =>
-      categories.filter((item) =>
-        removeVietnamese(item).includes(removeVietnamese(searchInputValue)),
-      ),
-    [categories, searchInputValue],
-  );
-
-  /** Hybrid: 4 neo + tối đa 4 từ lịch sử (không trùng), tối đa 8 chip */
-  const popularQuickKeywords = useMemo(() => {
-    const fixedFour = HOT_KEYWORDS.slice(0, 4);
-    const seen = new Set(fixedFour);
-    const fromRecent = [];
-    for (const raw of recentSearches) {
-      const t = (raw || "").trim();
-      if (!t || seen.has(t)) continue;
-      seen.add(t);
-      fromRecent.push(t);
-      if (fromRecent.length >= 4) break;
-    }
-    return [...fixedFour, ...fromRecent];
-  }, [recentSearches]);
-
+  // SEO chip brands/models (unchanged)
   const seoDisplayBrands = useMemo(() => {
     if (seoVehicleHot == null) {
-      return mergeBrandNamesToLength([], FALLBACK_SEO_TOP_BRANDS, 8);
+      return mergeBrandNamesToLength([], FALLBACK_SEO_TOP_BRANDS, 10);
     }
     return seoVehicleHot.brandNames;
   }, [seoVehicleHot]);
-
   const seoDisplayModels = useMemo(() => {
     if (seoVehicleHot == null) {
-      return mergeModelRowsToLength([], FALLBACK_SEO_HOT_MODELS, 12);
+      return mergeModelRowsToLength([], FALLBACK_SEO_HOT_MODELS, 20);
     }
     return seoVehicleHot.modelRows;
   }, [seoVehicleHot]);
 
-  const clearRecentSearches = useCallback(() => {
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch {
-      /* ignore */
-    }
-    setRecentSearches([]);
-  }, []);
-
+  // Sync brands
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -513,15 +815,7 @@ export default function Home({
     };
   }, []);
 
-  /* Chip SEO: skip network on part-knowledge SEO shell (deterministic rails). */
   useEffect(() => {
-    if (seoListingContext) {
-      setSeoVehicleHot({
-        brandNames: mergeBrandNamesToLength([], FALLBACK_SEO_TOP_BRANDS, 8),
-        modelRows: mergeModelRowsToLength([], FALLBACK_SEO_HOT_MODELS, 12),
-      });
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
@@ -542,12 +836,12 @@ export default function Home({
           brandNames: mergeBrandNamesToLength(
             namesFromApi,
             FALLBACK_SEO_TOP_BRANDS,
-            8,
+            10,
           ),
           modelRows: mergeModelRowsToLength(
             modelsFromApi,
             FALLBACK_SEO_HOT_MODELS,
-            12,
+            20,
           ),
         });
       } catch {
@@ -562,7 +856,7 @@ export default function Home({
     return () => {
       cancelled = true;
     };
-  }, [seoListingContext]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -574,26 +868,21 @@ export default function Home({
     }
   }, []);
 
-  /* Mở panel Chọn xe: reset về Quick mode + hydrate draft (filters hoặc localStorage). */
+  /* ===== VEHICLE PANEL DRAFT STATE HANDLING ===== */
   useEffect(() => {
     const isOpen = open || mobileFilter;
     if (isOpen && !vehiclePanelWasOpenRef.current) {
-      setFilterUiMode("quick");
-      let b = filters.brand || "";
-      let m = filters.model || "";
-      let y = filters.year != null ? String(filters.year) : "";
+      let b = brand || "";
+      let m = model || "";
+      let y = year != null ? String(year) : "";
       if (!b && typeof window !== "undefined") {
         try {
-          if (seoListingContext) {
-            /* có entity SEO — không hydrate xe từ lần visit trước */
-          } else {
           const raw = localStorage.getItem(QUICK_VEHICLE_STORAGE_KEY);
           const o = raw ? JSON.parse(raw) : null;
           if (o?.brand) {
             b = String(o.brand);
             m = o.model ? String(o.model) : "";
             y = o.year != null ? String(o.year) : "";
-          }
           }
         } catch {
           /* ignore */
@@ -605,7 +894,7 @@ export default function Home({
       else setQuickStep(3);
     }
     vehiclePanelWasOpenRef.current = isOpen;
-  }, [open, mobileFilter, filters.brand, filters.model, filters.year, seoListingContext]);
+  }, [open, mobileFilter, brand, model, year]);
 
   useEffect(() => {
     if (!open && !mobileFilter) return;
@@ -667,112 +956,14 @@ export default function Home({
     };
   }, [open, mobileFilter, quickDraft.brand, quickDraft.model]);
 
-  /* Desktop: click ngoài ô Chọn xe => đóng dropdown. */
+  /* FILTERED MODELS */
   useEffect(() => {
-    function onPointerDown(e) {
-      if (!open) return;
-      const el = carBoxRef.current;
-      const t = e.target;
-      if (!(t instanceof Node)) return;
-      if (el?.contains(t)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
-
-  /* ESC: đóng gợi ý tìm kiếm, Chọn xe, mobile filter. */
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key !== "Escape") return;
-      if (suggestPanelOpen) setSuggestPanelOpen(false);
-      if (open) setOpen(false);
-      if (mobileFilter) setMobileFilter(false);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, mobileFilter, suggestPanelOpen]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const live = window.location.pathname + window.location.search;
-    if (live === currentListingUrl) return;
-    if (isSlugSeoPage) {
-      router.push(currentListingUrl, { scroll: false });
-      return;
-    }
-    window.history.replaceState({}, "", currentListingUrl);
-  }, [currentListingUrl, isSlugSeoPage, router]);
-
-  useEffect(() => {
-    function handleDocMouseDown(e) {
-      const t = e.target;
-      if (!(t instanceof Node)) return;
-      if (searchPanelRef.current?.contains(t)) return;
-      if (searchPanelMobileRef.current?.contains(t)) return;
-      setSuggestPanelOpen(false);
-    }
-    document.addEventListener("mousedown", handleDocMouseDown);
-    return () => document.removeEventListener("mousedown", handleDocMouseDown);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      const q = searchInputValue.trim();
-      if (q.length < 2) {
-        if (suggestAbortRef.current) {
-          suggestAbortRef.current.abort();
-          suggestAbortRef.current = null;
-        }
-        if (!cancelled) {
-          setSuggestItems([]);
-          setSuggestLoading(false);
-        }
-        return;
-      }
-      if (suggestAbortRef.current) {
-        suggestAbortRef.current.abort();
-      }
-      const ac = new AbortController();
-      suggestAbortRef.current = ac;
-      setSuggestLoading(true);
-      try {
-        const p = new URLSearchParams();
-        p.append("q", q);
-        p.append("limit", "8");
-        p.append("page", "1");
-        appendListFilters(p);
-        const res = await fetch(`${API_BASE}/products/search?${p.toString()}`, {
-          signal: ac.signal,
-        });
-        const body = await res.json().catch(() => ({}));
-        if (cancelled) return;
-        if (suggestAbortRef.current === ac) suggestAbortRef.current = null;
-        setSuggestItems(Array.isArray(body?.data) ? body.data : []);
-      } catch (e) {
-        if (e?.name === "AbortError" || e?.code === 20) return;
-        if (!cancelled) setSuggestItems([]);
-      } finally {
-        if (cancelled) return;
-        if (ac?.signal?.aborted) return;
-        setSuggestLoading(false);
-      }
-    }, SUGGEST_FETCH_DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [searchInputValue, suggestFilterKey, appendListFilters]);
-
-  useEffect(() => {
-    if (!filters.brand) {
+    if (!brand) {
       setModels([]);
       return;
     }
-
     const modelsUrl = `${API_BASE}/filter/models?brand=${encodeURIComponent(
-      filters.brand,
+      brand,
     )}`;
     fetchJsonCached(modelsUrl, { ttlMs: 120_000 })
       .then((data) => {
@@ -782,10 +973,10 @@ export default function Home({
         setModels(sorted);
       })
       .catch(() => setModels([]));
-  }, [filters.brand]);
+  }, [brand]);
 
   useEffect(() => {
-    if (!filters.brand || !filters.model) {
+    if (!brand || !model) {
       setYears([]);
       setSpecs({
         engine: [],
@@ -798,11 +989,11 @@ export default function Home({
     }
 
     const yUrl = `${API_BASE}/filter/years?brand=${encodeURIComponent(
-      filters.brand,
-    )}&model=${encodeURIComponent(filters.model)}`;
+      brand,
+    )}&model=${encodeURIComponent(model)}`;
     const sUrl = `${API_BASE}/filter/specs?brand=${encodeURIComponent(
-      filters.brand,
-    )}&model=${encodeURIComponent(filters.model)}`;
+      brand,
+    )}&model=${encodeURIComponent(model)}`;
 
     fetchJsonCached(yUrl, { ttlMs: 120_000 })
       .then((data) => setYears(Array.isArray(data) ? data : []))
@@ -819,21 +1010,39 @@ export default function Home({
           cc: [],
         }),
       );
-  }, [filters.brand, filters.model]);
+  }, [brand, model]);
 
   useEffect(() => {
     const params = new URLSearchParams();
-
-    if (filters.brand) params.append("brand", filters.brand);
-    if (filters.model) params.append("model", filters.model);
-    if (filters.year) params.append("year", filters.year);
+    if (brand) params.append("brand", brand);
+    if (model) params.append("model", model);
+    if (year) params.append("year", year);
+    if (location) params.append("location", location);
+    if (keyword) params.append("keyword", keyword);
 
     let cancelled = false;
     (async () => {
       try {
-        const url = `${API_BASE}/filter/categories?${params.toString()}`;
-        const data = await fetchJsonCached(url, { ttlMs: 120_000 });
-        if (!cancelled) setCategories(Array.isArray(data) ? data : []);
+        let url = `${API_BASE}/product-categories/canonical?${params.toString()}`;
+        let data = await fetchJsonCached(url, { ttlMs: 120_000 });
+
+        if (Array.isArray(data) && data.length > 0) {
+          data = data.sort((a, b) => (b.total_product_count || 0) - (a.total_product_count || 0));
+        }
+
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          url = `${API_BASE}/product-categories?${params.toString()}`;
+          data = await fetchJsonCached(url, { ttlMs: 120_000 });
+        }
+
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          url = `${API_BASE}/filter/categories?${params.toString()}`;
+          data = await fetchJsonCached(url, { ttlMs: 120_000 });
+        }
+
+        if (!cancelled) {
+          setCategories(Array.isArray(data) ? data : []);
+        }
       } catch {
         if (!cancelled) setCategories([]);
       }
@@ -841,120 +1050,100 @@ export default function Home({
     return () => {
       cancelled = true;
     };
-  }, [filters.brand, filters.model, filters.year]);
+  }, [brand, model, year, location, keyword]);
 
+  // Locations (filtered by filters)
   useEffect(() => {
-    if (listFetchAbortRef.current) {
-      listFetchAbortRef.current.abort();
-    }
-    const ac = new AbortController();
-    listFetchAbortRef.current = ac;
     let cancelled = false;
-
-    const timer = setTimeout(() => {
-      (async () => {
-        const activeState = listingState;
-        let snap;
-        try {
-          snap = JSON.parse(activeState.stateKey);
-        } catch {
-          return;
-        }
-
-        setListError("");
-        setListBootstrapping(true);
-        try {
-          const f = snap.filters || {};
-          const displayCategory = (snap.selectedCategory || "").trim();
-          const productIntent = buildProductIntent(
-            selectedCategoryRef.current,
-            pageTitle,
-          );
-          const queryCategories =
-            productIntent.variants.length > 0
-              ? productIntent.variants
-              : displayCategory
-                ? [displayCategory]
-                : [];
-          const kw = String(snap.keyword ?? "").trim();
-          const useTypesenseSearch = kw.length > 0;
-          const pageNum = snap.page;
-          const buildBaseParams = () => {
-            const params = new URLSearchParams();
-            params.append("page", String(pageNum));
-            Object.entries(f).forEach(([k, v]) => {
-              if (v) params.append(k, v);
-            });
-            return params;
-          };
-          const runFetch = async (categoryValue) => {
-            const params = buildBaseParams();
-            if (categoryValue) params.append("category", categoryValue);
-            let res;
-            if (useTypesenseSearch) {
-              params.append("q", kw);
-              params.append("limit", "16");
-              res = await fetch(`${API_BASE}/products/search?${params.toString()}`, {
-                signal: ac.signal,
-              });
-            } else {
-              params.append("sort", snap.sort || "popular");
-              res = await fetch(`${API_BASE}/products/list?${params.toString()}`, {
-                signal: ac.signal,
-              });
-            }
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
-              throw new Error(body?.message || `HTTP ${res.status}`);
-            }
-            return body;
-          };
-
-          let body = null;
-          const categoryTryList = queryCategories.length > 0 ? queryCategories : [""];
-          for (const categoryTry of categoryTryList) {
-            body = await runFetch(categoryTry);
-            const rows = Array.isArray(body?.data) ? body.data : [];
-            if (rows.length > 0) break;
+    (async () => {
+      try {
+        const endpoint = `${API_BASE}/products/locations`;
+        const params = new URLSearchParams();
+        console.log("LOCATION FILTER:", {
+          category,
+          brand,
+          model,
+          year,
+          keyword,
+        });
+        if (category) params.append("category", category);
+        if (brand) params.append("brand", brand);
+        if (model) params.append("model", model);
+        if (year) params.append("year", year);
+        if (keyword) params.append("keyword", keyword);
+        const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
+        const data = await fetchJsonCached(url, { ttlMs: 60_000 });
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : [];
+        setAvailableLocations(list);
+        if (selectedCity && selectedCity.id === 0 && list.length > 0) {
+          const cleanName = selectedCity.name.replace(/^TP\s+/i, "").trim().toLowerCase();
+          const match = list.find((loc) => {
+            const locClean = loc.name.replace(/^TP\s+/i, "").trim().toLowerCase();
+            return locClean === cleanName || loc.slug === cleanName.replace(/\s+/g, "-");
+          });
+          if (match) {
+            setSelectedCity({ id: match.id, name: match.name, slug: match.slug });
           }
-
-          if (cancelled) return;
-          if (listFetchAbortRef.current === ac) listFetchAbortRef.current = null;
-          setProducts(Array.isArray(body?.data) ? body.data : []);
-          const tp = Number(body?.totalPages);
-          setTotalPages(Number.isFinite(tp) && tp >= 1 ? tp : 1);
-        } catch (e) {
-          if (e?.name === "AbortError" || e?.code === 20) return;
-          if (cancelled) return;
-          setListError(
-            "Không tải được danh sách sản phẩm. Hãy chạy backend (npm start trong thư mục backend) và tải lại trang. Nếu API không ở cổng 5000, chỉnh API_INTERNAL_ORIGIN trong frontend hoặc đặt NEXT_PUBLIC_API_BASE_URL.",
-          );
-          setProducts([]);
-          setTotalPages(1);
-        } finally {
-          if (cancelled) return;
-          if (ac.signal.aborted) return;
-          setListBootstrapping(false);
         }
-      })();
-    }, 180);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      if (listFetchAbortRef.current) {
-        listFetchAbortRef.current.abort();
-        listFetchAbortRef.current = null;
+      } catch {
+        if (!cancelled) setAvailableLocations([]);
       }
-    };
-  }, [listingState.stateKey]);
+    })();
+    return () => { cancelled = true; };
+  }, [category, brand, model, year, keyword]);
 
+  // Whenever selectedCity changes, update STATE location (step 5: city select = setLocation + setPage)
+  useEffect(() => {
+    const rawName = selectedCity?.name || "";
+    const cityName = rawName.replace(/^TP\s+/i, "").trim();
+    if (location !== cityName && rawName) {
+      startTransition(() => {
+        navigateToState({ location: cityName });
+        setPage(1);
+      });
+    }
+  }, [selectedCity, location, navigateToState, setPage]);
+
+  // 🔥 SYNC NGƯỢC: location -> selectedCity
+  useEffect(() => {
+    if (!location || !availableLocations.length) {
+      setSelectedCity(null);
+      return;
+    }
+
+    const clean = location.toLowerCase();
+
+    const match = availableLocations.find((loc) => {
+      const name = loc.name.replace(/^TP\s+/i, "").trim().toLowerCase();
+      return name === clean;
+    });
+
+    if (match) {
+      setSelectedCity({
+        id: match.id,
+        name: match.name,
+        slug: match.slug,
+      });
+    }
+  }, [location, availableLocations]);
+
+  // PAGINATION: keep page in range
   useEffect(() => {
     if (totalPages < 1) return;
     if (page > totalPages) setPage(totalPages);
-  }, [totalPages, page]);
+  }, [totalPages, page, setPage]);
 
-  /* Cuộn tới vùng danh sách khi dữ liệu đổi (tránh cảm giác “bấm không ăn”) — bỏ qua lần mount đầu */
+  // CUỘN sản phẩm khi đổi filters
+  const scrollProductsIntoView = useCallback(() => {
+    setTimeout(() => {
+      productListAnchorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 30);
+  }, []);
+
   useEffect(() => {
     if (skipProductScrollRef.current) {
       skipProductScrollRef.current = false;
@@ -963,97 +1152,295 @@ export default function Home({
     scrollProductsIntoView();
   }, [listingState.stateKey, scrollProductsIntoView]);
 
+  // FETCH PRODUCT LIST: strictly depend only on state
+  useEffect(() => {
+    if (listFetchAbortRef.current) {
+      listFetchAbortRef.current.abort();
+    }
+    const ac = new AbortController();
+    listFetchAbortRef.current = ac;
+    let cancelled = false;
+
+    (async () => {
+      setListError("");
+      setListBootstrapping(true);
+      try {
+        console.log("FILTER STATE → FETCH", {
+          brand,
+          model,
+          year,
+          location,
+        });
+        console.log("PRODUCT LIST FETCH", {
+          category,
+          brand,
+          model,
+          year,
+          location,
+          keyword,
+          page,
+          sort,
+        });
+        console.log("FILTER CASE:", {
+          category,
+          location,
+          brand,
+          model,
+          year,
+          hasVehicle: Boolean(brand || model || year),
+          hasCategory: Boolean(category),
+          hasLocation: Boolean(location),
+        });
+        // Build query from STATE, not from slugs
+        const params = new URLSearchParams();
+        const query = {};
+        const c = cleanQueryValue(category);
+        const b = cleanQueryValue(brand);
+        const m = cleanQueryValue(model);
+        const y = cleanQueryValue(year);
+        const l = cleanQueryValue(location);
+        const k = cleanQueryValue(keyword);
+        const p = cleanQueryValue(page);
+        const s = cleanQueryValue(sort) || "popular";
+        if (c) query.category = c;
+        if (b) query.brand = b;
+        if (m) query.model = m;
+        if (y) query.year = y;
+        if (l) query.location = l;
+        if (k) query.keyword = k;
+        if (p) query.page = String(p);
+        if (s) query.sort = s;
+        console.log("FINAL FILTER QUERY:", query);
+        Object.entries(query).forEach(([key, value]) => {
+          params.append(key, String(value));
+        });
+
+        const url = `${API_BASE}/products?${params.toString()}`;
+        const res = await fetch(url, { signal: ac.signal });
+        const body = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(body?.message || `HTTP ${res.status}`);
+        }
+
+        if (cancelled) return;
+        if (listFetchAbortRef.current === ac) listFetchAbortRef.current = null;
+        setProducts(Array.isArray(body?.data) ? body.data : []);
+        const tp = Number(body?.totalPages);
+        setTotalPages(Number.isFinite(tp) && tp >= 1 ? tp : 1);
+      } catch (e) {
+        if (e?.name === "AbortError" || e?.code === 20) return;
+        if (cancelled) return;
+        setListError(
+          "Không tải được danh sách sản phẩm. Hãy chạy backend (npm start trong thư mục backend) và tải lại trang. Nếu API không ở cổng 5000, chỉnh API_INTERNAL_ORIGIN trong frontend hoặc đặt NEXT_PUBLIC_API_BASE_URL.",
+        );
+        setProducts([]);
+        setTotalPages(1);
+      } finally {
+        if (cancelled) return;
+        if (ac.signal.aborted) return;
+        setListBootstrapping(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (listFetchAbortRef.current) {
+        listFetchAbortRef.current.abort();
+        listFetchAbortRef.current = null;
+      }
+    };
+  }, [category, brand, model, year, location, keyword, page, sort]);
+
+  // City dropdown outside click
+  useEffect(() => {
+    if (!cityDropdownOpen) return;
+    const handler = (e) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target)) {
+        setCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [cityDropdownOpen]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     const base = "Otofine";
     document.title =
-      pageTitle === "Phụ tùng ô tô"
+      pageTitle === "Phụ tùng ô tô chính hãng giá tốt"
         ? `${base} — Phụ tùng ô tô đúng xe, minh bạch giá`
         : `${pageTitle} | ${base}`;
   }, [pageTitle]);
 
-  const goToAdvancedFromQuick = useCallback(() => {
-    setFilterUiMode("advanced");
-    startTransition(() => {
-      setFilters((prev) => ({
-        ...prev,
-        brand: quickDraft.brand || "",
-        model: quickDraft.model || "",
-        year: quickDraft.year || "",
-      }));
-    });
-  }, [quickDraft.brand, quickDraft.model, quickDraft.year]);
+  // SUPPORT: fetch search recommends & categories (unchanged logic)
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const q = searchInputValue.trim();
+      if (q.length < 2) {
+        if (suggestAbortRef.current) {
+          suggestAbortRef.current.abort();
+          suggestAbortRef.current = null;
+        }
+        if (!cancelled) {
+          setSuggestItems([]);
+          setCategorySuggestions([]);
+          setSuggestLoading(false);
+        }
+        return;
+      }
+      if (suggestAbortRef.current) {
+        suggestAbortRef.current.abort();
+      }
+      const ac = new AbortController();
+      suggestAbortRef.current = ac;
+      setSuggestLoading(true);
+      try {
+        // Fetch product suggestions
+        const p = new URLSearchParams();
+        p.append("q", q);
+        p.append("limit", "8");
+        p.append("page", "1");
+        if (brand) p.append("brand", brand);
+        if (model) p.append("model", model);
+        if (year) p.append("year", year);
+        const res = await fetch(`${API_BASE}/products/search?${p.toString()}`, {
+          signal: ac.signal,
+        });
+        const body = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (suggestAbortRef.current === ac) suggestAbortRef.current = null;
+        setSuggestItems(Array.isArray(body?.data) ? body.data : []);
 
-  const goToQuickFromAdvanced = useCallback(() => {
-    setFilterUiMode("quick");
-    setQuickDraft({
-      brand: filters.brand || "",
-      model: filters.model || "",
-      year: filters.year != null ? String(filters.year) : "",
-    });
-    if (!filters.brand) setQuickStep(1);
-    else if (!filters.model) setQuickStep(2);
-    else setQuickStep(3);
-  }, [filters.brand, filters.model, filters.year]);
+        // Fetch category suggestions in parallel
+        const catParams = new URLSearchParams();
+        catParams.append("q", q);
+        if (brand) catParams.append("brand", brand);
+        if (model) catParams.append("model", model);
+        if (year) catParams.append("year", year);
+        const catRes = await fetch(`${API_BASE}/product-categories/search-sidebar?${catParams.toString()}`, {
+          signal: ac.signal,
+        });
+        const catBody = await catRes.json().catch(() => ([]));
+        if (cancelled) return;
+        setCategorySuggestions(Array.isArray(catBody) ? catBody : []);
+      } catch (e) {
+        if (e?.name === "AbortError" || e?.code === 20) return;
+        if (!cancelled) {
+          setSuggestItems([]);
+          setCategorySuggestions([]);
+        }
+      } finally {
+        if (cancelled) return;
+        if (ac?.signal?.aborted) return;
+        setSuggestLoading(false);
+      }
+    }, SUGGEST_FETCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchInputValue, brand, model, year]);
+
+  // POPULAR + RECENT
+  const popularQuickKeywords = useMemo(() => {
+    const fixedFour = HOT_KEYWORDS.slice(0, 4);
+    const seen = new Set(fixedFour);
+    const fromRecent = [];
+    for (const raw of recentSearches) {
+      const t = (raw || "").trim();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      fromRecent.push(t);
+      if (fromRecent.length >= 4) break;
+    }
+    return [...fixedFour, ...fromRecent];
+  }, [recentSearches]);
+
+  const clearRecentSearches = useCallback(() => {
+    try {
+      localStorage.removeItem(RECENT_SEARCHES_KEY);
+    } catch { }
+    setRecentSearches([]);
+  }, []);
+
+  useEffect(() => {
+    if (searchInputValue.trim()) {
+      setLeftPopularOpen(false);
+      setLeftRecentOpen(false);
+    }
+  }, [searchInputValue]);
+
+  // Categories (filtered in list) — rely on backend filtering only
+  const filteredCategories = useMemo(() => categories, [categories]);
+  const menuCategories = categories;
+
+  const popularCategories = useMemo(() => {
+    return [...menuCategories]
+      .sort((a, b) => (b.total_product_count || 0) - (a.total_product_count || 0))
+      .slice(0, 20);
+  }, [menuCategories]);
+
+  useEffect(() => {
+    console.log("CATEGORIES:", categories.length);
+    console.log("POPULAR:", popularCategories.length);
+  }, [categories, popularCategories]);
+
+  useEffect(() => {
+    console.log("MENU COUNT:", menuCategories.length);
+    console.log("POPULAR COUNT:", popularCategories.length);
+  }, [menuCategories, popularCategories]);
+
+  // VEHICLE PANEL LOGIC
+  const goToAdvancedFromQuick = useCallback(() => {
+    setQuickStep(1);
+  }, []);
 
   const applyQuickVehicle = useCallback(() => {
     startTransition(() => {
-      setSelectedCategory("");
-      setPage(1);
-      setFilters({
-        ...EMPTY_FILTERS,
-        brand: quickDraft.brand,
-        model: quickDraft.model,
-        year: quickDraft.year,
+      navigateToState({
+        brand: quickDraft.brand || "",
+        model: quickDraft.model || "",
+        year: quickDraft.year || "",
       });
+      setKeyword("");
+      setPage(1);
     });
-    try {
-      if (typeof window !== "undefined" && quickDraft.brand) {
-        localStorage.setItem(
-          QUICK_VEHICLE_STORAGE_KEY,
-          JSON.stringify({
-            brand: quickDraft.brand,
-            model: quickDraft.model,
-            year: quickDraft.year,
-          }),
-        );
-      }
-    } catch {
-      /* ignore */
-    }
+
     setOpen(false);
     setMobileFilter(false);
     scrollProductsIntoView();
-  }, [quickDraft, scrollProductsIntoView]);
+  }, [quickDraft, navigateToState, setKeyword, setPage, scrollProductsIntoView]);
 
   const resetQuickVehicle = useCallback(() => {
     setQuickDraft({ brand: "", model: "", year: "" });
     setQuickStep(1);
+
     startTransition(() => {
-      setFilters({ ...EMPTY_FILTERS });
+      navigateToState({ brand: "", model: "", year: "" });
+      setKeyword("");
       setPage(1);
     });
-    setModels([]);
-  }, []);
 
+    setModels([]);
+  }, [navigateToState, setKeyword, setPage]);
+
+  // HANDLERS for quick panel steps
   const handleQuickPickBrand = useCallback((name) => {
     setQuickDraft({ brand: name, model: "", year: "" });
     setQuickStep(2);
   }, []);
-
   const handleQuickPickModel = useCallback((name) => {
     setQuickDraft((d) => ({ ...d, model: name, year: "" }));
     setQuickStep(3);
   }, []);
-
   const handleQuickPickYear = useCallback((y) => {
     setQuickDraft((d) => ({ ...d, year: y }));
   }, []);
-
   const handleQuickClearYear = useCallback(() => {
     setQuickDraft((d) => ({ ...d, year: "" }));
   }, []);
-
   const handleQuickBreadcrumb = useCallback((step) => {
     if (step === 1) {
       setQuickDraft({ brand: "", model: "", year: "" });
@@ -1064,259 +1451,28 @@ export default function Home({
     }
   }, []);
 
-  const renderFilterForm = () => (
-    <>
-      <div className="vehicle-advanced-head">
-        <span className="vehicle-advanced-head-label">Lọc chi tiết</span>
-        <button
-          type="button"
-          className="vehicle-quick-advanced-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToQuickFromAdvanced();
-          }}
-        >
-          Chọn nhanh
-        </button>
-      </div>
-
-      <div className="vin-wrap">
-        <input
-          type="text"
-          placeholder="Nhập số VIN"
-          className="vin-input"
-          autoComplete="off"
-          maxLength="17"
-        />
-        <button className="vin-search">🔍</button>
-      </div>
-
-      <div className="filters">
-        <select
-          className={filters.brand ? "active-filter" : "placeholder"}
-          value={filters.brand}
-          onChange={(e) => {
-            startTransition(() => {
-              setSelectedCategory("");
-              setPage(1);
-              setFilters({
-                brand: e.target.value,
-                model: "",
-                year: "",
-                engine: "",
-                displacement: "",
-                transmission: "",
-                drivetrain: "",
-                bodyType: "",
-              });
-            });
-          }}
-        >
-          <option value="">-Hãng xe-</option>
-          {brands.map((item, index) => (
-            <option
-              key={item.hang_xe}
-              value={item.hang_xe}
-              className={index < 8 ? "hot-option" : ""}
-            >
-              {item.hang_xe}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.model ? "active-filter" : "placeholder"}
-          value={filters.model}
-          onChange={(e) => {
-            startTransition(() => {
-              setSelectedCategory("");
-              setPage(1);
-              setFilters((prev) => ({ ...prev, model: e.target.value }));
-            });
-          }}
-        >
-          <option value="">-Tên xe-</option>
-          {models.map((item, index) => (
-            <option
-              key={item.ten_xe}
-              value={item.ten_xe}
-              className={index < 8 ? "hot-option" : ""}
-            >
-              {item.ten_xe}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.year ? "active-filter" : "placeholder"}
-          value={filters.year}
-          onChange={(e) => {
-            startTransition(() => {
-              setSelectedCategory("");
-              setPage(1);
-              setFilters((prev) => ({ ...prev, year: e.target.value }));
-            });
-          }}
-        >
-          <option value="">-Năm SX-</option>
-
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.engine ? "active-filter" : "placeholder"}
-          value={filters.engine}
-          onChange={(e) => {
-            startTransition(() => {
-              setPage(1);
-              setFilters((prev) => ({ ...prev, engine: e.target.value }));
-            });
-          }}
-        >
-          <option value="">-Động cơ-</option>
-          {specs.engine.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.displacement ? "active-filter" : "placeholder"}
-          value={filters.displacement}
-          onChange={(e) => {
-            startTransition(() => {
-              setPage(1);
-              setFilters((prev) => ({
-                ...prev,
-                displacement: e.target.value,
-              }));
-            });
-          }}
-        >
-          <option value="">-Dung tích-</option>
-          {specs.cc.map((item) => (
-            <option key={item} value={item}>
-              {item} cc
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.transmission ? "active-filter" : "placeholder"}
-          value={filters.transmission}
-          onChange={(e) => {
-            startTransition(() => {
-              setPage(1);
-              setFilters((prev) => ({
-                ...prev,
-                transmission: e.target.value,
-              }));
-            });
-          }}
-        >
-          <option value="">-Hộp số-</option>
-          {specs.gearbox.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.drivetrain ? "active-filter" : "placeholder"}
-          value={filters.drivetrain}
-          onChange={(e) => {
-            startTransition(() => {
-              setPage(1);
-              setFilters((prev) => ({ ...prev, drivetrain: e.target.value }));
-            });
-          }}
-        >
-          <option value="">-Số cầu-</option>
-          {specs.drivetrain.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className={filters.bodyType ? "active-filter" : "placeholder"}
-          value={filters.bodyType}
-          onChange={(e) => {
-            startTransition(() => {
-              setPage(1);
-              setFilters((prev) => ({ ...prev, bodyType: e.target.value }));
-            });
-          }}
-        >
-          <option value="">-Kiểu dáng-</option>
-          {specs.bodyType.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="choose-wrap">
-        <button
-          type="button"
-          className="search-btn"
-          onClick={() => {
-            setOpen(false);
-            setMobileFilter(false);
-            scrollProductsIntoView();
-          }}
-        >
-          Chọn
-        </button>
-
-        <button
-          type="button"
-          className="clear-filter-btn"
-          onClick={() => {
-            startTransition(() => {
-              setFilters({ ...EMPTY_FILTERS });
-              setPage(1);
-            });
-            setModels([]);
-          }}
-        >
-          ↺ Reset
-        </button>
-      </div>
-    </>
+  // SEARCH PANEL/CATEGORY PANEL/LEFT QUICK
+  const renderVehiclePanelBody = () => (
+    <VehicleQuickPanel
+      quickStep={quickStep}
+      quickDraft={quickDraft}
+      onPickBrand={handleQuickPickBrand}
+      onPickModel={handleQuickPickModel}
+      onPickYear={handleQuickPickYear}
+      onClearYear={handleQuickClearYear}
+      onBreadcrumbToStep={handleQuickBreadcrumb}
+      brands={brands}
+      draftModels={draftModels}
+      draftYears={draftYears}
+      modelsLoading={draftModelsLoading}
+      yearsLoading={draftYearsLoading}
+      onAdvanced={goToAdvancedFromQuick}
+      onApply={applyQuickVehicle}
+      onReset={resetQuickVehicle}
+    />
   );
 
-  const renderVehiclePanelBody = () =>
-    filterUiMode === "quick" ? (
-      <VehicleQuickPanel
-        quickStep={quickStep}
-        quickDraft={quickDraft}
-        onPickBrand={handleQuickPickBrand}
-        onPickModel={handleQuickPickModel}
-        onPickYear={handleQuickPickYear}
-        onClearYear={handleQuickClearYear}
-        onBreadcrumbToStep={handleQuickBreadcrumb}
-        brands={brands}
-        draftModels={draftModels}
-        draftYears={draftYears}
-        modelsLoading={draftModelsLoading}
-        yearsLoading={draftYearsLoading}
-        onAdvanced={goToAdvancedFromQuick}
-        onApply={applyQuickVehicle}
-        onReset={resetQuickVehicle}
-      />
-    ) : (
-      renderFilterForm()
-    );
-
+  // SEARCH PANEL ONLY (searchInputValue, suggestItems, categorySuggestions)
   const renderSearchPanelOnly = (isMobile) => {
     const searchAssistId = `otofine-search-suggest${isMobile ? "-m" : ""}`;
     const hasSearchKeyword = searchInputValue.trim().length > 0;
@@ -1331,15 +1487,6 @@ export default function Home({
       ? searchPanelMobileRef
       : searchPanelRef;
     const inputRef = isMobile ? ofSearchInputMobileRef : ofSearchInputDesktopRef;
-
-    const onPickCategoryFromSuggest = (name) => {
-      applyCategoryFilter(name, { clearSearch: true });
-      setSuggestPanelOpen(false);
-      if (isMobile) {
-        setMobileMenu(false);
-        setMobileFilter(false);
-      }
-    };
 
     return (
       <div
@@ -1357,7 +1504,7 @@ export default function Home({
               <div className="search-inline-wrap">
                 <input
                   ref={inputRef}
-                  type="search"
+                  type="text"
                   enterKeyHint="search"
                   placeholder="Tìm lọc dầu Vios, má phanh Camry, đèn Mazda 3…"
                   className="category-search"
@@ -1374,12 +1521,10 @@ export default function Home({
                       : undefined
                   }
                   onFocus={() => {
-                    setSelectedCategory("");
                     setSuggestPanelOpen(true);
                   }}
                   onChange={(e) => {
                     setSearchInputValue(e.target.value);
-                    setSelectedCategory("");
                     setSuggestPanelOpen(true);
                   }}
                   onKeyDown={(e) => {
@@ -1399,24 +1544,14 @@ export default function Home({
                   {searchInputValue}
                 </span>
 
-                {searchInputValue.trim() && (
-                  <span
-                    className="clear-inline"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        clearSearchCommitted();
-                      }
-                    }}
-                    onClick={() => {
-                      clearSearchCommitted();
-                    }}
-                  >
-                    ✕
-                  </span>
-                )}
+                <button
+                  type="button"
+                  className="clear-inline"
+                  onClick={clearSearchCommitted}
+                  aria-label="Xóa tìm kiếm"
+                >
+                  ✕
+                </button>
 
                 <span
                   className="category-icon"
@@ -1463,11 +1598,11 @@ export default function Home({
                             <span className="search-suggest-meta">
                               {[
                                 (Array.isArray(row.cardHighlights) &&
-                                row.cardHighlights[0]
+                                  row.cardHighlights[0]
                                   ? row.cardHighlights[0]
                                   : null) ||
-                                  row.subtitleLine1 ||
-                                  (row.partNumber ? `Mã ${row.partNumber}` : ""),
+                                row.subtitleLine1 ||
+                                (row.partNumber ? `Mã ${row.partNumber}` : ""),
                                 row.priceText || "",
                               ]
                                 .filter(Boolean)
@@ -1479,65 +1614,77 @@ export default function Home({
                     ))}
                   </ul>
                 </div>
-                <div
+                {/* <div
                   className="search-suggest-split__categories"
                   role="list"
                   aria-label="Danh mục gợi ý"
                 >
-                  <div className="search-suggest-split__sub">Danh mục</div>
+                  <div className="search-suggest-split__sub">DANH MỤC LIÊN QUAN</div>
                   <ul className="search-suggest-cat-list">
-                    {filteredCategories.length === 0 ? (
+                    {categorySuggestions.length === 0 ? (
                       <li className="search-suggest-category-empty">
-                        Không có danh mục khớp
+                        Không tìm thấy nhóm danh mục phù hợp.
                       </li>
                     ) : (
-                      filteredCategories.map((item) => (
-                        <li key={item}>
+                      categorySuggestions.map((item) => (
+                        <li key={item.canonical_slug}>
                           <button
-                            type="button"
+                            onClick={() => {
+                              startTransition(() => {
+                                navigateToState({ category: item.canonical_name });
+                                setKeyword("");
+                                setPage(1);
+                              });
+                            }}
                             className="search-suggest-cat-pill"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => onPickCategoryFromSuggest(item)}
                           >
-                            {item}
+                            <span>{item.canonical_name}</span>
                           </button>
                         </li>
                       ))
                     )}
                   </ul>
-                </div>
+                </div> */}
               </div>
             )}
 
-            {hasCategoryFill && (
+            {/* {hasCategoryFill && (
               <div
                 id={searchAssistId}
                 className="search-suggest-wrap search-suggest-wrap--cats-only"
                 role="listbox"
                 aria-label="Danh mục gợi ý"
               >
+                <div className="search-suggest-split__sub">DANH MỤC LIÊN QUAN</div>
                 <ul className="search-suggest-cat-list search-suggest-cat-list--solo">
-                  {filteredCategories.length === 0 ? (
+                  {categorySuggestions.length === 0 ? (
                     <li className="search-suggest-category-empty">
-                      Không có danh mục khớp
+                      Không tìm thấy nhóm danh mục phù hợp.
                     </li>
                   ) : (
-                    filteredCategories.map((item) => (
-                      <li key={item}>
+                    categorySuggestions.map((item) => (
+                      <li key={item.canonical_slug}>
                         <button
-                          type="button"
+                          onClick={() => {
+                            startTransition(() => {
+                              navigateToState({ category: item.canonical_name });
+                              setKeyword("");
+                              setPage(1);
+                            });
+                          }}
                           className="search-suggest-cat-pill"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => onPickCategoryFromSuggest(item)}
                         >
-                          {item}
+                          <span>{item.canonical_name}</span>
+                          {item.total_count && (
+                            <span className="search-suggest-cat-count">({item.total_count})</span>
+                          )}
                         </button>
                       </li>
                     ))
                   )}
                 </ul>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
@@ -1557,6 +1704,14 @@ export default function Home({
         ? searchAssistId
         : undefined;
 
+    // For mobile menu without search, limit to first 15 categories
+    const displayCategories = isMobile && !hasSearchKeyword
+      ? filteredCategories.slice(0, 15)
+      : filteredCategories;
+
+    // Show categorySuggestions when searching
+    const showCategorySuggestions = hasSearchKeyword && categorySuggestions.length > 0;
+
     return (
       <div
         className="category-box sidebar-category-box of-category-compact"
@@ -1572,31 +1727,60 @@ export default function Home({
             role="listbox"
             aria-label="Danh mục"
           >
-            {filteredCategories.length === 0 && hasSearchKeyword ? (
-              <li className="search-suggest-category-empty" role="presentation">
-                Không có danh mục khớp
-              </li>
-            ) : (
-              filteredCategories.map((item) => (
+            {showCategorySuggestions ? (
+              categorySuggestions.map((item) => (
                 <li
-                  key={item}
+                  key={item.canonical_slug}
                   ref={(el) => {
-                    const k = `${isMobile ? "m" : "d"}-${item}`;
+                    const k = `${isMobile ? "m" : "d"}-${item.canonical_name}`;
                     if (el) categoryItemRefs.current.set(k, el);
                     else categoryItemRefs.current.delete(k);
                   }}
-                  className={selectedCategory === item ? "category-active" : ""}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    applyCategoryFilter(item, {
-                      fromMobileDrawer: isMobile,
-                      clearSearch:
-                        hasSearchKeyword || committedKeyword.trim().length > 0,
-                    });
+                >
+                  <button
+                    onClick={() => {
+                      startTransition(() => {
+                        navigateToState({ category: item.canonical_name });
+                        setKeyword("");
+                        setPage(1);
+                      });
+                    }}
+                    className="category-link"
+                  >
+                    <span className="category-name">{item.canonical_name}</span>
+                    {item.total_count && (
+                      <span className="category-count">({item.total_count})</span>
+                    )}
+                  </button>
+                </li>
+              ))
+            ) : (
+              displayCategories.map((item) => (
+                <li
+                  key={item.canonical_slug || item.category_slug || item.slug || item.canonical_name}
+                  ref={(el) => {
+                    const k = `${isMobile ? "m" : "d"}-${item.canonical_name || item.category_name || item.name}`;
+                    if (el) categoryItemRefs.current.set(k, el);
+                    else categoryItemRefs.current.delete(k);
                   }}
                 >
-                  {item}
+                  <button
+                    onClick={() => {
+                      startTransition(() => {
+                        navigateToState({
+                          category: item.canonical_name || item.category_name || item.name,
+                        });
+                        setKeyword("");
+                        setPage(1);
+                      });
+                    }}
+                    className="category-link"
+                  >
+                    <span className="category-name">{item.canonical_name || item.category_name || item.name}</span>
+                    {item.total_count && (
+                      <span className="category-count">({item.total_count})</span>
+                    )}
+                  </button>
                 </li>
               ))
             )}
@@ -1702,6 +1886,13 @@ export default function Home({
     </div>
   );
 
+  // Search focus, menu/vehicle panel toggles, etc. — unchanged
+  const focusHomeSearch = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const m = window.matchMedia("(max-width: 768px)").matches;
+    (m ? ofSearchInputMobileRef : ofSearchInputDesktopRef).current?.focus();
+  }, []);
+
   return (
     <div className="of-home-root">
       <HomeHeader
@@ -1712,152 +1903,122 @@ export default function Home({
       />
       <div className="page of-home-page">
         <main className="of-home-main" id="otofine-main" lang="vi">
-        <div className="home">
-          {/* CONTENT */}
-          <div className="container of-home-container">
-            {/* LEFT */}
-            <div className="car-left">
-              <div className="car-box" ref={carBoxRef}>
-                {/* Thanh chính */}
-                <div className="car-header" onClick={() => setOpen(!open)}>
-                  <div className="car-info">
-                    <span className="car-icon">🚗</span>
+          <div className="home">
+            {/* CONTENT */}
+            <div className="container of-home-container">
+              {/* LEFT */}
+              <div className="car-left">
+                <div className="car-box" ref={carBoxRef}>
+                  {/* Thanh chính */}
+                  <div className="car-header" onClick={() => setOpen(!open)}>
+                    <div className="car-info">
+                      <span className="car-icon">🚗</span>
+                      <div>
+                        <p className="car-header__eyebrow">Hãng xe / Dòng xe / Năm</p>
+                        <h4>Chọn xe</h4>
+                        {!open && (brand || model || year) ? (
+                          <p className="car-header__pick">
+                            {[brand, model, year]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        ) : !open ? (
+                          <p className="car-header__hint">Bấm để lọc nhanh theo xe</p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <span className={`arrow ${open ? "rotate" : ""}`}>⌄</span>
+                  </div>
+                  {/* Nội dung ẩn hiện — Quick / Chọn nâng cao */}
+                  {open && (
+                    <div
+                      className="car-content car-panel-shell"
+                      role="presentation"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {renderVehiclePanelBody()}
+                    </div>
+                  )}
+                </div>
+                {renderSearchPanelOnly(false)}
+                {searchInputValue.trim().length >= 1 && renderCategoryPanel(false)}
+                {renderLeftQuickBlocks(false)}
+              </div>
+              <div className="content-right of-home-content">
+                <section
+                  className="listing-hero listing-hero--premium"
+                  aria-labelledby="listing-h1"
+                >
+                  <div className="listing-hero__top">
                     <div>
-                      <p className="car-header__eyebrow">Hãng xe / Dòng xe / Năm</p>
-                      <h4>Chọn xe</h4>
-                      {!open && (filters.brand || filters.model || filters.year) ? (
-                        <p className="car-header__pick">
-                          {[filters.brand, filters.model, filters.year]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      ) : !open ? (
-                        <p className="car-header__hint">Bấm để lọc nhanh theo xe</p>
-                      ) : null}
+                      <h1 id="listing-h1" className="listing-hero__h1">
+                        {pageTitle}
+                      </h1>
+                      <p className="listing-hero__sub">
+                        Tìm đúng phụ tùng theo xe, so sánh giá, liên hệ trực tiếp
+                        cửa hàng — minh bạch, nhanh chóng.
+                      </p>
+                    </div>
+                    <div className="listing-hero__cta-row">
+                      <a
+                        href="#otofine-products-start"
+                        className="listing-hero__cta listing-hero__cta--buyer"
+                      >
+                        Mua phụ tùng
+                      </a>
+                      <Link
+                        href="/shop/register"
+                        className="listing-hero__cta listing-hero__cta--seller" prefetch={false}>
+                        Đăng ký bán
+                      </Link>
                     </div>
                   </div>
-
-                  <span className={`arrow ${open ? "rotate" : ""}`}>⌄</span>
-                </div>
-
-                {/* Nội dung ẩn hiện — Quick / Chọn nâng cao */}
-                {open && (
-                  <div
-                    className="car-content car-panel-shell"
-                    role="presentation"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {renderVehiclePanelBody()}
+                  <ul className="listing-hero__badges" role="list">
+                    <li role="listitem">Shop xác minh</li>
+                    <li role="listitem">Giá rõ ràng</li>
+                    <li role="listitem">Hỗ trợ tìm đúng xe</li>
+                    <li role="listitem">Tối ưu mobile</li>
+                  </ul>
+                </section>
+                {listError ? (
+                  <div className="list-error-banner">
+                    {listError}{" "}
+                    <span>(API: {API_BASE})</span>
                   </div>
-                )}
-              </div>
+                ) : null}
+                <div
+                  ref={productListAnchorRef}
+                  id="otofine-products-start"
+                  className="product-list-scroll-anchor"
+                  aria-hidden
+                />
+                <div className="content-grid of-three-col">
+                  <div className="content-grid-primary">
 
-              {renderSearchPanelOnly(false)}
-
-              {renderCategoryPanel(false)}
-
-              {renderLeftQuickBlocks(false)}
-            </div>
-            <div className="content-right of-home-content">
-              <section
-                className="listing-hero listing-hero--premium"
-                aria-labelledby="listing-h1"
-              >
-                <div className="listing-hero__top">
-                  <div>
-                    {seoListingContext ? (
-                      <nav className="listing-hero__breadcrumb" aria-label="Breadcrumb">
-                        <Link href="/">Trang chủ</Link>
-                        {seoListingContext.categoryName ? (
-                          <>
-                            <span className="listing-hero__breadcrumb-sep" aria-hidden>
-                              {" "}
-                              ·{" "}
-                            </span>
-                            <span>{seoListingContext.categoryName}</span>
-                          </>
-                        ) : null}
-                        <span className="listing-hero__breadcrumb-sep" aria-hidden>
-                          {" "}
-                          ·{" "}
-                        </span>
-                        <span aria-current="page">{pageTitle}</span>
-                      </nav>
-                    ) : null}
-                    <h1 id="listing-h1" className="listing-hero__h1">
-                      {pageTitle}
-                    </h1>
-                    <p className="listing-hero__sub">
-                      Tìm đúng phụ tùng theo xe, so sánh giá, liên hệ trực tiếp
-                      cửa hàng — minh bạch, nhanh chóng.
-                    </p>
-                  </div>
-                  <div className="listing-hero__cta-row">
-                    <a
-                      href="#otofine-products-start"
-                      className="listing-hero__cta listing-hero__cta--buyer"
-                    >
-                      Mua phụ tùng
-                    </a>
-                    <Link
-                      href="/shop/register"
-                      className="listing-hero__cta listing-hero__cta--seller"
-                      prefetch
-                    >
-                      Đăng ký bán
-                    </Link>
-                  </div>
-                </div>
-                <ul className="listing-hero__badges" role="list">
-                  <li role="listitem">Shop xác minh</li>
-                  <li role="listitem">Giá rõ ràng</li>
-                  <li role="listitem">Hỗ trợ tìm đúng xe</li>
-                  <li role="listitem">Tối ưu mobile</li>
-                </ul>
-              </section>
-
-              {listError ? (
-                <div className="list-error-banner">
-                  {listError}{" "}
-                  <span>(API: {API_BASE})</span>
-                </div>
-              ) : null}
-
-              <div
-                ref={productListAnchorRef}
-                id="otofine-products-start"
-                className="product-list-scroll-anchor"
-                aria-hidden
-              />
-
-              <div className="content-grid of-three-col">
-                <div className="content-grid-primary">
-                  {!committedKeyword.trim() && (
                     <div
                       className="listing-sort"
                       role="toolbar"
                       aria-label="Sắp xếp danh sách"
+                      style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}
                     >
-                      {(
-                        [
-                          { id: "popular", label: "Phổ biến" },
-                          { id: "newest", label: "Mới nhất" },
-                          { id: "price_asc", label: "Giá ↑" },
-                          { id: "price_desc", label: "Giá ↓" },
-                        ]
-                      ).map((s) => (
+                      {[
+                        { id: "popular", label: "Phổ biến" },
+                        { id: "newest", label: "Mới nhất" },
+                        { id: "price_asc", label: "Giá ↑" },
+                        { id: "price_desc", label: "Giá ↓" },
+                      ].map((s) => (
                         <button
                           key={s.id}
                           type="button"
                           className={
-                            listSort === s.id
+                            sort === s.id
                               ? "listing-sort__btn is-active"
                               : "listing-sort__btn"
                           }
-                          aria-pressed={listSort === s.id}
+                          aria-pressed={sort === s.id}
                           onClick={() => {
                             startTransition(() => {
-                              setListSort(s.id);
+                              setSort(s.id);
                               setPage(1);
                             });
                           }}
@@ -1865,448 +2026,469 @@ export default function Home({
                           {s.label}
                         </button>
                       ))}
+                      <div ref={cityDropdownRef} style={{ position: "relative", marginLeft: "auto" }}>
+                        <button
+                          type="button"
+                          className={selectedCity ? "listing-sort__btn is-active" : "listing-sort__btn"}
+                          onClick={() => setCityDropdownOpen((v) => !v)}
+                          aria-haspopup="listbox"
+                          aria-expanded={cityDropdownOpen}
+                          style={{ minWidth: 90 }}
+                        >
+                          {selectedCity?.name
+                            ? selectedCity.name.replace(/^TP\s+/i, "")
+                            : "Địa điểm"}
+                          <span style={{ marginLeft: 4, fontSize: 10 }}>{cityDropdownOpen ? "▴" : "▾"}</span>
+                        </button>
+                        {cityDropdownOpen && (
+                          <ul
+                            role="listbox"
+                            style={{
+                              position: "absolute",
+                              right: 0,
+                              top: "calc(100% + 4px)",
+                              background: "#fff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 10,
+                              boxShadow: "0 4px 16px rgba(0,0,0,.1)",
+                              padding: "6px 0",
+                              margin: 0,
+                              listStyle: "none",
+                              zIndex: 50,
+                              minWidth: 200,
+                              maxHeight: 320,
+                              overflowY: "auto",
+                            }}
+                          >
+                            <li
+                              role="option"
+                              aria-selected={!selectedCity}
+                              style={{
+                                padding: "8px 14px",
+                                cursor: "pointer",
+                                fontSize: 13,
+                                fontWeight: !selectedCity ? 700 : 400,
+                                color: !selectedCity ? "#e85d1a" : "#1f2937",
+                                background: !selectedCity ? "#fff7f0" : "transparent",
+                              }}
+                              onClick={() => {
+                                setSelectedCity(null);
+                                startTransition(() => {
+                                  navigateToState({ location: "" });
+                                  setPage(1);
+                                });
+                                setCityDropdownOpen(false);
+                              }}
+                            >
+                              Toàn quốc
+                            </li>
+                            {(() => {
+                              const sorted = [...availableLocations].sort((a, b) => {
+                                if (selectedCity?.id === a.id) return -1;
+                                if (selectedCity?.id === b.id) return 1;
+                                return b.productCount - a.productCount;
+                              });
+                              return sorted.map((loc) => {
+                                const isActive = selectedCity?.id === loc.id;
+                                return (
+                                  <li
+                                    key={loc.id}
+                                    role="option"
+                                    aria-selected={isActive}
+                                    style={{
+                                      padding: "8px 14px",
+                                      cursor: "pointer",
+                                      fontSize: 13,
+                                      fontWeight: isActive ? 700 : 400,
+                                      color: isActive ? "#e85d1a" : "#1f2937",
+                                      background: isActive ? "#fff7f0" : "transparent",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      gap: 8,
+                                    }}
+                                    onClick={() => {
+                                      setSelectedCity({
+                                        id: loc.id,
+                                        name: loc.name,
+                                        slug: loc.slug,
+                                      });
+                                      setCityDropdownOpen(false);
+                                    }}
+                                  >
+                                    <span>{loc.name.replace(/^TP\s+/i, "")}</span>
+                                    <span>{loc.productCount}</span>
+                                  </li>
+                                );
+                              });
+                            })()}
+                          </ul>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div className="center of-product-list">
-                    {!listError && !listBootstrapping && products.length === 0 ? (
-                      <p style={{ padding: 16, color: "#6b7280" }}>
-                        Chưa có sản phẩm phù hợp. Thử bỏ bộ lọc hoặc kiểm tra dữ
-                        liệu trong database.
-                      </p>
-                    ) : null}
-                    {listBootstrapping && products.length === 0 && !listError
-                      ? Array.from({ length: 8 }).map((_, i) => (
+
+
+                    {keyword && (
+                      <div style={{ marginBottom: 12, fontWeight: 600 }}>
+                        Kết quả tìm kiếm cho: "{keyword}"
+                      </div>
+                    )}
+
+                    <div className="center of-product-list">
+                      {!listError && !listBootstrapping && products.length === 0 ? (
+                        <div className="of-empty-state" style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <p style={{ color: "#374151", fontWeight: 600, fontSize: 15, margin: "0 0 8px" }}>
+                            Chưa có sản phẩm phù hợp với bộ lọc hiện tại
+                          </p>
+                          <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 16px" }}>
+                            Thử bỏ bớt bộ lọc hoặc chọn danh mục khác để xem thêm kết quả.
+                          </p>
+                          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                            {["Má phanh", "Đèn pha", "Lọc gió", "Bơm nước", "Gương chiếu hậu"].map((cat) => (
+                              <button
+                                key={cat}
+                                type="button"
+                                className="of-btn of-btn--ghost"
+                                style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, border: "1px solid #d1d5db", background: "#f9fafb", color: "#1f2937", cursor: "pointer" }}
+                                onClick={() => {
+                                  startTransition(() => {
+                                    navigateToState({ category: cat });
+                                    setKeyword("");
+                                    setPage(1);
+                                  });
+                                }}
+                              >
+                                {cat} ô tô
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {listBootstrapping && products.length === 0 && !listError
+                        ? Array.from({ length: 8 }).map((_, i) => (
                           <div
                             key={`sk-${i}`}
                             className="of-product of-product--skeleton"
                             aria-hidden
                           />
                         ))
-                      : null}
-                    {products.map((item, index) => (
-                      <HomeProductCard
-                        key={item.id}
-                        item={item}
-                        index={index}
-                        onSelectPhone={setContactPhone}
-                      />
-                    ))}
-                  </div>
-
-                  {!listError &&
-                  !listBootstrapping &&
-                  products.length > 0 &&
-                  totalPages > 1 && (
-                    <nav
-                      className="pagination product-pagination"
-                      aria-label="Phân trang sản phẩm"
-                    >
-                      <button
-                        type="button"
-                        className="page-btn page-btn-nav"
-                        disabled={page <= 1}
-                        aria-label="Trang trước"
-                        onClick={() => {
-                          setPage((p) => Math.max(1, p - 1));
-                          scrollProductsIntoView();
-                        }}
-                      >
-                        &lt;
-                      </button>
-                      {(() => {
-                        const total = totalPages;
-                        const current = page;
-                        const maxBtns = 5;
-                        let start = Math.max(1, current - Math.floor(maxBtns / 2));
-                        let end = Math.min(total, start + maxBtns - 1);
-                        start = Math.max(1, end - maxBtns + 1);
-                        const nums = [];
-                        for (let i = start; i <= end; i += 1) nums.push(i);
-                        return nums.map((n) => (
+                        : null}
+                      {products.map((item, index) => (
+                        <HomeProductCard
+                          key={item.id}
+                          item={item}
+                          index={index}
+                          onSelectPhone={setContactPhone}
+                        />
+                      ))}
+                    </div>
+                    {!listError &&
+                      !listBootstrapping &&
+                      products.length > 0 &&
+                      totalPages > 1 && (
+                        <nav
+                          className="pagination product-pagination"
+                          aria-label="Phân trang sản phẩm"
+                        >
                           <button
-                            key={n}
                             type="button"
-                            className={`page-btn${n === page ? " active" : ""}`}
-                            aria-current={n === page ? "page" : undefined}
+                            className="page-btn page-btn-nav"
+                            disabled={page <= 1}
+                            aria-label="Trang trước"
                             onClick={() => {
-                              setPage(n);
+                              setPage((p) => Math.max(1, p - 1));
                               scrollProductsIntoView();
                             }}
                           >
-                            {n}
+                            &lt;
                           </button>
-                        ));
-                      })()}
-                      <button
-                        type="button"
-                        className="page-btn page-btn-nav"
-                        disabled={page >= totalPages}
-                        aria-label="Trang sau"
-                        onClick={() => {
-                          setPage((p) => Math.min(totalPages, p + 1));
-                          scrollProductsIntoView();
-                        }}
-                      >
-                        &gt;
-                      </button>
-                    </nav>
-                  )}
-                </div>
-
-                <aside
-                  className="of-right-rail"
-                  aria-label="Hỗ trợ mua hàng &amp; lọc nhanh"
-                >
-                  <div className="box box-trust sidebar-trust-card of-rail-card">
-                    <h4 className="sidebar-trust-title">Mua hàng an tâm</h4>
-                    <ul className="sidebar-trust-list">
-                      <li>✓ Shop xác minh Otofine</li>
-                      <li>✓ Liên hệ trực tiếp cửa hàng</li>
-                      <li>✓ Giá minh bạch</li>
-                      <li>✓ Hỗ trợ tìm đúng phụ tùng</li>
-                    </ul>
-                    <Link
-                      href="/shop/register"
-                      className="sidebar-cta sidebar-cta--register"
-                      prefetch
-                    >
-                      Đăng ký cửa hàng ngay
-                    </Link>
+                          {(() => {
+                            const total = totalPages;
+                            const current = page;
+                            const maxBtns = 5;
+                            let start = Math.max(1, current - Math.floor(maxBtns / 2));
+                            let end = Math.min(total, start + maxBtns - 1);
+                            start = Math.max(1, end - maxBtns + 1);
+                            const nums = [];
+                            for (let i = start; i <= end; i += 1) nums.push(i);
+                            return nums.map((n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                className={`page-btn${n === page ? " active" : ""}`}
+                                aria-current={n === page ? "page" : undefined}
+                                onClick={() => {
+                                  setPage(n);
+                                  scrollProductsIntoView();
+                                }}
+                              >
+                                {n}
+                              </button>
+                            ));
+                          })()}
+                          <button
+                            type="button"
+                            className="page-btn page-btn-nav"
+                            disabled={page >= totalPages}
+                            aria-label="Trang sau"
+                            onClick={() => {
+                              setPage((p) => Math.min(totalPages, p + 1));
+                              scrollProductsIntoView();
+                            }}
+                          >
+                            &gt;
+                          </button>
+                        </nav>
+                      )}
                   </div>
-
-                  <div
-                    className="of-rail-card of-rail-links"
-                    aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
+                  <aside
+                    className="of-right-rail"
+                    aria-label="Hỗ trợ mua hàng &amp; lọc nhanh"
                   >
-                    <h4 className="of-rail-card__h">Mua phụ tùng theo xe</h4>
-                    <p className="of-rail-links__p">
-                      {seoDisplayBrands.map((b, i) => (
-                        <React.Fragment key={b}>
-                          {i > 0 && (
-                            <span className="of-rail-sep" aria-hidden>
-                              {" "}
-                              ·{" "}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className="of-rail-link"
-                            onClick={() => applyVehicleQuickFilter(b, "")}
-                          >
-                            {b}
-                          </button>
-                        </React.Fragment>
-                      ))}
-                    </p>
-                    <p className="of-rail-links__p">
-                      {seoDisplayModels.slice(0, 12).map((row, i) => (
-                        <React.Fragment key={`${row.brand}-${row.model}`}>
-                          {i > 0 && (
-                            <span className="of-rail-sep" aria-hidden>
-                              {" "}
-                              ·{" "}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className="of-rail-link of-rail-link--muted"
-                            onClick={() =>
-                              applyVehicleQuickFilter(row.brand, row.model)
-                            }
-                          >
-                            {row.brand} {row.model}
-                          </button>
-                        </React.Fragment>
-                      ))}
-                    </p>
-                  </div>
-
-                  <div className="of-rail-cats">
-                    <PopularCategoriesBox
-                      onCtaClick={onPopularCta}
-                      selectedCategory={selectedCategory}
-                      onSelectCategory={applyCategoryFromChip}
-                    />
-                  </div>
-
-                  <div className="of-seller-cta of-seller-cta--rail">
-                    <h4 className="of-seller-cta--rail__title">Bạn bán phụ tùng?</h4>
-                    <p className="of-seller-cta--rail__text">
-                      Nhận khách mua mỗi ngày. Đăng miễn phí.
-                    </p>
-                    <Link
-                      href="/shop/register"
-                      className="of-btn-cta of-btn-cta--block"
-                      prefetch
-                    >
-                      Đăng ký bán
-                    </Link>
-                  </div>
-                </aside>
-              </div>
-
-              {resolvedArticle?.source === "db" ? (
-                <section className="seo-factory-wrap dynamic-home-seo">
-                  {resolvedArticle?.introHtml ? (
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: resolvedArticle.introHtml,
-                      }}
-                    />
-                  ) : null}
-                  {resolvedArticle?.articleHtml ? (
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: resolvedArticle.articleHtml,
-                      }}
-                    />
-                  ) : null}
-                </section>
-              ) : resolvedArticle?.source === "seo" ? (
-                <div className="seo-factory-wrap">{resolvedArticle.block}</div>
-              ) : resolvedArticle?.source === "dynamic" ? (
-                <section className="seo-factory-wrap dynamic-home-seo">
-                  <h2>{resolvedArticle?.content?.title}</h2>
-                  <p>{resolvedArticle?.content?.intro}</p>
-                  {(resolvedArticle?.content?.sections || []).map((s, idx) => (
-                    <React.Fragment key={`${s.heading}-${idx}`}>
-                      <h3>{s.heading}</h3>
-                      <p>{s.content}</p>
-                    </React.Fragment>
-                  ))}
-                  {(resolvedArticle?.content?.relatedLinks || []).length > 0 && (
-                    <div className="seo-related-links">
-                      <h3>Liên kết hữu ích</h3>
-                      <ul>
-                        {(resolvedArticle?.content?.relatedLinks || []).map((item) => (
-                          <li key={item.href}>
-                            <a href={item.href}>{item.label}</a>
-                          </li>
-                        ))}
+                    <div className="box box-trust sidebar-trust-card of-rail-card">
+                      <h4 className="sidebar-trust-title">Mua hàng an tâm</h4>
+                      <ul className="sidebar-trust-list">
+                        <li>✓ Shop xác minh Otofine</li>
+                        <li>✓ Liên hệ trực tiếp cửa hàng</li>
+                        <li>✓ Giá minh bạch</li>
+                        <li>✓ Hỗ trợ tìm đúng phụ tùng</li>
                       </ul>
+                      <Link
+                        href="/shop/register"
+                        className="sidebar-cta sidebar-cta--register" prefetch={false}>
+                        Đăng ký cửa hàng ngay
+                      </Link>
                     </div>
-                  )}
-                </section>
-              ) : null}
-
-              <section
-                className="of-trust-market"
-                aria-labelledby="of-trust-market-h2"
-              >
-                <h2 id="of-trust-market-h2" className="of-trust-market__title">
-                  Tại sao chọn Otofine
-                </h2>
-                <ul className="of-trust-market__grid" role="list">
-                  {[
-                    {
-                      t: "Cửa hàng đã xác minh",
-                      d: "Thông tin shop rõ ràng trên sàn — tăng niềm tin khi mua.",
-                    },
-                    {
-                      t: "Tìm theo xe và mã phụ tùng",
-                      d: "Lọc hãng, dòng, năm hoặc gõ từ khóa — đúng nhu cầu sửa chữa.",
-                    },
-                    {
-                      t: "Minh bạch và liên hệ nhanh",
-                      d: "Giá hiển thị, gọi điện hoặc Zalo trực tiếp như marketplace hiện đại.",
-                    },
-                    {
-                      t: "Tốc độ và chuẩn SEO",
-                      d: "Trang nhanh, cấu trúc tốt cho tìm kiếm phụ tùng Toyota, Honda, Hyundai, Kia…",
-                    },
-                  ].map((x) => (
-                    <li key={x.t} className="of-trust-market__item" role="listitem">
-                      <h3 className="of-trust-market__h3">{x.t}</h3>
-                      <p className="of-trust-market__p">{x.d}</p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <div className="site-info">
-                <h2>Về Otofine</h2>
-
-                <p>
-                  Otofine là nền tảng kết nối người mua với các cửa hàng phụ
-                  tùng ô tô trên toàn quốc. Website giúp khách hàng dễ dàng tìm
-                  kiếm phụ tùng đúng dòng xe, đúng đời xe và so sánh nhiều mức
-                  giá từ nhiều nhà bán khác nhau.
-                </p>
-
-                <p>
-                  Danh mục sản phẩm bao gồm phụ tùng bảo dưỡng, phụ tùng gầm
-                  máy, hệ thống điện, thân vỏ, đèn xe, gương xe, cảm biến, điều
-                  hòa, dầu nhớt và nhiều linh kiện ô tô khác.
-                </p>
-
-                <p>
-                  Otofine hướng tới trải nghiệm mua phụ tùng minh bạch, nhanh
-                  chóng, tiết kiệm thời gian tìm kiếm và hỗ trợ người dùng lựa
-                  chọn sản phẩm phù hợp nhu cầu sửa chữa, thay thế hoặc nâng cấp
-                  xe.
-                </p>
-
-                <div className="site-links">
-                  <Link href="/">Trang chủ</Link>
-                  <button
-                    type="button"
-                    className="site-links-btn"
-                    onClick={() => applyBaseHome()}
-                  >
-                    Phụ tùng ô tô
-                  </button>
-                  <button
-                    type="button"
-                    className="site-links-btn"
-                    onClick={() => applyVehicleQuickFilter("Toyota", "")}
-                  >
-                    Phụ tùng Toyota
-                  </button>
-                  <button
-                    type="button"
-                    className="site-links-btn"
-                    onClick={() => applyVehicleQuickFilter("Mazda", "")}
-                  >
-                    Phụ tùng Mazda
-                  </button>
-                  <button
-                    type="button"
-                    className="site-links-btn"
-                    onClick={() => applyVehicleQuickFilter("Hyundai", "")}
-                  >
-                    Phụ tùng Hyundai
-                  </button>
-                  <button
-                    type="button"
-                    className="site-links-btn"
-                    onClick={() => applyVehicleQuickFilter("Kia", "")}
-                  >
-                    Phụ tùng Kia
-                  </button>
+                    <div
+                      className="of-rail-card of-rail-links"
+                      aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
+                    >
+                      <h4 className="of-rail-card__h">Mua phụ tùng theo xe</h4>
+                      <p className="of-rail-links__p">
+                        {seoDisplayBrands.map((b, i) => (
+                          <React.Fragment key={b}>
+                            {i > 0 && (
+                              <span className="of-rail-sep" aria-hidden>
+                                {" "}
+                                ·{" "}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="of-rail-link"
+                              onClick={() => applyVehicleQuickFilter(b, "")}
+                            >
+                              {b}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      </p>
+                      <p className="of-rail-links__p">
+                        {seoDisplayModels.slice(0, 20).map((row, i) => (
+                          <React.Fragment key={`${row.brand}-${row.model}`}>
+                            {i > 0 && (
+                              <span className="of-rail-sep" aria-hidden>
+                                {" "}
+                                ·{" "}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="of-rail-link of-rail-link--muted"
+                              onClick={() =>
+                                applyVehicleQuickFilter(row.brand, row.model)
+                              }
+                            >
+                              {row.brand} {row.model}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    </div>
+                    <div className="of-rail-cats">
+                      <PopularCategoriesBox
+                        categories={popularCategories}
+                        selectedCategory={category}
+                        onCtaClick={handlePopularCategoryClick}
+                      />
+                    </div>
+                  </aside>
                 </div>
-              </div>
-
-              <footer className="footer-main">
-                <div className="footer-top-strip" aria-hidden="true" />
-                <div className="footer-grid">
-                  <div className="footer-col footer-brand">
-                    <div className="footer-brand-mark">Otofine</div>
-                    <p>
-                      Nền tảng kết nối người mua và cửa hàng phụ tùng ô tô trên
-                      toàn quốc. Tìm đúng phụ tùng, đúng xe, đúng giá.
-                    </p>
-                  </div>
-
-                  <div className="footer-col">
-                    <h3>Danh mục nổi bật</h3>
+                {finalSeoData && (
+                  <PartKnowledgeSeoPage
+                    data={finalSeoData}
+                    slug={seoArticleSlug}
+                    imageProducts={products}
+                  />
+                )}
+                <section
+                  className="of-trust-market"
+                  aria-labelledby="of-trust-market-h2"
+                >
+                  <h2 id="of-trust-market-h2" className="of-trust-market__title">
+                    Tại sao chọn Otofine
+                  </h2>
+                  <ul className="of-trust-market__grid" role="list">
+                    {[
+                      {
+                        t: "Cửa hàng đã xác minh",
+                        d: "Thông tin shop rõ ràng trên sàn — tăng niềm tin khi mua.",
+                      },
+                      {
+                        t: "Tìm theo xe và mã phụ tùng",
+                        d: "Lọc hãng, dòng, năm hoặc gõ từ khóa — đúng nhu cầu sửa chữa.",
+                      },
+                      {
+                        t: "Minh bạch và liên hệ nhanh",
+                        d: "Giá hiển thị, gọi điện hoặc Zalo trực tiếp như marketplace hiện đại.",
+                      },
+                      {
+                        t: "Tốc độ và chuẩn SEO",
+                        d: "Trang nhanh, cấu trúc tốt cho tìm kiếm phụ tùng Toyota, Honda, Hyundai, Kia…",
+                      },
+                    ].map((x) => (
+                      <li key={x.t} className="of-trust-market__item" role="listitem">
+                        <h3 className="of-trust-market__h3">{x.t}</h3>
+                        <p className="of-trust-market__p">{x.d}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+                <div className="site-info">
+                  <h2>Về Otofine</h2>
+                  <p>
+                    Otofine là nền tảng kết nối người mua với các cửa hàng phụ
+                    tùng ô tô trên toàn quốc. Website giúp khách hàng dễ dàng tìm
+                    kiếm phụ tùng đúng dòng xe, đúng đời xe và so sánh nhiều mức
+                    giá từ nhiều nhà bán khác nhau.
+                  </p>
+                  <p>
+                    Danh mục sản phẩm bao gồm phụ tùng bảo dưỡng, phụ tùng gầm
+                    máy, hệ thống điện, thân vỏ, đèn xe, gương xe, cảm biến, điều
+                    hòa, dầu nhớt và nhiều linh kiện ô tô khác.
+                  </p>
+                  <p>
+                    Otofine hướng tới trải nghiệm mua phụ tùng minh bạch, nhanh
+                    chóng, tiết kiệm thời gian tìm kiếm và hỗ trợ người dùng lựa
+                    chọn sản phẩm phù hợp nhu cầu sửa chữa, thay thế hoặc nâng cấp
+                    xe.
+                  </p>
+                  <div className="site-links">
+                    <Link href="/" prefetch={false}>Trang chủ</Link>
                     <button
                       type="button"
-                      className="footer-link"
-                      onClick={() => applyCategoryFromChip("Má phanh")}
+                      className="site-links-btn"
+                      onClick={() => applyBaseHome()}
                     >
-                      Má phanh ô tô
+                      Phụ tùng ô tô
                     </button>
                     <button
                       type="button"
-                      className="footer-link"
-                      onClick={() => applyCategoryFromChip("Lọc dầu")}
-                    >
-                      Lọc dầu ô tô
-                    </button>
-                    <button
-                      type="button"
-                      className="footer-link"
-                      onClick={() => applyCategoryFromChip("Gương")}
-                    >
-                      Gương chiếu hậu
-                    </button>
-                    <button
-                      type="button"
-                      className="footer-link"
-                      onClick={() => applyCategoryFromChip("Đèn")}
-                    >
-                      Đèn xe ô tô
-                    </button>
-                    <button
-                      type="button"
-                      className="footer-link"
-                      onClick={() => applyCategoryFromChip("Giảm xóc")}
-                    >
-                      Giảm xóc ô tô
-                    </button>
-                  </div>
-
-                  <div className="footer-col">
-                    <h3>Hãng xe phổ biến</h3>
-                    <button
-                      type="button"
-                      className="footer-link"
+                      className="site-links-btn"
                       onClick={() => applyVehicleQuickFilter("Toyota", "")}
                     >
-                      Toyota
+                      Phụ tùng Toyota
                     </button>
                     <button
                       type="button"
-                      className="footer-link"
+                      className="site-links-btn"
                       onClick={() => applyVehicleQuickFilter("Mazda", "")}
                     >
-                      Mazda
+                      Phụ tùng Mazda
                     </button>
                     <button
                       type="button"
-                      className="footer-link"
+                      className="site-links-btn"
                       onClick={() => applyVehicleQuickFilter("Hyundai", "")}
                     >
-                      Hyundai
+                      Phụ tùng Hyundai
                     </button>
                     <button
                       type="button"
-                      className="footer-link"
+                      className="site-links-btn"
                       onClick={() => applyVehicleQuickFilter("Kia", "")}
                     >
-                      Kia
-                    </button>
-                    <button
-                      type="button"
-                      className="footer-link"
-                      onClick={() => applyVehicleQuickFilter("Ford", "")}
-                    >
-                      Ford
-                    </button>
-                    <button
-                      type="button"
-                      className="footer-link"
-                      onClick={() => applyVehicleQuickFilter("Honda", "")}
-                    >
-                      Honda
+                      Phụ tùng Kia
                     </button>
                   </div>
-
-                  <div className="footer-col">
-                    <h3>Hỗ trợ</h3>
-                    <a href="/">Giới thiệu</a>
-                    <a href="/">Liên hệ</a>
-                    <a href="/">Hướng dẫn mua hàng</a>
-                    <a href="/">Chính sách bảo mật</a>
-                    <a href="/">Điều khoản sử dụng</a>
+                </div>
+                <footer className="footer-main">
+                  <div className="footer-top-strip" aria-hidden="true" />
+                  <div className="footer-grid">
+                    <div className="footer-col footer-brand">
+                      <div className="footer-brand-mark">Otofine</div>
+                      <p>
+                        Nền tảng kết nối người mua và cửa hàng phụ tùng ô tô trên
+                        toàn quốc. Tìm đúng phụ tùng, đúng xe, đúng giá.
+                      </p>
+                    </div>
+                    <div className="footer-col">
+                      <h3>Hãng xe phổ biến</h3>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Toyota", "")}
+                      >
+                        Toyota
+                      </button>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Mazda", "")}
+                      >
+                        Mazda
+                      </button>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Hyundai", "")}
+                      >
+                        Hyundai
+                      </button>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Kia", "")}
+                      >
+                        Kia
+                      </button>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Ford", "")}
+                      >
+                        Ford
+                      </button>
+                      <button
+                        type="button"
+                        className="footer-link"
+                        onClick={() => applyVehicleQuickFilter("Honda", "")}
+                      >
+                        Honda
+                      </button>
+                    </div>
+                    <div className="footer-col">
+                      <h3>Hỗ trợ</h3>
+                      <a href="/">Giới thiệu</a>
+                      <a href="/">Liên hệ</a>
+                      <a href="/">Hướng dẫn mua hàng</a>
+                      <a href="/">Chính sách bảo mật</a>
+                      <a href="/">Điều khoản sử dụng</a>
+                    </div>
                   </div>
-                </div>
-
-                <div className="footer-bottom">
-                  © 2026 Otofine.com - Một chi tiết nhỏ, bảo vệ hành trình lớn
-                </div>
-              </footer>
+                  <div className="footer-bottom">
+                    © 2026 Otofine.com - Một chi tiết nhỏ, bảo vệ hành trình lớn
+                  </div>
+                </footer>
+              </div>
             </div>
           </div>
-        </div>
         </main>
       </div>
-
       <nav
         className="of-bottom-nav"
         aria-label="Thao tác nhanh"
       >
-        <Link href="/" className="of-bottom-nav__item" prefetch scroll={false}>
+        <Link href="/" className="of-bottom-nav__item" scroll={false} prefetch={false}>
           Trang chủ
         </Link>
         <button
@@ -2331,16 +2513,12 @@ export default function Home({
           Chọn xe
         </button>
       </nav>
-
       {contactPhone && (
         <div className="contact-modal" onClick={() => setContactPhone("")}>
           <div className="contact-box" onClick={(e) => e.stopPropagation()}>
             <h4>{contactPhone}</h4>
-
             <a href={`tel:${contactPhone}`}>📞 Gọi điện</a>
-
             <a href={`sms:${contactPhone}`}>💬 Nhắn tin SMS</a>
-
             <a
               href={`https://zalo.me/${contactPhone}`}
               target="_blank"
@@ -2349,7 +2527,6 @@ export default function Home({
             >
               📲 Gọi Zalo
             </a>
-
             <a
               href={`https://zalo.me/${contactPhone}`}
               target="_blank"
@@ -2357,12 +2534,10 @@ export default function Home({
             >
               🔵 Chat Zalo
             </a>
-
             <button onClick={() => setContactPhone("")}>Đóng</button>
           </div>
         </div>
       )}
-
       {mobileFilter && (
         <div className="mobile-drawer" onClick={() => setMobileFilter(false)}>
           <div className="mobile-panel" onClick={(e) => e.stopPropagation()}>
@@ -2377,14 +2552,12 @@ export default function Home({
                 ✕
               </button>
             </div>
-
             <div className="mobile-filter-body mobile-filter-body--vehicle">
               {renderVehiclePanelBody()}
             </div>
           </div>
         </div>
       )}
-
       {mobileMenu && (
         <div className="mobile-drawer" onClick={() => setMobileMenu(false)}>
           <div
@@ -2402,7 +2575,6 @@ export default function Home({
                 ✕
               </button>
             </div>
-
             <div className="mobile-menu-body">
               {renderCategoryPanel(true)}
               {renderLeftQuickBlocks(true)}

@@ -1,13 +1,21 @@
 import * as productSearchService from "../services/productSearch.service.js";
+import {
+  cleanHttpQueryValue,
+  normalizeListFilterYear,
+} from "../utils/listingQueryNormalize.js";
 
 export async function getProductSearch(req, res) {
   try {
     const {
       q = "",
+      keyword = "",
       brand,
       model,
       year,
       category,
+      cityId,
+      city,
+      location,
       limit,
       page,
     } = req.query;
@@ -25,11 +33,13 @@ export async function getProductSearch(req, res) {
     }
 
     const body = await productSearchService.searchProductsPublic({
-      q,
-      brand,
-      model,
-      year: year ? Number(year) : undefined,
-      category,
+      q: q || keyword,
+      brand: cleanHttpQueryValue(brand),
+      model: cleanHttpQueryValue(model),
+      year: normalizeListFilterYear(year),
+      category: cleanHttpQueryValue(category),
+      cityId,
+      city: cleanHttpQueryValue(city || location),
       perPage,
       page: pageNum,
     });

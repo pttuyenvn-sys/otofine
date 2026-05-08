@@ -156,65 +156,164 @@ function aliasList(row) {
   return out;
 }
 
+// --- Token weight maps ---
+const POSITION_WORDS = new Set(["truoc", "sau", "trai", "phai", "front", "rear", "left", "right"]);
+const DOMAIN_WORDS = new Set(["dong co", "may", "gam", "gam xe", "lai", "phanh", "thang", "than vo", "than xe", "banh xe", "hop so"]);
+
+const DOMAIN_CONFLICTS = [
+  [["gam", "gam xe"], ["banh xe"]],
+  [["dong co", "may"], ["than vo", "than xe"]],
+];
+const DIRECTION_CONFLICTS = [
+  [["truoc", "front"], ["sau", "rear"]],
+  [["trai", "left"], ["phai", "right"]],
+];
+
+function extractTokens(norm) {
+  return norm.split(" ").filter(Boolean);
+}
+
+function extractDomainTokens(tokens) {
+  const out = new Set();
+  for (let i = 0; i < tokens.length; i++) {
+    const bi = i + 1 < tokens.length ? `${tokens[i]} ${tokens[i + 1]}` : null;
+    if (bi && DOMAIN_WORDS.has(bi)) { out.add(bi); i++; }
+    else if (DOMAIN_WORDS.has(tokens[i])) out.add(tokens[i]);
+  }
+  return out;
+}
+
+function extractPositionTokens(tokens) {
+  const out = new Set();
+  for (const t of tokens) if (POSITION_WORDS.has(t)) out.add(t);
+  return out;
+}
+
+function hasDomainConflict(setA, setB) {
+  for (const [groupX, groupY] of DOMAIN_CONFLICTS) {
+    const aInX = groupX.some((w) => setA.has(w));
+    const aInY = groupY.some((w) => setA.has(w));
+    const bInX = groupX.some((w) => setB.has(w));
+    const bInY = groupY.some((w) => setB.has(w));
+    if ((aInX && bInY) || (aInY && bInX)) return true;
+  }
+  return false;
+}
+
+function hasDirectionConflict(setA, setB) {
+  for (const [groupX, groupY] of DIRECTION_CONFLICTS) {
+    const aInX = groupX.some((w) => setA.has(w));
+    const aInY = groupY.some((w) => setA.has(w));
+    const bInX = groupX.some((w) => setB.has(w));
+    const bInY = groupY.some((w) => setB.has(w));
+    if ((aInX && bInY) || (aInY && bInX)) return true;
+  }
+  return false;
+}
+
+function coreNoun(tokens) {
+  return tokens.filter((t) => !POSITION_WORDS.has(t) && !DOMAIN_WORDS.has(t) && !STOP_WORDS.has(t)).join(" ");
+}
+
 function scoreRow(h1, row) {
   const hNorm = normalizePartText(h1);
-  const candidates = buildCandidatePhrases(h1);
+  if (!hNorm) return { tier: 99, score: 0 };
+  const hSlug = hNorm.replace(/\s+/g, "-");
+  const hTokens = extractTokens(hNorm);
+  const hDomains = extractDomainTokens(hTokens);
+  const hPositions = extractPositionTokens(hTokens);
+  const hCore = coreNoun(hTokens);
+
   const aliasNorms = aliasList(row).map((x) => normalizePartText(x)).filter(Boolean);
   const aliasSet = new Set(aliasNorms);
-  let score = 0;
-  if (aliasSet.has(hNorm)) score += 100;
-  for (const c of candidates) {
-    if (aliasSet.has(c)) {
-      score += 80;
-      break;
-    }
-  }
-  for (const a of aliasNorms) {
-    if (a.includes(hNorm) || hNorm.includes(a)) {
-      score += 60;
-      break;
-    }
-  }
-  const synonymHits = new Set();
-  for (const c of candidates) {
-    for (const s of expandSynonyms(c)) {
-      if (aliasSet.has(s)) synonymHits.add(s);
-    }
-  }
-  if (synonymHits.size > 0) score += 50;
+  const slugNorm = normalizePartText(row.slug || "");
 
-  const hDirs = extractDirections(hNorm);
-  const aDirs = extractDirections(aliasNorms.join(" "));
-  if (hDirs.size > 0) {
-    let dirMatch = true;
-    for (const d of hDirs) {
-      if (!aDirs.has(d)) {
-        dirMatch = false;
-        break;
-      }
+  // --- TIER S: exact matches ---
+  if (slugNorm === hNorm || slugNorm === hSlug) return { tier: 1, score: 300 };
+  if (aliasSet.has(hNorm)) return { tier: 2, score: 280 };
+  for (const a of aliasNorms) {
+    const aSyns = SYNONYM_LOOKUP.get(a);
+    if (aSyns && aSyns.includes(hNorm)) return { tier: 3, score: 260 };
+  }
+
+  // --- Shared context for TIER A/B ---
+  const bestAlias = aliasNorms[0] || slugNorm;
+  const aTokens = extractTokens(bestAlias);
+  const aDomains = extractDomainTokens(aTokens);
+  const aPositions = extractPositionTokens(aTokens);
+  const aCore = coreNoun(aTokens);
+
+  // --- Conflict penalties (hard reject) ---
+  if (hasDomainConflict(hDomains, aDomains)) return { tier: 99, score: -20 };
+  if (hasDirectionConflict(hPositions, aPositions)) return { tier: 99, score: -15 };
+
+  // --- TIER A: prefix / startsWith ---
+  for (const a of aliasNorms) {
+    if (a.startsWith(hNorm) || hNorm.startsWith(a)) return { tier: 4, score: 200 };
+  }
+  if (hCore && aCore && (aCore.startsWith(hCore) || hCore.startsWith(aCore))) {
+    return { tier: 5, score: 180 };
+  }
+
+  // --- TIER B: weighted token scoring ---
+  let tokenScore = 0;
+  const aAllText = aliasNorms.join(" ");
+  for (const t of hTokens) {
+    if (!aAllText.includes(t)) continue;
+    if (POSITION_WORDS.has(t)) tokenScore += 6;
+    else if (DOMAIN_WORDS.has(t)) tokenScore += 7;
+    else if (STOP_WORDS.has(t)) tokenScore += 1;
+    else tokenScore += 10;
+  }
+  if (hPositions.size > 0) {
+    let posMatch = true;
+    for (const p of hPositions) if (!aPositions.has(p)) posMatch = false;
+    if (posMatch) tokenScore += 6;
+    else tokenScore -= 15;
+  }
+  if (tokenScore > 0) return { tier: 6, score: tokenScore };
+
+  // --- TIER C: synonym expansion ---
+  const hSyns = new Set();
+  for (const c of buildCandidatePhrases(h1)) {
+    for (const s of expandSynonyms(c)) hSyns.add(s);
+  }
+  let synScore = 0;
+  for (const s of hSyns) {
+    if (aliasSet.has(s)) { synScore += 50; break; }
+  }
+  if (synScore > 0) {
+    if (hPositions.size > 0) {
+      let posMatch = true;
+      for (const p of hPositions) if (!aPositions.has(p)) posMatch = false;
+      if (posMatch) synScore += 6;
+      else synScore -= 15;
     }
-    if (dirMatch) score += 40;
-    else score -= 50;
+    return { tier: 7, score: synScore };
   }
 
   const popular = Number(row.searchScore ?? row.search_score ?? row.aiPriority ?? 0);
-  if (Number.isFinite(popular) && popular > 60) score += 20;
-  return score;
+  return { tier: 8, score: Number.isFinite(popular) && popular > 60 ? 5 : 0 };
 }
+
+const SCORE_THRESHOLD = 15;
 
 export function findBestSeoArticle(h1, dbRows = []) {
   if (!Array.isArray(dbRows) || dbRows.length === 0) return null;
   let best = null;
-  let bestScore = -Infinity;
+  let bestResult = { tier: 99, score: -Infinity };
   for (const row of dbRows) {
-    const score = scoreRow(h1, row || {});
-    if (score > bestScore) {
-      bestScore = score;
+    const result = scoreRow(h1, row || {});
+    if (
+      result.tier < bestResult.tier ||
+      (result.tier === bestResult.tier && result.score > bestResult.score)
+    ) {
+      bestResult = result;
       best = row;
     }
   }
-  if (!best || bestScore < 60) return null;
-  return { row: best, score: bestScore };
+  if (!best || bestResult.score < SCORE_THRESHOLD) return null;
+  return { row: best, score: bestResult.score, tier: bestResult.tier };
 }
 
 export const PART_MATCH_DICTIONARY = {

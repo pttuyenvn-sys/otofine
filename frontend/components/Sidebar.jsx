@@ -23,15 +23,15 @@ export default function Sidebar() {
       </div>
 
       <nav className="nav" style={{ marginTop: 12 }}>
-        <Link href="/shop/settings" className={itemClass("/shop/settings")}>
+        <Link href="/shop/settings" className={itemClass("/shop/settings")} prefetch={false}>
           🏬 <span style={{ marginLeft: 8 }}>Shop</span>
         </Link>
 
-        <Link href="/shop/products" className={itemClass("/shop/products")}>
+        <Link href="/shop/products" className={itemClass("/shop/products")} prefetch={false}>
           📦 <span style={{ marginLeft: 8 }}>Products</span>
         </Link>
 
-        <Link href="/shop/add-product" className={itemClass("/shop/add-product")}>
+        <Link href="/shop/add-product" className={itemClass("/shop/add-product")} prefetch={false}>
           ➕ <span style={{ marginLeft: 8 }}>Add Product</span>
         </Link>
       </nav>

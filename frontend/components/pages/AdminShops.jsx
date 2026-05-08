@@ -58,7 +58,7 @@ export default function AdminShops() {
   return (
     <div>
       <p style={{ marginBottom: 8 }}>
-        <Link href="/admin/part-knowledge">Otofine Knowledge Engine →</Link>
+        <Link href="/admin/part-knowledge" prefetch={false}>Otofine Knowledge Engine →</Link>
       </p>
       <h2>Quản lý Shop</h2>
 

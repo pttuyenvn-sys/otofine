@@ -73,7 +73,7 @@ export default function ShopLogin() {
         <p className="text-gray-700 text-sm">{msg}</p>
         <p className="text-sm text-center mt-3">
           Chưa có shop?{" "}
-          <Link href="/shop/register" className="text-blue-600 font-semibold">
+          <Link href="/shop/register" className="text-blue-600 font-semibold" prefetch={false}>
             Đăng ký ngay
           </Link>
         </p>

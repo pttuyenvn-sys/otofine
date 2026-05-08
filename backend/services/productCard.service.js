@@ -1,6 +1,10 @@
 import * as cardRepo from "../repositories/productCard.repository.js";
 import * as plvRepo from "../repositories/productListView.repository.js";
 import { normalizeText } from "../repositories/productList.repository.js";
+import {
+  cleanHttpQueryValue,
+  normalizeListFilterYear,
+} from "../utils/listingQueryNormalize.js";
 import { getOrSetCache } from "./listCache.service.js";
 import { stripHtml, formatVND } from "../utils/textFormat.js";
 import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
@@ -125,6 +129,7 @@ async function loadCardRows({
   year,
   category,
   keywordWords,
+  cityId,
   embedHome,
 }) {
   const limitPlusOne = limit + 1;
@@ -147,6 +152,7 @@ async function loadCardRows({
         year,
         category,
         keywordWords,
+        cityId,
       });
     } else {
       rows = await cardRepo.fetchHomeCardsLiveUnfiltered({
@@ -171,6 +177,7 @@ async function loadCardRows({
       year,
       category,
       keywordWords,
+      cityId,
     });
   } else {
     rows = await cardRepo.fetchCardsLiveUnfiltered({
@@ -201,15 +208,28 @@ export async function getProductCardList(query) {
   const cursorUpdatedAt = cursor ? new Date(cursor.u) : null;
   const cursorId = cursor ? cursor.id : null;
 
-  const brand = query.brand || "";
-  const model = query.model || "";
-  const year = query.year ? Number(query.year) : null;
-  const category = query.category || "";
-  const keyword = query.keyword || "";
+  const brand = cleanHttpQueryValue(query.brand) || "";
+  const model = cleanHttpQueryValue(query.model) || "";
+  const year = normalizeListFilterYear(query.year);
+  const category = cleanHttpQueryValue(query.category) || "";
+  const keyword = cleanHttpQueryValue(query.keyword) || "";
+  const cityIdRaw = query.cityId;
+  let cityId = 0;
+  if (cityIdRaw != null && cityIdRaw !== "") {
+    const n = Number(cityIdRaw);
+    if (Number.isFinite(n) && n > 0) cityId = n;
+  }
+  const city = cleanHttpQueryValue(query.city || query.location) || "";
   const embedHome = String(query.embed || "") === "home";
 
   const hasFilters = Boolean(
-    brand || model || year || category || keyword.trim(),
+    (brand && String(brand).trim()) ||
+      (model && String(model).trim()) ||
+      (year != null && Number.isFinite(year) && year > 0) ||
+      (category && String(category).trim()) ||
+      keyword.trim() ||
+      (Number.isFinite(cityId) && cityId > 0) ||
+      (city && String(city).trim()),
   );
 
   const kw = keyword.trim() ? normalizeText(keyword) : "";
@@ -223,9 +243,11 @@ export async function getProductCardList(query) {
       hasFilters,
       brand: brand || undefined,
       model: model || undefined,
-      year: Number.isFinite(year) ? year : null,
+      year: year != null ? year : null,
       category: category || undefined,
       keywordWords,
+      cityId: cityId || undefined,
+      city: city || undefined,
       embedHome,
     });
 

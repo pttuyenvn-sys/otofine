@@ -15,9 +15,12 @@ import productImportRoutes from "./routes/productImport.routes.js";
 import productExportRoutes from "./routes/productExport.routes.js";
 import carRoutes from "./routes/car.routes.js";
 import filterRoutes from "./routes/filter.routes.js";
+import locationRoutes from "./routes/location.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
+import productCategoryRoutes from "./routes/productCategory.routes.js";
 import { getPopularCategories } from "./controllers/category.controller.js";
 import productListRoutes from "./routes/productList.routes.js";
+import { getProductList as getPublicProducts } from "./services/productList.service.js";
 import seoRoutes from "./routes/seo.routes.js";
 import seoPageApiRoutes from "./routes/seoPageApi.routes.js";
 import categorySeoRoutes from "./routes/categorySeo.routes.js";
@@ -29,6 +32,8 @@ import {
   getShopProductFilterOptions,
   getProductsByShop,
 } from "./controllers/product.controller.js";
+import { normalizeListingQuery } from "./utils/listingQueryNormalize.js";
+import vehicleSeoRoutes from "./routes/vehicleSeo.routes.js";
 
 const app = express();
 
@@ -63,6 +68,17 @@ app.get("/health", (req, res) => {
   res.json(healthPayload);
 });
 
+app.get("/api/products", async (req, res) => {
+  try {
+    const result = await getPublicProducts(normalizeListingQuery(req.query));
+
+    res.json(result);
+  } catch (err) {
+    console.error("PRODUCT API ERROR", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 /** Part-knowledge SEO engine: `/api/seo-page/:slug` */
 app.use("/api", seoPageApiRoutes);
 
@@ -84,6 +100,7 @@ app.use("/api/shop", shopRoutes);
 app.use("/api/shops", shopRoutes);
 
 app.use("/api/knowledge", knowledgePublicRoutes);
+app.use("/api/part-knowledge", partKnowledgeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(
   "/api/admin/part-knowledge",
@@ -97,7 +114,9 @@ app.use("/api/car", carRoutes);
 app.use("/api/product-export", productExportRoutes);
 
 app.use("/api/filter", filterRoutes);
+app.use("/api/locations", locationRoutes);
 app.use("/api/filter/categories", categoryRoutes);
+app.use("/api/product-categories", productCategoryRoutes);
 /** Cùng handler với GET /api/filter/categories/popular (slug ngắn theo yêu cầu tích hợp). */
 app.get("/api/categories/popular", getPopularCategories);
 
@@ -122,6 +141,8 @@ app.use("/api/category-seo", categorySeoRoutes);
 app.get("/", (req, res) => {
   res.json({ message: "Otofine API đang chạy" });
 });
+
+app.use("/api", vehicleSeoRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

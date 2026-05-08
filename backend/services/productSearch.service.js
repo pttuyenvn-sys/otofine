@@ -8,6 +8,10 @@ import { legacySlugForId } from "../utils/productSlug.js";
 import { sqlCategoryKeyFromPartName } from "../utils/categoryKey.js";
 import { TYPESENSE_SEARCH_DEFAULTS as TS_DEF } from "../config/typesenseSearchDefaults.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import {
+  cleanHttpQueryValue,
+  normalizeListFilterYear,
+} from "../utils/listingQueryNormalize.js";
 
 const COLLECTION =
   process.env.TYPESENSE_PRODUCT_COLLECTION || "otofine_products";
@@ -81,6 +85,11 @@ async function mysqlSearchIds(opts) {
   const perPage = Math.min(100, Math.max(1, Number(opts.perPage) || 24));
   const page = Math.max(1, Number(opts.page) || 1);
   const offset = (page - 1) * perPage;
+  const cityId = Number(opts.cityId);
+  const cityName = String(opts.city || opts.location || "").trim();
+  const joins = cityId || cityName
+    ? " JOIN shops s ON s.id = p.shopId LEFT JOIN address a ON a.id = s.provinceId "
+    : "";
 
   if (!q) {
     return { ids: [], found: 0, source: "mysql" };
@@ -102,36 +111,53 @@ async function mysqlSearchIds(opts) {
     params.push(like, like, like);
   }
 
-  if (opts.brand) {
+  const filterBrand = cleanHttpQueryValue(opts.brand);
+  const filterModel = cleanHttpQueryValue(opts.model);
+  const filterCategory = cleanHttpQueryValue(opts.category);
+  const filterYear = normalizeListFilterYear(opts.year);
+
+  if (filterBrand) {
     where += ` AND EXISTS (
       SELECT 1 FROM product_car_applications pa
       INNER JOIN car_models cm ON cm.id = pa.carModelId
-      WHERE pa.productId = p.id AND cm.hang_xe = ?
+      WHERE pa.productId = p.id AND LOWER(TRIM(cm.hang_xe)) = ?
     ) `;
-    params.push(opts.brand);
+    params.push(String(filterBrand).trim().toLowerCase());
   }
-  if (opts.model) {
+  if (filterModel) {
     where += ` AND EXISTS (
       SELECT 1 FROM product_car_applications pa2
       INNER JOIN car_models cm2 ON cm2.id = pa2.carModelId
-      WHERE pa2.productId = p.id AND cm2.ten_xe = ?
+      WHERE pa2.productId = p.id AND LOWER(TRIM(cm2.ten_xe)) = ?
     ) `;
-    params.push(opts.model);
+    params.push(String(filterModel).trim().toLowerCase());
   }
-  if (opts.year != null && Number.isFinite(Number(opts.year))) {
-    const y = Number(opts.year);
+  if (filterYear != null) {
     where += ` AND EXISTS (
       SELECT 1 FROM product_car_applications pa3
       WHERE pa3.productId = p.id AND pa3.year_from <= ? AND pa3.year_to >= ?
     ) `;
-    params.push(y, y);
+    params.push(filterYear, filterYear);
   }
-  if (opts.category) {
+  if (Number.isFinite(cityId) && cityId > 0) {
+    where += ` AND s.provinceId = ? `;
+    params.push(cityId);
+  } else if (cityName) {
+    const cityFolded = normalizeText(cityName);
+    const citySlug = cityFolded.replace(/\s+/g, "-");
+    where += ` AND (
+      a.tinh_tp_norm = ?
+      OR a.tinh_tp_slug = ?
+      OR a.tinh_tp_norm LIKE ?
+    ) `;
+    params.push(cityFolded, citySlug, `%${cityFolded}`);
+  }
+  if (filterCategory) {
     where += `
       AND LOWER(TRIM(REGEXP_REPLACE(p.partName, '\\s+', ' ')))
         = LOWER(TRIM(REGEXP_REPLACE(?, '\\s+', ' ')))
     `;
-    params.push(opts.category);
+    params.push(filterCategory);
   }
 
   const kw = normalizeText(q);
@@ -143,6 +169,7 @@ async function mysqlSearchIds(opts) {
     FROM (
       SELECT p.id
       FROM products p
+      ${joins}
       ${where}
       GROUP BY p.id
     ) t
@@ -160,6 +187,7 @@ async function mysqlSearchIds(opts) {
     `
     SELECT p.id
     FROM products p
+    ${joins}
     ${where}
     GROUP BY p.id
     ORDER BY
@@ -242,25 +270,32 @@ export async function searchProductIds(opts) {
   const q = (opts.q && String(opts.q).trim()) || "";
   const perPage = Math.min(100, Math.max(1, Number(opts.perPage) || 16));
   const page = Math.max(1, Number(opts.page) || 1);
+  const hasLocationFilter = Boolean(opts.cityId || opts.city || opts.location);
+
+  const brand = cleanHttpQueryValue(opts.brand) || undefined;
+  const model = cleanHttpQueryValue(opts.model) || undefined;
+  const category = cleanHttpQueryValue(opts.category) || undefined;
+  const year = normalizeListFilterYear(opts.year);
+
+  const mysqlOpts = { ...opts, perPage, page, brand, model, category, year };
 
   const ts = getTypesenseClient();
-  if (!ts || !q) {
-    return mysqlSearchIds({ ...opts, perPage, page });
+  if (!ts || !q || hasLocationFilter) {
+    return mysqlSearchIds(mysqlOpts);
   }
 
   const filters = [];
-  if (opts.brand) {
-    filters.push(`brands:=${escapeFilterValue(opts.brand)}`);
+  if (brand) {
+    filters.push(`brands:=${escapeFilterValue(brand)}`);
   }
-  if (opts.model) {
-    filters.push(`models:=${escapeFilterValue(opts.model)}`);
+  if (model) {
+    filters.push(`models:=${escapeFilterValue(model)}`);
   }
-  if (opts.year != null && Number.isFinite(Number(opts.year))) {
-    const y = Number(opts.year);
-    filters.push(`year_min:<=${y} && year_max:>=${y}`);
+  if (year != null && Number.isFinite(year)) {
+    filters.push(`year_min:<=${year} && year_max:>=${year}`);
   }
-  if (opts.category) {
-    const cn = sqlCategoryKeyFromPartName(opts.category);
+  if (category) {
+    const cn = sqlCategoryKeyFromPartName(category);
     if (cn) filters.push(`category_norm:=${escapeFilterValue(cn)}`);
   }
 
@@ -285,7 +320,7 @@ export async function searchProductIds(opts) {
     };
   } catch (e) {
     console.warn("[productSearch] Typesense lỗi, fallback MySQL:", e.message);
-    return mysqlSearchIds({ ...opts, perPage, page });
+    return mysqlSearchIds(mysqlOpts);
   }
 }
 

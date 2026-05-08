@@ -43,18 +43,33 @@
   }
 }
 
-.seo-article-content .seo-top-products {
-  margin: 0 0 24px;
-  padding: 14px 16px;
-  padding-left: 44px;
-  list-style: disc;
+.seo-article-content .seo-commerce-block {
+  margin: 0 0 28px;
+  padding: 18px;
   background: #f9fafb;
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid #eef1f5;
 }
 
+.seo-article-content .seo-top-products {
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .seo-article-content .seo-top-products li {
-  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 12px;
+  margin-bottom: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   line-height: 1.5;
 }
 
@@ -70,6 +85,438 @@
 
 .seo-article-content .seo-top-products .seo-top-products__a:hover {
   text-decoration: underline;
+}
+
+.seo-article-content .seo-top-products__thumb {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.seo-article-content .seo-top-products__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seo-article-content .seo-top-products__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seo-article-content .seo-top-products__sku,
+.seo-article-content .seo-top-products__price,
+.seo-article-content .seo-top-products__compat {
+  display: block;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.seo-article-content .seo-top-products__compat {
+  color: #047857;
+}
+
+.seo-article-content .seo-top-products__cta {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #155fc4;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.seo-article-content .seo-top-products__cta:hover {
+  background: #0f4fa8;
+}
+
+.seo-article-content .seo-commerce-block--shops {
+  background: #fff;
+}
+
+.seo-article-content .seo-top-shops {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.seo-article-content .seo-top-shops li {
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.seo-article-content .seo-top-shops__body {
+  display: grid;
+  gap: 4px;
+}
+
+.seo-article-content .seo-top-shops__name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seo-article-content .seo-top-shops__meta,
+.seo-article-content .seo-top-shops__phone {
+  font-size: 0.92rem;
+}
+
+.seo-article-content .seo-top-shops__meta {
+  color: #4b5563;
+}
+
+.seo-article-content .seo-top-shops__phone {
+  color: #155fc4;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.seo-article-content .seo-top-shops__phone:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   VEHICLE SEO ARTICLE
+========================================= */
+
+.seo-article-content {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.seo-article-content section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.seo-article-content h2 {
+  font-size: 26px;
+  line-height: 1.4;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: #111827;
+}
+
+.seo-article-content h3 {
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #111827;
+}
+
+.seo-article-content p {
+  font-size: 15px;
+  line-height: 1.9;
+  color: #374151;
+  margin-bottom: 14px;
+}
+
+.seo-article-content strong {
+  color: #111827;
+}
+
+/* =========================================
+   PRODUCT LIST
+========================================= */
+
+.vehicle-seo-count {
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.vehicle-seo-part-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.vehicle-seo-part-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+  padding: 16px;
+}
+
+.vehicle-seo-part-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  transition: all .2s ease;
+  overflow: hidden;
+}
+
+.vehicle-seo-part-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .06);
+}
+
+.vehicle-seo-part-item:hover {
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.vehicle-seo-part-name {
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 600;
+  color: #111827;
+}
+
+.vehicle-seo-part-price {
+  font-size: 14px;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* =========================================
+   TABLE
+========================================= */
+
+.vehicle-maintenance-table,
+.vehicle-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.vehicle-maintenance-table th,
+.vehicle-price-table th {
+  background: #f3f4f6;
+  padding: 14px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.vehicle-maintenance-table td,
+.vehicle-price-table td {
+  border-top: 1px solid #e5e7eb;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+/* =========================================
+   FAULTS
+========================================= */
+
+.vehicle-fault-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+  background: #fff;
+}
+
+.vehicle-fault-item:last-child {
+  margin-bottom: 0;
+}
+
+/* =========================================
+   INLINE IMAGES
+========================================= */
+
+.seo-article-inline-fig {
+  margin: 28px 0;
+}
+
+.seo-article-inline-fig__inner {
+  overflow: hidden;
+  border-radius: 18px;
+  background: #f3f4f6;
+}
+
+.seo-article-inline-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+/* =========================================
+   RELATED LINKS
+========================================= */
+
+.seo-article-content ul {
+  padding-left: 20px;
+}
+
+.seo-article-content li {
+  margin-bottom: 10px;
+  line-height: 1.7;
+}
+
+.seo-article-content a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.seo-article-content a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   TOP PRODUCTS BLOCK
+========================================= */
+
+.seo-commerce-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 22px;
+  background: #fff;
+}
+
+.seo-top-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.seo-top-products li {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.seo-top-products__thumb img {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  display: block;
+}
+
+.seo-top-products__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.seo-top-products__a {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #111827;
+  text-decoration: none;
+}
+
+.seo-top-products__price {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.seo-top-products__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.vehicle-related-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.vehicle-related-grid li {
+  margin: 0;
+}
+
+.vehicle-related-grid a {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  text-decoration: none;
+  transition: all .2s ease;
+}
+
+.vehicle-related-grid a:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width:768px) {
+
+  .seo-article-content section {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .seo-article-content h2 {
+    font-size: 22px;
+  }
+
+  .seo-article-content h3 {
+    font-size: 18px;
+  }
+
+  .seo-top-products {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-seo-part-list {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-related-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 700px) {
+  .seo-article-content .seo-top-products {
+    grid-template-columns: 1fr;
+  }
 }
 
 .seo-article-inline-fig {

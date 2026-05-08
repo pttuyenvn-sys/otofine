@@ -1,63 +1,95 @@
 import { useMemo, useState } from "react";
-import { EMPTY_HOME_FILTERS } from "@/lib/seo/homePageTitle";
 import { buildListingState } from "@/lib/seo/listingStateEngine.js";
 
-const EMPTY_FILTERS = EMPTY_HOME_FILTERS;
+function buildBusinessPageTitle({ category, brand, model, year, location }) {
+  const hasCategory = !!String(category || "").trim();
+  const loc = String(location || "").trim();
 
-export function useListingController(props = {}) {
-  const { initialFromSlug = null, seoListingContext = null } = props;
+  // 👉 Trang chủ
+  if (!category && !brand && !model && !year && !location) {
+    return "Phụ tùng ô tô chính hãng giá tốt";
+  }
 
-  const initialUserIntentCategory = String(
-    initialFromSlug?.selectedCategory ??
-      seoListingContext?.categoryName ??
-      "",
-  ).trim();
+  // 👉 Chỉ có category
+  if (hasCategory && !brand && !model && !year && !location) {
+    return `${category} ô tô`;
+  }
 
-  const [selectedCategory, setSelectedCategory] = useState(() =>
-    initialUserIntentCategory,
-  );
+  const parts = [];
 
-  const [filters, setFilters] = useState(() => {
-    if (seoListingContext) return { ...EMPTY_FILTERS };
-    if (initialFromSlug?.filters) {
-      return { ...EMPTY_FILTERS, ...initialFromSlug.filters };
-    }
-    return { ...EMPTY_FILTERS };
-  });
+  // 👉 Có category → KHÔNG dùng "Phụ tùng"
+  if (hasCategory) {
+    parts.push(category);
+  } else {
+    parts.push("Phụ tùng");
+  }
 
+  if (brand) parts.push(brand);
+  if (model) parts.push(model);
+  if (year) parts.push(year);
+
+  let title = parts.join(" ");
+
+  if (loc) {
+    title += ` tại ${loc}`;
+  }
+
+  return title;
+}
+
+export function useListingController() {
+  const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [location, setLocation] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
-  const [committedKeyword, setCommittedKeyword] = useState("");
-  const [listSort, setListSort] = useState("popular");
+  const [sort, setSort] = useState("popular");
 
-  const listingState = useMemo(
-    () =>
-      buildListingState({
-        selectedCategory,
-        filters,
-        page,
-        keyword: committedKeyword,
-        sort: listSort,
-      }),
-    [selectedCategory, filters, page, committedKeyword, listSort],
-  );
+  const state = {
+    category,
+    brand,
+    model,
+    year,
+    location,
+    keyword,
+    page,
+    sort,
+  };
+
+  const listingState = useMemo(() => {
+    const base = buildListingState(state);
+    return {
+      ...base,
+      h1: buildBusinessPageTitle(state),
+    };
+  }, [category, brand, model, year, location, keyword, page, sort]);
 
   const pageTitle = listingState.h1;
-
-  const currentListingUrl = listingState.url;
+  const tier = listingState.tier;
+  const tierLabel = listingState.tierLabel;
 
   return {
-    selectedCategory,
-    setSelectedCategory,
-    filters,
-    setFilters,
+    category,
+    setCategory,
+    brand,
+    setBrand,
+    model,
+    setModel,
+    year,
+    setYear,
+    location,
+    setLocation,
+    keyword,
+    setKeyword,
     page,
     setPage,
-    committedKeyword,
-    setCommittedKeyword,
-    listSort,
-    setListSort,
+    sort,
+    setSort,
     pageTitle,
+    tier,
+    tierLabel,
     listingState,
-    currentListingUrl,
   };
 }

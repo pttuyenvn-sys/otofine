@@ -50,7 +50,7 @@ export default function ShopForgotPassword() {
 
         {/* Link quay lại đăng nhập */}
         <p className="text-center text-sm text-blue-600 mt-2 hover:underline">
-          <Link href="/shop/login">Quay lại đăng nhập</Link>
+          <Link href="/shop/login" prefetch={false}>Quay lại đăng nhập</Link>
         </p>
       </form>
     </AuthCard>

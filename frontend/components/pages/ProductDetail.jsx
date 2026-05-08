@@ -478,7 +478,7 @@ export default function ProductDetail() {
           </button>
         </p>
         <nav className="breadcrumb" aria-label="Breadcrumb">
-          <Link href="/">Trang chủ</Link>
+          <Link href="/" prefetch={false}>Trang chủ</Link>
           <span className="breadcrumb-sep"> / </span>
           <span className="breadcrumb-current">{titleText}</span>
         </nav>
@@ -684,8 +684,7 @@ export default function ProductDetail() {
               renderCard={(r) => (
                 <Link
                   href={productHref(r.slug, r.id)}
-                  className="pd-mini-card"
-                >
+                  className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
                       src={r.image || "/no-image.png"}
@@ -727,8 +726,7 @@ export default function ProductDetail() {
               renderCard={(r) => (
                 <Link
                   href={productHref(r.slug, r.id)}
-                  className="pd-mini-card"
-                >
+                  className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
                       src={r.image || "/no-image.png"}

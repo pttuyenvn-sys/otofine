@@ -2,6 +2,14 @@ import * as productListRepo from "../repositories/productList.repository.js";
 import { stripHtml, formatVND } from "../utils/textFormat.js";
 import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import {
+  cleanHttpQueryValue,
+  listingQueryNeedsVehicleFitmentJoin,
+  normalizeListingQuery,
+} from "../utils/listingQueryNormalize.js";
+import { getOrSetCache } from "./listCache.service.js";
+
+const FACET_TTL = 5 * 60 * 1000;
 
 function mapImageUrl(url) {
   if (!url) return null;
@@ -24,20 +32,40 @@ export async function getProductList(query) {
   const offset = (Number(page) - 1) * limit;
 
   const pc = await getProductsColumnsResolved();
+  const q = normalizeListingQuery(query);
+
+  const joinVehicleFitment =
+    q.brand ||
+    q.model ||
+    (q.year != null && Number.isFinite(Number(q.year)));
   const { where, params, keywordOrder } =
     productListRepo.buildProductListFilters(pc, query);
 
-  const rows = await productListRepo.selectProductListRows({
-    pc,
-    where,
-    params,
-    keywordOrder,
-    limit,
-    offset,
-    sort,
-  });
+  if (process.env.LOG_LISTING_SQL === "1") {
+    console.log("[listing SQL] /api/products facets", {
+      joinVehicleFitment,
+      normalized: normalizeListingQuery(query),
+    });
+  }
 
-  const countRow = await productListRepo.countProductList({ pc, where, params });
+  const [rows, countRow] = await Promise.all([
+    productListRepo.selectProductListRows({
+      pc,
+      where,
+      params,
+      keywordOrder,
+      limit,
+      offset,
+      sort,
+      joinVehicleFitment,
+    }),
+    productListRepo.countProductList({
+      pc,
+      where,
+      params,
+      joinVehicleFitment,
+    }),
+  ]);
   const total = Number(countRow?.total) || 0;
   const totalPages = Math.ceil(total / limit);
 
@@ -85,11 +113,47 @@ export async function getProductList(query) {
 }
 
 export async function getBrands() {
-  const pc = await getProductsColumnsResolved();
-  return productListRepo.selectBrandsWithCounts(pc);
+  return getOrSetCache("brands:all", FACET_TTL, async () => {
+    const pc = await getProductsColumnsResolved();
+    return productListRepo.selectBrandsWithCounts(pc);
+  });
 }
 
 export async function getModels(brand) {
-  const pc = await getProductsColumnsResolved();
-  return productListRepo.selectModelsWithCounts(pc, brand);
+  const b = cleanHttpQueryValue(brand);
+  if (!b) return [];
+  return getOrSetCache(`models:${b.toLowerCase()}`, FACET_TTL, async () => {
+    const pc = await getProductsColumnsResolved();
+    return productListRepo.selectModelsWithCounts(pc, b);
+  });
+}
+
+export async function getLocations(query) {
+  const q = normalizeListingQuery(query);
+
+  const parts = [
+    q.category, q.brand, q.model, q.year, q.keyword, q.city, q.location,
+  ].map((v) => (v == null ? "" : String(v).toLowerCase()));
+
+  const cacheKey = `locations:${parts.join("|")}`;
+
+  return getOrSetCache(cacheKey, FACET_TTL, async () => {
+    const pc = await getProductsColumnsResolved();
+
+    const rows = await productListRepo.selectLocationsWithCounts(pc, query);
+
+    // ✅ FIX: map lại đúng format FE cần
+    return rows.map(r => ({
+      id: r.id,
+      name: r.name || r.tinh_tp,
+      slug: (r.name || r.tinh_tp)
+        ?.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+      productCount: Number(r.productCount || r.total || 0)
+    }));
+  });
 }

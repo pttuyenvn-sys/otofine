@@ -50,10 +50,17 @@ export async function parseLandingSlug(slug) {
 
   /* --- Category: {name}-o-to (không dùng prefix phu-tung) --- */
   if (s.endsWith("-o-to") && !s.startsWith(SEO_BASE_SLUG)) {
-    const categories = await fetchJson("/filter/categories");
+    // Try new API first, fallback to old API
+    let categories = await fetchJson("/product-categories").catch(() => null);
+    
+    // Fallback to old API if new API fails or returns empty
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
+      categories = await fetchJson("/filter/categories").catch(() => null);
+    }
+    
     const list = Array.isArray(categories) ? categories : [];
-    for (const rawName of list) {
-      const name = String(rawName || "").trim();
+    for (const raw of list) {
+      const name = String(raw?.category_name || raw || "").trim();
       if (!name) continue;
       if (categoryLandingSlugFromName(name) === s) {
         const h1 = `${name} ô tô`;

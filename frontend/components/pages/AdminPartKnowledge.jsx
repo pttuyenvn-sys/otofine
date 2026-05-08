@@ -169,7 +169,7 @@ export default function AdminPartKnowledge() {
   return (
     <div>
       <p style={{ marginBottom: 8 }}>
-        <Link href="/admin/shops">← Quản lý shop</Link>
+        <Link href="/admin/shops" prefetch={false}>← Quản lý shop</Link>
       </p>
       <h2>Otofine Knowledge Engine — phụ tùng</h2>
       <p style={{ color: "#64748b", fontSize: 14 }}>

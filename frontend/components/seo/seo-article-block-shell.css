@@ -43,6 +43,13 @@
   box-sizing: border-box;
 }
 
+.seo-article {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+}
+
 /* —— Unified bottom card (shops + FAQ + related) —— */
 .seo-bc-card {
   background: #fff;

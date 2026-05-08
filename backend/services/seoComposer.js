@@ -19,12 +19,13 @@ function foldVi(raw) {
     .replace(/\u0111/g, "d")
     .replace(/\u0110/g, "D")
     .replace(/đ/gi, "d")
+    .replace(/[^a-z0-9]+/gi, " ")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
 }
 
-/** @typedef {'ignition'|'brake'|'filter'|'suspension'|'lighting'|'engine'|'transmission'|'exhaust'|'cooling'|'default'} Profile */
+/** @typedef {'ignition'|'brake'|'steering'|'filter'|'body'|'electrical'|'suspension'|'lighting'|'engine'|'transmission'|'exhaust'|'cooling'|'default'} Profile */
 
 /**
  * @param {import("mysql2").RowDataPacket} row
@@ -32,10 +33,28 @@ function foldVi(raw) {
  */
 function detectProfile(row) {
   const hay = [
+    foldVi(row.slug ?? ""),
+    foldVi(row.name_vi ?? ""),
     foldVi(row.system_group ?? ""),
     foldVi(row.category_name ?? ""),
     foldVi(row.canonical_name ?? ""),
   ].join(" ");
+
+  if (/\b(ma phanh|bo thang|phanh|heo phanh|caliper|dia phanh|dau phanh|tang bua)\b/.test(hay)) {
+    return "brake";
+  }
+
+  if (/\b(thuoc lai|thanh rang|rotuyn lai|rotin lai|tro luc lai|bom tro luc|vo lang|tay lai)\b/.test(hay)) {
+    return "steering";
+  }
+
+  if (/\b(can truoc|can sau|ba do soc|nap capo|tai xe|tai truoc|tai sau|cua xe|mat ca lang|calang|guong|than vo|op hong|op cua|bu long can)\b/.test(hay)) {
+    return "body";
+  }
+
+  if (/\b(den|cam bien|sensor|ecu|day dien|cong tac|relay|ro le|cau chi|motor|mo to|camera)\b/.test(hay)) {
+    return "electrical";
+  }
 
   if (
     /\b(he thong ham|tang phanh|caliper|dong phanh|pho thang|phanh dia|phanh tang|pad phanh|phanh \w+|phanh\b)\b/.test(
@@ -101,6 +120,23 @@ function detectProfile(row) {
   return "default";
 }
 
+const PROFILE_DENY = {
+  brake: [],
+  steering: [/\babs\b/i, /dau phanh/i, /heo phanh/i, /ma phanh/i],
+  filter: [/\babs\b/i, /dau phanh/i, /heo phanh/i],
+  body: [/\becu\b/i, /\babs\b/i, /\bdau\b/i, /cam bien/i, /tin hieu/i, /dien ap/i],
+  electrical: [/\bdau phanh\b/i, /heo phanh/i, /ma phanh/i],
+  suspension: [/\babs\b/i, /dau phanh/i, /heo phanh/i],
+  ignition: [/\bdau phanh\b/i, /heo phanh/i, /ma phanh/i],
+  default: [/\babs\b/i, /dau phanh/i, /heo phanh/i],
+};
+
+function isAllowedForProfile(text, profile) {
+  const folded = foldVi(text);
+  const rules = PROFILE_DENY[profile] || PROFILE_DENY.default;
+  return !rules.some((re) => re.test(folded));
+}
+
 /** @returns {boolean} */
 function looksLikeHtmlMarkup(text) {
   const t = String(text ?? "").trim();
@@ -111,7 +147,7 @@ function looksLikeHtmlMarkup(text) {
  * @param {string} text
  * @param {Set<string>} seen
  */
-function paragraphsToHtml(text, seen) {
+function paragraphsToHtml(text, seen, profile = "default") {
   const raw = String(text ?? "").trim();
   if (!raw) return "";
 
@@ -132,6 +168,7 @@ function paragraphsToHtml(text, seen) {
   for (let p of paras) {
     const norm = p.replace(/\s+/g, " ").trim();
     if (!norm) continue;
+    if (!isAllowedForProfile(norm, profile)) continue;
     const k = norm.toLowerCase();
     if (seen?.has?.(k)) continue;
     seen?.add?.(k);
@@ -141,10 +178,10 @@ function paragraphsToHtml(text, seen) {
 }
 
 /** @param {(string|null|undefined)[]} parts @param {Set<string>} seen */
-function mergeFields(parts, seen) {
+function mergeFields(parts, seen, profile = "default") {
   let acc = "";
   for (const t of parts) {
-    const b = paragraphsToHtml(String(t ?? ""), seen);
+    const b = paragraphsToHtml(String(t ?? ""), seen, profile);
     if (b.trim()) acc += b;
   }
   return acc;
@@ -163,9 +200,10 @@ function approxWords(html) {
 
 /** Deduped sentence paragraph. */
 /** @param {string} t @param {Set<string>} seen */
-function emitP(t, seen) {
+function emitP(t, seen, profile = "default") {
   const n = String(t ?? "").replace(/\s+/g, " ").trim();
   if (!n) return "";
+  if (!isAllowedForProfile(n, profile)) return "";
   const k = n.toLowerCase();
   if (seen.has(k)) return "";
   seen.add(k);
@@ -173,11 +211,12 @@ function emitP(t, seen) {
 }
 
 /** @param {string[]} items @param {Set<string>} seen */
-function emitUl(items, seen) {
+function emitUl(items, seen, profile = "default") {
   let li = "";
   for (const it of items) {
     const s = String(it ?? "").replace(/\s+/g, " ").trim();
     if (!s) continue;
+    if (!isAllowedForProfile(s, profile)) continue;
     const k = s.toLowerCase();
     if (seen.has(k)) continue;
     seen.add(k);
@@ -192,7 +231,7 @@ function emitUl(items, seen) {
  * @param {string} raw
  * @param {Set<string>} seen
  */
-function mixedBlocksFromText(raw, seen) {
+function mixedBlocksFromText(raw, seen, profile = "default") {
   let body = String(raw ?? "").trim();
   if (!body) return "";
   const lines = body.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
@@ -207,13 +246,13 @@ function mixedBlocksFromText(raw, seen) {
   }
   let html = "";
   if (prose.length) {
-    html += paragraphsToHtml(prose.join("\n\n"), seen);
+    html += paragraphsToHtml(prose.join("\n\n"), seen, profile);
   }
   if (bullets.length) {
-    html += emitUl(bullets, seen);
+    html += emitUl(bullets, seen, profile);
   }
   if (!html.trim()) {
-    html = paragraphsToHtml(body, seen);
+    html = paragraphsToHtml(body, seen, profile);
   }
   return html;
 }
@@ -237,9 +276,21 @@ function templateLaGiExtras(profile, nameVi, cat) {
       `Với phanh ${c}, ${n} là bộ phận chịu ma sát chính khi hãm/giảm tốc; vật liệu ma sát, khe tản nhiệt và bề mặt tiếp xúc đĩa phải đồng bộ thông số OE/OEM để tránh kêu, rung, nóng cục bộ hoặc lệch moment phanh giữa các bánh.`,
       `Trên đường Việt Nam, bụi, nước mưa, nhiệt độ cao liên tục và tải phanh nặng (đèo, tắc đường) làm tăng tốc độ hao mòn; nên kết hợp quan sát độ dày còn lại, ranh giới an toàn nhà sản xuất và hiện tượng thực tế (kêu, rung vô lăng, kéo phanh) khi quyết định thay.`,
     ],
+    steering: [
+      `${n} thuộc hệ thống lái, cần đúng kích thước lắp, hành trình và độ rơ cho từng đời xe. Khi sai thông số, vô lăng có thể nặng, trả lái kém, kêu lục cục hoặc làm lốp mòn lệch.`,
+      `Nên kiểm tra đồng thời rotuyn, thanh răng, cao su chụp bụi và trợ lực EPS/dầu để tránh thay một chi tiết nhưng vẫn còn độ rơ hoặc tiếng kêu từ cụm liên quan.`,
+    ],
     filter: [
       `${n} thuộc nhóm bảo dưỡng định kỳ: lưu lượng khí/dầu qua lõi lọc phải giữ trong ngưỡng cho phép; khi tắc, áp suất chênh hoặc nhiễm bẩn sẽ ảnh hưởng hiệu suất động cơ, tuổi thọ dầu/nhiên liệu và đôi khi cảm biến liên quan.`,
       `Chất lượng lõi, gioăng, van bypass (nếu có) và đúng mã theo động cơ quan trọng hơn “hình dạng nhìn giống nhau”; không nên lắp chung loại không đúng thông số lưu lượng chỉ để tiết kiệm ngắn hạn.`,
+    ],
+    body: [
+      `${n} thuộc nhóm thân vỏ/ngoại thất, ưu tiên đúng form dáng, khe hở lắp ráp, vị trí bắt ốc và độ khớp với ba-đờ-sốc, tai xe, nắp capo hoặc cụm đèn liền kề.`,
+      `Khi thay ${n}, cần kiểm tra bề mặt sơn, độ phẳng, pát giữ và đường mép để tránh hở khe, lệch dáng hoặc rung khi xe chạy tốc độ cao.`,
+    ],
+    electrical: [
+      `${n} thuộc nhóm điện/điện tử, cần đúng điện áp làm việc, chân giắc, tín hiệu và chuẩn giao tiếp với hệ thống trên xe.`,
+      `Khi chọn ${n}, nên đối chiếu mã OE/OEM, sơ đồ chân và đời xe; sai mã có thể gây báo lỗi, tín hiệu không ổn định hoặc hoạt động chập chờn.`,
     ],
     suspension: [
       `${n} chịu tải động của thân xe: lực dọc, xoắn, va đập và mài mòn cao su/kim loại — vì vậy lắp đặt không đồng tâm hoặc thiếu siết lực theo moment chuẩn dễ gây ồn, lệch thước lái hoặc bào mòn lốp.`,
@@ -279,6 +330,9 @@ function templateSymptomIntro(profile, nameVi) {
     ignition: `Dấu hiệu ${n} yếu hoặc hỏng thường kết hợp với hiện tượng đánh lửa kém ở một hoặc nhiều xi-lanh. Dưới đây là các biểu hiện thường gặp — nên ghi nhận kèm ngữ cảnh (nóng máy, tải, vệ sinh bugi):`,
     brake: `Triệu chứng phanh liên quan ${n} thường thể hiện qua âm thanh, độ rung vô lăng, khoảng hành trình bàn đạp hoặc mùi nóng; cần phân biệt bánh trước/sau và tình trạng đĩa/má phanh kèm theo:`,
     filter: `Khi ${n} tắc hoặc quá bẩn, động cơ có thể “uống” nhiên liệu hơn, yếu tốc đầu, báo đèn hoặc tiếng hút lạ — theo dõi các dấu hiệu sau:`,
+    steering: `Dấu hiệu ${n} hỏng thường nằm ở cảm giác lái, độ rơ và tiếng kêu từ gầm trước. Cần phân biệt với rotuyn, thước lái và trợ lực lái trước khi kết luận:`,
+    body: `Dấu hiệu ${n} xuống cấp thường thể hiện ở khe hở, độ lệch form, nứt gãy pát giữ hoặc bề mặt sơn. Các biểu hiện nên kiểm tra gồm:`,
+    electrical: `Dấu hiệu ${n} lỗi thường liên quan điện áp, tín hiệu hoặc giắc cắm. Nên ghi nhận hiện tượng theo thời điểm bật/tắt tải điện và điều kiện vận hành:`,
     suspension: `Hệ thống treo kêu, lệch lái hoặc lốp mòn lệch thường liên quan đến ${n} hoặc chi tiết lân cận. Các dấu hiệu phổ biến:`,
     default: `Dưới đây là các dấu hiệu thường gặp khi ${n} suy giảm hoặc hỏng — cần đối chiếu thêm qua chẩn đoán tại xưởng:`,
   };
@@ -291,6 +345,9 @@ function templateSymptomClosing(profile, nameVi) {
     ignition: `Bỏ qua các dấu hiệu trên có thể làm tăng khí thải, hư hỏng cục bộ buồng đốt hoặc hư hỏng dây cao áp/ECU do phải “bù” đánh lửa; nên quét mã lỗi và đo thông số trước khi thay lẻ.`,
     brake: `Tiếp tục sử dụng khi phanh kém hoặc nóng cục bộ làm tăng nguy cơ mất an toàn (trượt bánh, lệch moment, mất phanh một phần). Hãy kiểm tra cả dầu phanh, heo thắng và đĩa kèm theo.`,
     filter: `Không xử lý kịp có thể kéo theo tải bơm, nóng dầu, carbon hóa van hoặc hư cảm biến áp — chi phí sửa chữa thường cao hơn thay đúng lọc đúng kỳ.`,
+    steering: `Nếu tiếp tục chạy khi ${n} có độ rơ hoặc kêu bất thường, xe có thể mất ổn định hướng lái, mòn lốp lệch và làm tăng tải lên rotuyn hoặc trợ lực lái.`,
+    body: `Với thân vỏ, bỏ qua chi tiết lệch/hở có thể làm nước, bụi và rung gió lọt vào, đồng thời ảnh hưởng thẩm mỹ và độ khít khi lắp các chi tiết liền kề.`,
+    electrical: `Nếu ${n} phát tín hiệu sai hoặc mất nguồn chập chờn, xe có thể báo lỗi không ổn định; nên kiểm tra nguồn, mass và giắc trước khi thay.`,
     suspension: `Triệu chứng kéo dài thường làm mòn lốp lệch, căng rotin/càng chữ A và giảm ổn định đường trơn.`,
     default: `Nếu triệu chứng xuất hiện đồng thời với các hệ khác (nhiệt độ dầu, đèn báo), cần chẩn đoán tổng thể để tránh thay sai vị trí.`,
   };
@@ -312,6 +369,16 @@ function templateCauseExtras(profile, nameVi, cat) {
     filter: [
       `Môi trường bụi cao (QL1, cao tốc, công trường) rút ngắn tuổi lọc gió; lọc dầu phải thay đúng định kỳ nếu dầu máy đã mờ/sôi.`,
     ],
+    steering: [
+      `Đường xấu, va ổ gà, nước lọt vào chụp bụi hoặc thiếu bảo dưỡng có thể làm ${n} rơ, kêu và trả lái không đều.`,
+      `Lệch góc đặt bánh hoặc rotuyn mòn cũng dễ làm người dùng nhầm là hỏng riêng ${n}.`,
+    ],
+    body: [
+      `Va quệt, pát gãy, lắp sai ngàm hoặc sơn sửa không đúng quy trình là các nguyên nhân thường gặp khiến ${n} lệch form hoặc hở khe.`,
+    ],
+    electrical: [
+      `Ẩm giắc, oxy hóa chân cắm, dây dẫn đứt ngầm hoặc điện áp cấp không ổn định là nguyên nhân phổ biến làm ${n} hoạt động sai.`,
+    ],
     suspension: [
       `Chạy nhiều ổ gà/gờ giảm tốc làm giảm tuổi thọ cao su; lệch lái kéo dài khiến ${n} chịu tải xoắn không đều.`,
     ],
@@ -328,6 +395,9 @@ function templateIntervalExtras(profile, nameVi) {
     ignition: `Hiếm khi có “km cố định” cho ${n}: thay khi có triệu chứng rõ, sau khi đã loại trừ bugi/dây cao áp và quét lỗi. Một số hãng khuyến cáo kiểm tra định kỳ — ưu tiên làm đúng hướng dẫn bảo dưỡng của xe.`,
     brake: `Khoảng thay má phanh/đĩa phụ thuộc phong độ phanh, địa hình và chất lượng vật liệu; theo dõi độ dày còn lại an toàn thay vì chỉ nhìn km tổng.`,
     filter: `Lọc gió/dầu thường niêm trong lịch bảo dưỡng định kỳ theo km hoặc tháng — nếu môi trường bụi cao có thể rút ngắn.`,
+    steering: `${n} thường thay khi có độ rơ, kêu, chảy dầu trợ lực hoặc kiểm tra thấy thanh răng/rotuyn vượt giới hạn cho phép; không nên chỉ dựa vào số km.`,
+    body: `${n} không có chu kỳ thay cố định; chỉ thay khi nứt gãy, biến dạng, hở khe, bạc màu nặng hoặc sau va chạm cần phục hồi đúng form.`,
+    electrical: `${n} nên thay khi đo được lỗi tín hiệu/điện áp, giắc hư hoặc hệ thống báo lỗi lặp lại sau khi đã kiểm tra nguồn và mass.`,
     suspension: `${n}: thường thay khi có chơi/kêu không hết sau khi siết đúng moment, kiểm tra rotin/càng kèm theo; không luôn có km cố định.`,
     default: `Không có một mốc km áp dụng cho mọi xe: cần kết hợp triệu chứng, điều kiện đường và khuyến cáo ${n} trên tài liệu hãng.`,
   };
@@ -347,6 +417,15 @@ function templateCautionExtras(profile, nameVi) {
     ],
     filter: [
       `Đóng kín nắp, kiểm tra gioăng không xoắn; không thổi tái lọc gió đã quá giới hạn; lọc dầu không quá siết gây xì.`,
+    ],
+    steering: [
+      `Sau khi thay ${n}, nên kiểm tra độ rơ vô lăng, siết đúng lực, kiểm tra chụp bụi và cân chỉnh góc đặt bánh nếu có tháo cụm lái.`,
+    ],
+    body: [
+      `Ướm thử trước khi sơn, kiểm tra khe hở đều hai bên, pát giữ chắc và bề mặt không cong vênh trước khi hoàn thiện.`,
+    ],
+    electrical: [
+      `Ngắt nguồn đúng cách, kiểm tra chân giắc và chống ẩm; sau lắp cần kiểm tra tín hiệu hoặc quét lỗi nếu chi tiết có giao tiếp điện tử.`,
     ],
     suspension: [
       `Sau khi thay ${n}, nên kiểm tra căn chỉnh góc đặt bánh nếu có tháo càng; siết lực theo moment chuẩn.`,
@@ -371,6 +450,15 @@ function templateBuyingExtras(profile, nameVi) {
     filter: [
       `Đọc mã lọc in trên thân cũ; chú ý lưu lượng & áp suất bypass; hàng giả thường lõi mềm/không đủ diện tích lọc.`,
     ],
+    steering: [
+      `So khớp mã thước lái/rotuyn theo đời xe, vị trí lắp và loại trợ lực. Ưu tiên hàng có ảnh rõ pát bắt, đầu nối và chính sách đổi trả.`,
+    ],
+    body: [
+      `Nên chọn theo mã xe, đời xe, phiên bản cản/đèn đi kèm và tình trạng sơn. Ảnh thật giúp kiểm tra form dáng, mép gấp và vị trí pát.`,
+    ],
+    electrical: [
+      `Đối chiếu mã OE/OEM, chân giắc, điện áp và đời xe. Không nên mua theo hình dáng bên ngoài nếu chi tiết có cảm biến hoặc mạch điều khiển.`,
+    ],
     suspension: [
       `Chọn đúng độ cứng/tải cho trọng lượng xe; các phụ kiện hạ gầm cần tương thích với chiều cao và hành trình còn lại.`,
     ],
@@ -394,10 +482,10 @@ function sectionLaGi(part, opts, profile, seen) {
     part.structure_text,
     part.operation_text,
   );
-  let body = mergeFields(parts, seen);
+  let body = mergeFields(parts, seen, profile);
   const extras = templateLaGiExtras(profile, nameVi, cat);
   for (const ex of extras) {
-    body += emitP(ex, seen);
+    body += emitP(ex, seen, profile);
     if (approxWords(body) > 520) break;
   }
   if (!body.trim()) return "";
@@ -407,9 +495,9 @@ function sectionLaGi(part, opts, profile, seen) {
 function sectionSymptoms(part, profile, seen) {
   const nameVi = String(part.name_vi ?? "").trim() || "phụ tùng";
   let inner = "";
-  inner += emitP(templateSymptomIntro(profile, nameVi), seen);
-  inner += mixedBlocksFromText(part.symptoms_text ?? "", seen);
-  inner += emitP(templateSymptomClosing(profile, nameVi), seen);
+  inner += emitP(templateSymptomIntro(profile, nameVi), seen, profile);
+  inner += mixedBlocksFromText(part.symptoms_text ?? "", seen, profile);
+  inner += emitP(templateSymptomClosing(profile, nameVi), seen, profile);
   if (!stripTags(inner).trim()) return "";
   return `<section class="seo-part-section">\n<h2>${escapeHtml(`Dấu hiệu ${nameVi} hỏng`)}</h2>\n<div class="seo-part-section__body">${inner}</div>\n</section>\n`;
 }
@@ -417,9 +505,9 @@ function sectionSymptoms(part, profile, seen) {
 function sectionCauses(part, profile, seen) {
   const nameVi = String(part.name_vi ?? "").trim() || "phụ tùng";
   const cat = String(part.category_name ?? "").trim();
-  let inner = paragraphsToHtml(String(part.common_causes_text ?? ""), seen);
+  let inner = paragraphsToHtml(String(part.common_causes_text ?? ""), seen, profile);
   for (const line of templateCauseExtras(profile, nameVi, cat)) {
-    inner += emitP(line, seen);
+    inner += emitP(line, seen, profile);
     if (approxWords(inner) > 440) break;
   }
   if (!stripTags(inner).trim()) return "";
@@ -428,8 +516,8 @@ function sectionCauses(part, profile, seen) {
 
 function sectionInterval(part, profile, seen) {
   const nameVi = String(part.name_vi ?? "").trim() || "phụ tùng";
-  let inner = paragraphsToHtml(String(part.replace_interval_text ?? ""), seen);
-  inner += emitP(templateIntervalExtras(profile, nameVi), seen);
+  let inner = paragraphsToHtml(String(part.replace_interval_text ?? ""), seen, profile);
+  inner += emitP(templateIntervalExtras(profile, nameVi), seen, profile);
   if (!stripTags(inner).trim()) return "";
   return `<section class="seo-part-section">\n<h2>${escapeHtml("Bao lâu nên thay?")}</h2>\n<div class="seo-part-section__body">${inner}</div>\n</section>\n`;
 }
@@ -442,23 +530,24 @@ function sectionCaution(part, profile, seen) {
       part.buyer_mistakes_text,
     ],
     seen,
+    profile,
   );
   const extras = templateCautionExtras(
     profile,
     String(part.name_vi ?? "").trim() || "phụ tùng",
   );
-  for (const ex of extras) inner += emitP(ex, seen);
+  for (const ex of extras) inner += emitP(ex, seen, profile);
   if (!inner.trim()) return "";
   return `<section class="seo-part-section">\n<h2>${escapeHtml("Lưu ý khi thay")}</h2>\n<div class="seo-part-section__body">${inner}</div>\n</section>\n`;
 }
 
 function sectionBuying(part, profile, seen) {
-  let inner = paragraphsToHtml(String(part.buying_guide_text ?? ""), seen);
+  let inner = paragraphsToHtml(String(part.buying_guide_text ?? ""), seen, profile);
   for (const x of templateBuyingExtras(
     profile,
     String(part.name_vi ?? "").trim() || "phụ tùng",
   )) {
-    inner += emitP(x, seen);
+    inner += emitP(x, seen, profile);
   }
   if (!stripTags(inner).trim()) return "";
   return `<section class="seo-part-section">\n<h2>${escapeHtml("Cách chọn mua đúng")}</h2>\n<div class="seo-part-section__body">${inner}</div>\n</section>\n`;
@@ -499,6 +588,22 @@ function tailPadLines(profile, nameVi, cat) {
       `Lọc gió nghẹt không chỉ làm giảm công suất mà có thể kéo theo sai lệch phối khí và nhiên liệu; lọc dầu tắc gây dao động áp và làm nhớt nóng quá giới.`,
       `Nhớt không đạt chỉ định hoặc lọc kém không đúng cấu tạo lõi và bypass có thể khiến van điều tiết và các cảm biến áp phản ánh không đồng bộ.`,
     ],
+    steering: [
+      ...common,
+      `Với ${n}, cảm giác vô lăng, độ rơ và tiếng kêu khi đánh lái quan trọng hơn một mốc km cố định; cần kiểm tra rotuyn, thanh răng và trợ lực lái cùng lúc.`,
+      `Sau khi thay chi tiết hệ lái, nên chạy thử trên đường thẳng và kiểm tra góc đặt bánh để tránh lệch lái hoặc mòn lốp không đều.`,
+    ],
+    body: [
+      `${n}: khi vận hành xe tại Việt Nam, va quệt nhẹ, nắng nóng và rung gió có thể làm pát giữ, mép gấp hoặc lớp sơn xuống cấp nhanh hơn.`,
+      `Nhóm thân vỏ “${g}” cần kiểm tra form dáng, khe hở lắp ráp, vị trí bắt ốc và độ khớp với chi tiết liền kề trước khi sơn hoặc hoàn thiện.`,
+      `Khi làm việc với gara hoặc đại lý uy tín trên Otofine, hãy cung cấp ảnh chi tiết cũ, đời xe và phiên bản ngoại thất để đối chiếu đúng form.`,
+      `Phụ kiện thân vỏ nhìn giống nhau vẫn có thể khác pát, ngàm hoặc mép bo; nên ưu tiên sản phẩm có ảnh thật và chính sách đổi trả rõ ràng.`,
+    ],
+    electrical: [
+      ...common,
+      `Với ${n}, cần kiểm tra nguồn cấp, mass, chân giắc và tín hiệu đầu ra trước khi kết luận hỏng chi tiết.`,
+      `Sau khi thay chi tiết điện/điện tử, nên kiểm tra lại trạng thái báo lỗi và hoạt động thực tế ở các chế độ tải khác nhau.`,
+    ],
     suspension: [
       ...common,
       `${n} và khung treo có liên đới cánh tay, rotin, chụp bụi và phuộc; kêu không hết chỉ sau thay có thể do vẫn sót lash rotin hay lệch lốp chứ không chỉ một chiều.`,
@@ -520,7 +625,7 @@ function padArticle(html, profile, nameVi, categoryName, seen) {
   let h = html;
   for (const line of lines) {
     if (approxWords(h) >= 1200) break;
-    h += emitP(line, seen);
+    h += emitP(line, seen, profile);
   }
   return h;
 }

@@ -1,6 +1,6 @@
 import { pool } from "../config/db.js";
 import { generateCategorySeoContent } from "../services/categorySeoComposer.js";
-
+import * as productListService from "../services/productList.service.js";
 /**
  * Get category SEO content with product data
  * @param {Object} req - Express request object
@@ -10,42 +10,45 @@ export async function getCategorySeoContent(req, res) {
   try {
     const { category } = req.params;
     const { page = 1, brand, model, year } = req.query;
-    
+
     if (!category || typeof category !== "string") {
       return res.status(400).json({ error: "Category parameter is required" });
     }
 
-    // Get products for this category with filters
-    const products = await getCategoryProducts(category, { brand, model, year, page });
-    
-    // Get price range for this category
-    const priceRange = await getCategoryPriceRange(category, { brand, model, year });
-    
+    // ✅ THÊM ĐOẠN NÀY
+    const result = await productListService.getProductList({
+      category,
+      brand,
+      model,
+      year,
+      page
+    });
+
     // Generate SEO content
     const seoContent = generateCategorySeoContent({
       categoryName: category,
-      products: products.data,
+      products: result.data,
       filters: { brand, model, year },
-      productCount: products.total,
-      priceRange
+      productCount: result.total,
+      priceRange: null
     });
 
     res.json({
       success: true,
       data: {
         ...seoContent,
-        products: products.data,
+        products: result.data,
         pagination: {
           page: parseInt(page),
-          total: products.totalPages,
-          count: products.total
+          total: result.totalPages,
+          count: result.total
         }
       }
     });
 
   } catch (error) {
     console.error("Error in getCategorySeoContent:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       message: "Failed to generate category SEO content"
     });
@@ -58,71 +61,7 @@ export async function getCategorySeoContent(req, res) {
  * @param {Object} filters - Filter options
  * @returns {Promise<Object>} Products with pagination
  */
-async function getCategoryProducts(category, filters = {}) {
-  const { brand, model, year, page = 1 } = filters;
-  const limit = 16;
-  const offset = (parseInt(page) - 1) * limit;
-  
-  let whereConditions = ["p.partName = ?"];
-  let params = [category];
-  
-  if (brand) {
-    whereConditions.push("p.brand = ?");
-    params.push(brand);
-  }
-  
-  if (model) {
-    whereConditions.push("p.model = ?");
-    params.push(model);
-  }
-  
-  if (year) {
-    whereConditions.push("p.year = ?");
-    params.push(year);
-  }
-  
-  const whereClause = whereConditions.join(" AND ");
-  
-  // Get products
-  const [products] = await pool.query(`
-    SELECT 
-      p.id,
-      p.partName,
-      p.brand,
-      p.model,
-      p.year,
-      p.price,
-      p.description,
-      p.imageUrl,
-      p.slug,
-      p.shortDescription,
-      p.subtitleLine1,
-      p.subtitleLine2,
-      p.summary,
-      p.updatedAt
-    FROM products p
-    WHERE ${whereClause}
-    ORDER BY p.updatedAt DESC
-    LIMIT ? OFFSET ?
-  `, [...params, limit, offset]);
-  
-  // Get total count
-  const [countResult] = await pool.query(`
-    SELECT COUNT(*) as total
-    FROM products p
-    WHERE ${whereClause}
-  `, params);
-  
-  const total = countResult[0]?.total || 0;
-  const totalPages = Math.ceil(total / limit);
-  
-  return {
-    data: products,
-    total,
-    totalPages,
-    page: parseInt(page)
-  };
-}
+
 
 /**
  * Get price range for category products
@@ -130,50 +69,6 @@ async function getCategoryProducts(category, filters = {}) {
  * @param {Object} filters - Filter options
  * @returns {Promise<Object>} Price range with min and max
  */
-async function getCategoryPriceRange(category, filters = {}) {
-  const { brand, model, year } = filters;
-  
-  let whereConditions = ["p.partName = ? AND p.price IS NOT NULL AND p.price > 0"];
-  let params = [category];
-  
-  if (brand) {
-    whereConditions.push("p.brand = ?");
-    params.push(brand);
-  }
-  
-  if (model) {
-    whereConditions.push("p.model = ?");
-    params.push(model);
-  }
-  
-  if (year) {
-    whereConditions.push("p.year = ?");
-    params.push(year);
-  }
-  
-  const whereClause = whereConditions.join(" AND ");
-  
-  try {
-    const [priceResult] = await pool.query(`
-      SELECT 
-        MIN(p.price) as minPrice,
-        MAX(p.price) as maxPrice,
-        AVG(p.price) as avgPrice
-      FROM products p
-      WHERE ${whereClause}
-    `, params);
-    
-    const result = priceResult[0];
-    return {
-      min: result.minPrice || null,
-      max: result.maxPrice || null,
-      avg: result.avgPrice || null
-    };
-  } catch (error) {
-    console.error("Error getting price range:", error);
-    return { min: null, max: null, avg: null };
-  }
-}
 
 /**
  * Get all categories with product counts
@@ -198,7 +93,7 @@ export async function getCategoriesWithCounts(req, res) {
       HAVING productCount > 0
       ORDER BY productCount DESC
     `);
-    
+
     res.json({
       success: true,
       data: categories.map(cat => ({
@@ -215,7 +110,7 @@ export async function getCategoriesWithCounts(req, res) {
 
   } catch (error) {
     console.error("Error in getCategoriesWithCounts:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       message: "Failed to fetch categories"
     });
@@ -230,7 +125,7 @@ export async function getCategoriesWithCounts(req, res) {
 export async function getRelatedCategories(req, res) {
   try {
     const { category } = req.params;
-    
+
     if (!category || typeof category !== "string") {
       return res.status(400).json({ error: "Category parameter is required" });
     }
@@ -253,7 +148,7 @@ export async function getRelatedCategories(req, res) {
       ORDER BY cooccurrenceCount DESC, modelCount DESC
       LIMIT 8
     `, [category, category]);
-    
+
     res.json({
       success: true,
       data: relatedCategories.map(cat => ({
@@ -265,7 +160,7 @@ export async function getRelatedCategories(req, res) {
 
   } catch (error) {
     console.error("Error in getRelatedCategories:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       message: "Failed to fetch related categories"
     });
@@ -280,20 +175,20 @@ export async function getRelatedCategories(req, res) {
 export async function getCategoryFAQ(req, res) {
   try {
     const { category } = req.params;
-    
+
     if (!category || typeof category !== "string") {
       return res.status(400).json({ error: "Category parameter is required" });
     }
 
     // Generate FAQ using the category SEO composer
     const { generateCategoryFAQ, detectCategoryProfile } = await import("../services/categorySeoComposer.js");
-    
+
     const profile = detectCategoryProfile(category);
     const faqQuestions = generateCategoryFAQ(profile, category);
-    
+
     // Get real customer questions if available (placeholder for future implementation)
     const customerQuestions = await getCustomerQuestions(category);
-    
+
     res.json({
       success: true,
       data: {
@@ -305,7 +200,7 @@ export async function getCategoryFAQ(req, res) {
 
   } catch (error) {
     console.error("Error in getCategoryFAQ:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       message: "Failed to generate category FAQ"
     });
@@ -331,7 +226,7 @@ async function getCustomerQuestions(category) {
 export async function getCategoryMetadata(req, res) {
   try {
     const { category } = req.params;
-    
+
     if (!category || typeof category !== "string") {
       return res.status(400).json({ error: "Category parameter is required" });
     }
@@ -352,16 +247,16 @@ export async function getCategoryMetadata(req, res) {
         AND p.status = 'active'
       GROUP BY p.partName
     `, [category]);
-    
+
     if (categoryInfo.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: "Category not found",
         message: "No products found for this category"
       });
     }
-    
+
     const info = categoryInfo[0];
-    
+
     // Generate SEO metadata
     const { generateCategorySeoContent } = await import("../services/categorySeoComposer.js");
     const seoContent = generateCategorySeoContent({
@@ -373,7 +268,7 @@ export async function getCategoryMetadata(req, res) {
         avg: info.avgPrice
       }
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -398,7 +293,7 @@ export async function getCategoryMetadata(req, res) {
 
   } catch (error) {
     console.error("Error in getCategoryMetadata:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       message: "Failed to fetch category metadata"
     });

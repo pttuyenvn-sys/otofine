@@ -152,7 +152,7 @@ export default function Topbar() {
           >
             {auth?.role === "admin" && (
               <>
-                <Link href="/admin/shops" style={menuStyle}>
+                <Link href="/admin/shops" style={menuStyle} prefetch={false}>
                   Quản lý Shop
                 </Link>
                 <div style={menuStyle} onClick={handleLogout} role="presentation">
@@ -163,10 +163,10 @@ export default function Topbar() {
 
             {auth?.role === "shop" && (
               <>
-                <Link href="/shop/settings" style={menuStyle}>
+                <Link href="/shop/settings" style={menuStyle} prefetch={false}>
                   Shop Settings
                 </Link>
-                <Link href="/shop/products" style={menuStyle}>
+                <Link href="/shop/products" style={menuStyle} prefetch={false}>
                   Products
                 </Link>
                 <div style={menuStyle} onClick={handleLogout} role="presentation">
@@ -177,13 +177,13 @@ export default function Topbar() {
 
             {!auth && (
               <>
-                <Link href="/shop/login" style={menuStyle}>
+                <Link href="/shop/login" style={menuStyle} prefetch={false}>
                   Shop Login
                 </Link>
-                <Link href="/shop/register" style={menuStyle}>
+                <Link href="/shop/register" style={menuStyle} prefetch={false}>
                   Shop Register
                 </Link>
-                <Link href="/admin/login" style={menuStyle}>
+                <Link href="/admin/login" style={menuStyle} prefetch={false}>
                   Admin Login
                 </Link>
               </>

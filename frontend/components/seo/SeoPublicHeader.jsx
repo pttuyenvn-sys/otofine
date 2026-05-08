@@ -6,7 +6,7 @@ export default function SeoPublicHeader() {
     <header className="header">
       <div className="header-accent-bar" aria-hidden />
       <div className="mobile-topbar">
-        <Link href="/" className="mobile-btn mobile-btn-primary">
+        <Link href="/" className="mobile-btn mobile-btn-primary" prefetch={false}>
           Trang chủ
         </Link>
         <div className="mobile-logo">
@@ -15,19 +15,19 @@ export default function SeoPublicHeader() {
             Phụ tùng chính hãng · Giao dịch minh bạch
           </div>
         </div>
-        <Link href="/shop/login" className="mobile-btn">
+        <Link href="/shop/login" className="mobile-btn" prefetch={false}>
           Cửa hàng
         </Link>
       </div>
 
       <div className="header-inner">
-        <Link href="/" className="logo" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/" className="logo" style={{ textDecoration: "none", color: "inherit" }} prefetch={false}>
           <img src="/logo.png" alt="Otofine — phụ tùng ô tô" />
           <div className="logo-text">Phụ tùng ô tô uy tín — đúng xe, đúng giá</div>
         </Link>
 
         <nav className="menu" aria-label="Điều hướng chính">
-          <Link href="/" className="menu-link">
+          <Link href="/" className="menu-link" prefetch={false}>
             Trang chủ
           </Link>
           <span className="menu-link menu-link-muted">Tin tức</span>
@@ -35,7 +35,7 @@ export default function SeoPublicHeader() {
         </nav>
 
         <div className="header-right">
-          <Link href="/shop/login" className="shop-login-btn">
+          <Link href="/shop/login" className="shop-login-btn" prefetch={false}>
             Đăng nhập cửa hàng
           </Link>
         </div>

@@ -91,7 +91,7 @@ export default function SeoListingContent({
                           {b.name}
                         </span>
                       ) : (
-                        <Link href={b.href}>{b.name}</Link>
+                        <Link href={b.href} prefetch={false}>{b.name}</Link>
                       )}
                     </span>
                   );
@@ -124,7 +124,7 @@ export default function SeoListingContent({
                             Thử từ khóa hoặc danh mục khác, hoặc về trang chủ để
                             tìm kiếm thêm.
                           </p>
-                          <Link className="seo-empty-state__cta" href="/">
+                          <Link className="seo-empty-state__cta" href="/" prefetch={false}>
                             Về trang chủ
                           </Link>
                         </div>
@@ -141,8 +141,7 @@ export default function SeoListingContent({
                           className="seo-product-card__overlay"
                           aria-label={
                             item.shortDescription || "Xem chi tiết sản phẩm"
-                          }
-                        >
+                          } prefetch={false}>
                           <span className="seo-product-card__sr-only">
                             Xem chi tiết
                           </span>
@@ -232,8 +231,7 @@ export default function SeoListingContent({
                         <Link
                           href={pageHref(slug, currentPage - 1)}
                           className="page-btn page-btn-nav"
-                          scroll={false}
-                        >
+                          scroll={false} prefetch={false}>
                           &lt;
                         </Link>
                       )}
@@ -252,8 +250,7 @@ export default function SeoListingContent({
                             href={pageHref(slug, n)}
                             className={`page-btn${n === current ? " active" : ""}`}
                             aria-current={n === current ? "page" : undefined}
-                            scroll={false}
-                          >
+                            scroll={false} prefetch={false}>
                             {n}
                           </Link>
                         ));
@@ -269,8 +266,7 @@ export default function SeoListingContent({
                         <Link
                           href={pageHref(slug, currentPage + 1)}
                           className="page-btn page-btn-nav"
-                          scroll={false}
-                        >
+                          scroll={false} prefetch={false}>
                           &gt;
                         </Link>
                       )}

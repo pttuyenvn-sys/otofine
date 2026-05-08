@@ -1,3 +1,4 @@
+const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 const publicBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
 
 /**
@@ -14,26 +15,33 @@ const internalOrigin = (
   .replace(/\/$/, "")
   .replace(/\/api\/?$/i, "");
 
+function apiBaseFromOrigin(value) {
+  const raw = String(value || "").trim().replace(/\/$/, "");
+  if (!raw) return "";
+  return /\/api$/i.test(raw) ? raw : `${raw}/api`;
+}
+
 function serverApiBase() {
+  const fromPublicUrl = apiBaseFromOrigin(publicApiUrl);
+  if (fromPublicUrl) return fromPublicUrl;
   if (publicBase) return publicBase;
   return `${internalOrigin}/api`;
 }
 
 /**
- * Base URL gọi REST. Trên trình duyệt: nếu không set NEXT_PUBLIC_API_BASE_URL
- * thì dùng `/api` (Next rewrite → Express), tránh CORS và dễ chạy local.
+ * Base URL gọi REST. Ưu tiên NEXT_PUBLIC_API_URL để browser gọi thẳng
+ * backend Express thay vì đi qua Next route/proxy.
  */
-export const API_BASE =
-  typeof window !== "undefined" ? publicBase || "/api" : serverApiBase();
+export const API_BASE = serverApiBase();
 
 /** Origin không có suffix /api — dùng ghép path tĩnh (/uploads/...). */
 export const API_ORIGIN = (() => {
+  if (publicApiUrl) {
+    return publicApiUrl.replace(/\/api\/?$/i, "").replace(/\/$/, "") || internalOrigin;
+  }
   if (publicBase) {
     const o = publicBase.replace(/\/api\/?$/i, "");
     return o || internalOrigin;
   }
-  if (typeof window !== "undefined") {
-    return publicOrigin || internalOrigin;
-  }
-  return internalOrigin;
+  return publicOrigin || internalOrigin;
 })();

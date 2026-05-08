@@ -1,72 +1,53 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { API_BASE } from "@/lib/config";
-import { fetchJsonCached } from "@/lib/clientJsonCache";
+import React from "react";
 
-const POPULAR_URL = `${API_BASE}/filter/categories/popular`;
-
-/**
- * Sidebar: Danh mục phổ biến — click = cùng logic chọn danh mục cột trái (không route [slug]).
- */
 export default function PopularCategoriesBox({
+  categories = [],
   onCtaClick,
   selectedCategory,
-  onSelectCategory,
 }) {
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await fetchJsonCached(POPULAR_URL, { ttlMs: 21_600_000 });
-        if (cancelled) return;
-        setItems(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setItems([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (items.length === 0) return null;
+  if (!categories || categories.length === 0) return null;
+  console.log("POPULAR COUNT:", categories.length);
 
   return (
-    <div className="box box-popular-cats" aria-label="Danh mục phổ biến">
-      <h4 className="sidebar-title popular-cats-title">Danh mục phổ biến</h4>
-      <p className="popular-cats-hint">Theo số sản phẩm &amp; cập nhật gần đây</p>
-      <div className="popular-cats-chips" role="list">
-        {items.map((it) => {
-          const name = it.name || "";
+    <div className="of-rail-card box-popular-cats" aria-label="Danh mục phổ biến">
+      <h4 className="of-rail-card__h popular-cats-title">Danh mục phổ biến</h4>
+      <p className="of-rail-links__p popular-cats-links">
+        {categories.map((cat, index) => {
+          const name =
+            typeof cat === "string"
+              ? cat
+              : cat?.canonical_name ||
+              cat?.category ||
+              cat?.category_name ||
+              cat?.name;
+
+          const key =
+            (typeof cat === "string" ? cat : cat?.canonical_slug) || name;
+
           if (!name) return null;
-          const isActive = selectedCategory === name;
+
           return (
-            <button
-              key={`${it.categoryNorm || name}`}
-              type="button"
-              className={`popular-cat-chip${isActive ? " popular-cat-chip--active" : ""}`}
-              role="listitem"
-              aria-pressed={isActive}
-              onClick={() => onSelectCategory?.(name)}
-            >
-              {name}
-            </button>
+            <React.Fragment key={key}>
+              {index > 0 && (
+                <span className="of-rail-sep popular-cat-sep" aria-hidden>
+                  {" "}
+                  ·{" "}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => onCtaClick?.(cat)}
+                className="popular-cat-link"
+                aria-pressed={selectedCategory === name}
+              >
+                {name}
+              </button>
+            </React.Fragment>
           );
         })}
-      </div>
-      <a
-        href="#otofine-products-start"
-        className="popular-cats-cta"
-        onClick={(e) => {
-          e.preventDefault();
-          if (typeof onCtaClick === "function") onCtaClick();
-        }}
-      >
-        Tìm phụ tùng đúng xe ngay
-      </a>
+      </p>
     </div>
   );
 }

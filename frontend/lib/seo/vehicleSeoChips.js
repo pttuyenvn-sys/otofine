@@ -3,7 +3,7 @@
  * API: GET /api/filter/vehicle-hot → { brands, models } với score đã tính phía server.
  */
 
-/** 8 hãng — trùng tone bản hardcode cũ, bổ sung đủ 8 ô */
+/** 10 hãng — fallback khi API /filter/vehicle-hot lỗi/rỗng */
 export const FALLBACK_SEO_TOP_BRANDS = [
   "Toyota",
   "Mazda",
@@ -13,9 +13,11 @@ export const FALLBACK_SEO_TOP_BRANDS = [
   "Honda",
   "Mitsubishi",
   "VinFast",
+  "Nissan",
+  "Mercedes-Benz",
 ];
 
-/** 12 cặp brand+model — fallback khi không có dữ liệu DB */
+/** 20 cặp brand+model — fallback khi không có dữ liệu DB */
 export const FALLBACK_SEO_HOT_MODELS = [
   { brand: "Toyota", model: "Camry" },
   { brand: "Mazda", model: "3" },
@@ -29,6 +31,14 @@ export const FALLBACK_SEO_HOT_MODELS = [
   { brand: "Toyota", model: "Vios" },
   { brand: "Kia", model: "Seltos" },
   { brand: "Hyundai", model: "i10" },
+  { brand: "Ford", model: "Everest" },
+  { brand: "Honda", model: "CR-V" },
+  { brand: "Toyota", model: "Fortuner" },
+  { brand: "Mitsubishi", model: "Triton" },
+  { brand: "Nissan", model: "Navara" },
+  { brand: "Hyundai", model: "Santa Fe" },
+  { brand: "Mercedes-Benz", model: "C-Class" },
+  { brand: "Toyota", model: "Innova" },
 ];
 
 function keyBrand(name) {

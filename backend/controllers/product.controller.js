@@ -400,7 +400,7 @@ export const addProduct = async (req, res) => {
       }
     }
 
-    await syncProductListViewByProductId(productId).catch(() => {});
+    await syncProductListViewByProductId(productId).catch(() => { });
     queueUpsertProductInTypesense(productId);
 
     res.json({ success: true, productId });
@@ -439,7 +439,7 @@ export async function create(req, res) {
       [req.body.partNumber, shopId],
     );
 
-    await syncProductListViewByProductId(id).catch(() => {});
+    await syncProductListViewByProductId(id).catch(() => { });
     queueUpsertProductInTypesense(id);
 
     res.json({ success: true, id });

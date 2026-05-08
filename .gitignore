@@ -11,3 +11,9 @@ backend/node_modules/
 .env.local
 *.log
 coverage/
+backend/utils/buildVehicleSeoArticle.js
+
+.windsurf
+frontend/.env.local
+backend/.env
+frontend/.next

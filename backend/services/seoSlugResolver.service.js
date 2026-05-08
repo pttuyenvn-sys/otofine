@@ -205,7 +205,7 @@ function scorePartMatch(requestedSlug, pk, context = {}) {
     const categoryName = extractCategoryFromSlug(requestedSlug);
     const nameVi = String(pk.name_vi ?? "").toLowerCase();
     const categoryKeywords = categoryName.toLowerCase().split(' ');
-    
+
     // Check if part name contains category keywords
     for (const keyword of categoryKeywords) {
       if (nameVi.includes(keyword)) {
@@ -213,7 +213,7 @@ function scorePartMatch(requestedSlug, pk, context = {}) {
         break;
       }
     }
-    
+
     // Additional bonus for exact category name match
     if (nameVi === categoryName.toLowerCase()) {
       categoryBonus += 1000;
@@ -225,7 +225,7 @@ function scorePartMatch(requestedSlug, pk, context = {}) {
   if (context.filters) {
     const filterKeywords = Object.values(context.filters).filter(Boolean).join(' ').toLowerCase();
     const partName = String(pk.name_vi ?? "").toLowerCase();
-    
+
     if (filterKeywords && partName.includes(filterKeywords)) {
       filterBonus += 300;
     }
@@ -234,6 +234,19 @@ function scorePartMatch(requestedSlug, pk, context = {}) {
   const finalScore = subScore + categoryBonus + filterBonus;
 
   return { tier, subScore: finalScore, extraTokens, label, priority, categoryBonus, filterBonus };
+}
+
+function extractExactBaseSlug(requestedSlug, allSlugs) {
+  const parts = requestedSlug.split("-");
+
+  for (let i = parts.length; i > 0; i--) {
+    const candidate = parts.slice(0, i).join("-");
+    if (allSlugs.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -252,35 +265,45 @@ function scorePartMatch(requestedSlug, pk, context = {}) {
  * }>}
  */
 export async function resolveSeoSlugWithRanking(slug, context = {}) {
-  const requestedSlug = String(slug ?? "")
-    .toLowerCase()
-    .trim();
-  const empty = {
-    part: null,
-    routeRow: null,
-    resolution: {
-      requestedSlug,
-      candidates: [],
-      winner: null,
-      dbRoutePartId: null,
-      mismatchWithDb: false,
-    },
-  };
+
+  const requestedSlug = String(slug ?? "").toLowerCase().trim();
   if (!requestedSlug) return empty;
+
+  // 2. query data (CHỈ 1 LẦN)
+  const [rows] = await pool.query(`
+    SELECT id, slug, name_vi, name_en, aliases_json, seo_priority
+    FROM part_knowledge
+    WHERE is_active = 1
+  `);
 
   const [[routeRow]] = await pool.query(
     `SELECT * FROM seo_routes WHERE slug = ? AND is_active = 1 LIMIT 1`,
     [requestedSlug],
   );
 
-  const [rows] = await pool.query(
-    `
-    SELECT id, slug, name_vi, name_en, aliases_json, seo_priority
-    FROM part_knowledge
-    WHERE is_active = 1
-      AND TRIM(IFNULL(slug, '')) <> ''
-    `,
-  );
+  // 3. build slugSet
+  const slugSet = new Set(rows.map(r => r.slug));
+
+  // 4. prefix match (QUAN TRỌNG NHẤT)
+  const baseSlug = extractExactBaseSlug(requestedSlug, slugSet);
+
+  if (baseSlug) {
+    const part = rows.find(r => r.slug === baseSlug);
+
+    return {
+      part,
+      routeRow,
+      resolution: {
+        requestedSlug,
+        candidates: [],
+        winner: {
+          id: part?.id,
+          tier: 0,
+          label: "exact_prefix_match"
+        }
+      }
+    };
+  }
 
   /** @type {Array<{ pk: import("mysql2").RowDataPacket, score: NonNullable<ReturnType<typeof scorePartMatch>> }>} */
   const scored = [];
@@ -341,14 +364,14 @@ export async function resolveSeoSlugWithRanking(slug, context = {}) {
             score: Math.round(winnerEntry.score.subScore),
             label: winnerEntry.score.label,
           }
-        : part && !winnerEntry ?
-          {
-            id: Number(part.id),
-            tier: null,
-            score: null,
-            label: "fallback_route_row",
-          }
-        : null,
+          : part && !winnerEntry ?
+            {
+              id: Number(part.id),
+              tier: null,
+              score: null,
+              label: "fallback_route_row",
+            }
+            : null,
       db_route_part_knowledge_id: dbPid,
       mismatch_resolved_vs_db: mismatchWithDb,
     });
@@ -373,9 +396,9 @@ export async function resolveSeoSlugWithRanking(slug, context = {}) {
             tier: winnerEntry.score.tier,
             label: winnerEntry.score.label,
           }
-        : part && !winnerEntry ?
-          { id: Number(part.id), tier: null, label: "fallback_route_row" }
-        : null,
+          : part && !winnerEntry ?
+            { id: Number(part.id), tier: null, label: "fallback_route_row" }
+            : null,
       dbRoutePartId: dbPid,
       mismatchWithDb,
     },
