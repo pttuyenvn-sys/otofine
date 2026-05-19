@@ -8,7 +8,7 @@ export async function getAllShops(req, res) {
     SELECT 
       id, shopId, name, email, phone,
       status, createdAt, approvedAt, approvedByAdminId
-    FROM Shop
+    FROM shop_accounts
     WHERE status != 'deleted'
     ORDER BY createdAt DESC
   `);
@@ -32,7 +32,7 @@ export async function updateShopStatus(req, res) {
   // (có thể bỏ nếu bạn không cần)
   await pool.query(
     `
-    UPDATE Shop
+    UPDATE shop_accounts
     SET 
       status = ?,
       approvedAt = CASE WHEN ? = 'active' THEN NOW() ELSE approvedAt END,
@@ -52,7 +52,7 @@ export async function deleteShop(req, res) {
   const { id } = req.params;
 
   // Không cho xóa shop đang active (bắt buộc phải khóa trước)
-  const [[shop]] = await pool.query("SELECT status FROM Shop WHERE id = ?", [
+  const [[shop]] = await pool.query("SELECT status FROM shop_accounts WHERE id = ?", [
     id,
   ]);
 
@@ -66,7 +66,7 @@ export async function deleteShop(req, res) {
     });
   }
 
-  await pool.query("UPDATE Shop SET status = 'deleted' WHERE id = ?", [id]);
+  await pool.query("UPDATE shop_accounts SET status = 'deleted' WHERE id = ?", [id]);
 
   res.json({ ok: true });
 }

@@ -2,7 +2,7 @@
  * Giá trị mặc định ranking / typo — override bằng ENV trong `productSearch.service.js`.
  *
  * ENV thường dùng (production):
- * - TYPESENSE_QUERY_BY_WEIGHTS   ví dụ "20,3,1" (partNumber, partName, search_blob)
+ * - TYPESENSE_QUERY_BY_WEIGHTS   ví dụ "20,20,3,1" (partNumber_norm, partNumber, partName, search_blob)
  * - TYPESENSE_NUM_TYPOS          0 | 1 | 2
  * - TYPESENSE_PRIORITIZE_EXACT   "0" để tắt exact-match boost
  * - TYPESENSE_TYPO_TOLERANCE     "off" để tắt typo hoàn toàn
@@ -11,8 +11,8 @@
  */
 
 export const TYPESENSE_SEARCH_DEFAULTS = {
-  /** Trọng số query_by: partNumber cao nhất */
-  query_by_weights: "20,3,1",
+  /** Trọng số query_by: partNumber_norm và partNumber cao nhất */
+  query_by_weights: "20,20,3,1",
   /** Ưu tiên khớp chính xác token (boost) */
   prioritize_exact_match: true,
   /** Số typo cho toàn bộ query (0–2). ENV: TYPESENSE_NUM_TYPOS */

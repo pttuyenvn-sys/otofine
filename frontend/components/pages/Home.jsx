@@ -28,6 +28,7 @@ import {
 } from "@/lib/seo/dynamicListingSeoComposer";
 import { useListingController } from "@/components/pages/hooks/useListingController";
 import HomeHeader from "@/components/pages/home/HomeHeader";
+import HomeSearch from "@/components/pages/home/HomeSearch";
 // Remove any notion of filters/slug logic from PopularCategoriesBox.
 // Usage must only have onCtaClick and needed UI display props.
 import PopularCategoriesBox from "@/components/pages/home/PopularCategoriesBox";
@@ -75,6 +76,12 @@ function cleanQueryValue(value) {
     return trimmed;
   }
   return value;
+}
+
+function getApiList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
 }
 
 function buildDbBackedPageTitle({ categoryName, hasCategory, brand, model, year, location }) {
@@ -369,10 +376,21 @@ export default function Home({
     seoData || premiumArticle;
   const seoArticleSlug = slug;
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [mobileFilter, setMobileFilter] = useState(false);
+  const [mobileQuote, setMobileQuote] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const {
     category,
     setCategory,
@@ -495,7 +513,8 @@ export default function Home({
   );
 
   const navigateToState = useCallback(
-    (patch) => {
+    (patch, options = {}) => {
+      const { skipRouteUpdate = false } = options;
       const nextState = { ...urlState, ...patch };
       console.log("SET FILTER:", nextState);
       if (Object.prototype.hasOwnProperty.call(patch, "category")) {
@@ -514,9 +533,11 @@ export default function Home({
         setLocation(nextState.location || "");
       }
 
-      const newUrl = buildPathFromState(nextState);
-      if (window.location.pathname !== newUrl) {
-        router.replace(newUrl, { scroll: false });
+      if (!skipRouteUpdate) {
+        const newUrl = buildPathFromState(nextState);
+        if (window.location.pathname !== newUrl) {
+          router.replace(newUrl, { scroll: false });
+        }
       }
     },
     [router, urlState, setCategory, setBrand, setModel, setYear, setLocation],
@@ -669,6 +690,8 @@ export default function Home({
   const ofSearchInputDesktopRef = useRef(null);
   const ofSearchInputMobileRef = useRef(null);
   const vehiclePanelWasOpenRef = useRef(false);
+  const panelModelsFetchKeyRef = useRef("");
+  const panelYearsFetchKeyRef = useRef("");
   const categoryItemRefs = useRef(new Map());
 
   // Reset all filters to base home state
@@ -691,12 +714,12 @@ export default function Home({
   const applyVehicleQuickFilter = useCallback(
     (brandVal, modelVal) => {
       startTransition(() => {
-        navigateToState({ brand: brandVal, model: modelVal || "", year: "" });
-        setKeyword("");
+        setSeoData(null);
+        navigateToState({ category: "", brand: brandVal, model: modelVal || "", year: "" });
         setPage(1);
       });
     },
-    [navigateToState, setKeyword, setPage],
+    [navigateToState, setPage],
   );
 
   // Save recent searches to localStorage
@@ -798,13 +821,15 @@ export default function Home({
     let cancelled = false;
     (async () => {
       try {
+        console.log("PANEL FETCH BRANDS");
         const data = await fetchJsonCached(`${API_BASE}/filter/brands`, {
           ttlMs: 300_000,
         });
         if (cancelled) return;
-        const sorted = [...(Array.isArray(data) ? data : [])].sort(
+        const sorted = [...getApiList(data)].sort(
           (a, b) => (b.total || 0) - (a.total || 0),
         );
+        console.log("BRANDS LOADED", sorted);
         setBrands(sorted);
       } catch {
         if (!cancelled) setBrands([]);
@@ -871,50 +896,107 @@ export default function Home({
   /* ===== VEHICLE PANEL DRAFT STATE HANDLING ===== */
   useEffect(() => {
     const isOpen = open || mobileFilter;
-    if (isOpen && !vehiclePanelWasOpenRef.current) {
-      let b = brand || "";
-      let m = model || "";
-      let y = year != null ? String(year) : "";
-      if (!b && typeof window !== "undefined") {
-        try {
-          const raw = localStorage.getItem(QUICK_VEHICLE_STORAGE_KEY);
-          const o = raw ? JSON.parse(raw) : null;
-          if (o?.brand) {
-            b = String(o.brand);
-            m = o.model ? String(o.model) : "";
-            y = o.year != null ? String(o.year) : "";
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      setQuickDraft({ brand: b, model: m, year: y });
-      if (!b) setQuickStep(1);
-      else if (!m) setQuickStep(2);
-      else setQuickStep(3);
+
+    if (!isOpen) {
+      vehiclePanelWasOpenRef.current = false;
+      return;
     }
-    vehiclePanelWasOpenRef.current = isOpen;
-  }, [open, mobileFilter, brand, model, year]);
+
+    // Chỉ init đúng 1 lần khi panel mở lần đầu
+    if (vehiclePanelWasOpenRef.current) {
+      console.log("PANEL PRESERVE STATE", quickDraft);
+      return;
+    }
+
+    vehiclePanelWasOpenRef.current = true;
+
+    let b = brand || "";
+    let m = model || "";
+    let y = year != null ? String(year) : "";
+
+    if (!b && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(QUICK_VEHICLE_STORAGE_KEY);
+        const o = raw ? JSON.parse(raw) : null;
+
+        if (o?.brand) {
+          b = String(o.brand);
+          m = o.model ? String(o.model) : "";
+          y = o.year != null ? String(o.year) : "";
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    setQuickDraft({
+      brand: b,
+      model: m,
+      year: y,
+    });
+
+    if (!b) setQuickStep(1);
+    else if (!m) setQuickStep(2);
+    else setQuickStep(3);
+
+  }, [
+    open,
+    mobileFilter,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const b = String(quickDraft.brand || "").trim();
+    if (!b) {
+      try {
+        localStorage.removeItem(QUICK_VEHICLE_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    try {
+      localStorage.setItem(
+        QUICK_VEHICLE_STORAGE_KEY,
+        JSON.stringify({
+          brand: b,
+          model: quickDraft.model ? String(quickDraft.model) : "",
+          year: quickDraft.year != null ? String(quickDraft.year) : "",
+        }),
+      );
+      console.log("PANEL PRESERVE STATE", quickDraft);
+    } catch {
+      // ignore
+    }
+  }, [quickDraft]);
 
   useEffect(() => {
     if (!open && !mobileFilter) return;
-    const b = quickDraft.brand;
+    const b = String(quickDraft.brand || "").trim();
     if (!b) {
+      panelModelsFetchKeyRef.current = "";
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
     }
+    if (panelModelsFetchKeyRef.current === b) {
+      console.log("PANEL PRESERVE STATE", { modelsForBrand: b });
+      return;
+    }
+    panelModelsFetchKeyRef.current = b;
     let cancelled = false;
     setDraftModelsLoading(true);
+    console.log("PANEL FETCH MODELS", b);
     fetchJsonCached(
       `${API_BASE}/filter/models?brand=${encodeURIComponent(b)}`,
       { ttlMs: 120_000 },
     )
       .then((data) => {
         if (cancelled) return;
-        const sorted = [...(Array.isArray(data) ? data : [])].sort(
+        const sorted = [...getApiList(data)].sort(
           (a, b) => (b.total || 0) - (a.total || 0),
         );
+        console.log("MODELS LOADED", sorted);
         setDraftModels(sorted);
       })
       .catch(() => {
@@ -930,20 +1012,30 @@ export default function Home({
 
   useEffect(() => {
     if (!open && !mobileFilter) return;
-    const b = quickDraft.brand;
-    const m = quickDraft.model;
+    const b = String(quickDraft.brand || "").trim();
+    const m = String(quickDraft.model || "").trim();
     if (!b || !m) {
+      panelYearsFetchKeyRef.current = "";
       setDraftYears([]);
       setDraftYearsLoading(false);
       return;
     }
+    const fetchKey = `${b}::${m}`;
+    if (panelYearsFetchKeyRef.current === fetchKey) {
+      console.log("PANEL PRESERVE STATE", { yearsForBrand: b, yearsForModel: m });
+      return;
+    }
+    panelYearsFetchKeyRef.current = fetchKey;
     let cancelled = false;
     setDraftYearsLoading(true);
     const yUrl = `${API_BASE}/filter/years?brand=${encodeURIComponent(b)}&model=${encodeURIComponent(m)}`;
+    console.log("PANEL FETCH YEARS", { brand: b, model: m });
     fetchJsonCached(yUrl, { ttlMs: 120_000 })
       .then((data) => {
         if (cancelled) return;
-        setDraftYears(Array.isArray(data) ? data : []);
+        const list = getApiList(data);
+        console.log("YEARS LOADED", list);
+        setDraftYears(list);
       })
       .catch(() => {
         if (!cancelled) setDraftYears([]);
@@ -954,7 +1046,12 @@ export default function Home({
     return () => {
       cancelled = true;
     };
-  }, [open, mobileFilter, quickDraft.brand, quickDraft.model]);
+  }, [
+    open,
+    mobileFilter,
+    quickDraft.brand,
+    quickDraft.model,
+  ]);
 
   /* FILTERED MODELS */
   useEffect(() => {
@@ -967,9 +1064,10 @@ export default function Home({
     )}`;
     fetchJsonCached(modelsUrl, { ttlMs: 120_000 })
       .then((data) => {
-        const sorted = [...(Array.isArray(data) ? data : [])].sort(
+        const sorted = [...getApiList(data)].sort(
           (a, b) => (b.total || 0) - (a.total || 0),
         );
+        console.log("MODELS LOADED", sorted);
         setModels(sorted);
       })
       .catch(() => setModels([]));
@@ -996,7 +1094,11 @@ export default function Home({
     )}&model=${encodeURIComponent(model)}`;
 
     fetchJsonCached(yUrl, { ttlMs: 120_000 })
-      .then((data) => setYears(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const list = getApiList(data);
+        console.log("YEARS LOADED", list);
+        setYears(list);
+      })
       .catch(() => setYears([]));
 
     fetchJsonCached(sUrl, { ttlMs: 120_000 })
@@ -1300,8 +1402,8 @@ export default function Home({
         // Fetch product suggestions
         const p = new URLSearchParams();
         p.append("q", q);
-        p.append("limit", "8");
         p.append("page", "1");
+        p.append("limit", "100");
         if (brand) p.append("brand", brand);
         if (model) p.append("model", model);
         if (year) p.append("year", year);
@@ -1400,25 +1502,29 @@ export default function Home({
   const applyQuickVehicle = useCallback(() => {
     startTransition(() => {
       navigateToState({
+        category: "",
+        location,
+
         brand: quickDraft.brand || "",
         model: quickDraft.model || "",
         year: quickDraft.year || "",
+
+        page: 1,
       });
-      setKeyword("");
+      setSeoData(null);
       setPage(1);
     });
 
-    setOpen(false);
-    setMobileFilter(false);
+       setMobileFilter(false);
     scrollProductsIntoView();
-  }, [quickDraft, navigateToState, setKeyword, setPage, scrollProductsIntoView]);
+  }, [quickDraft, location, navigateToState, setPage, scrollProductsIntoView]);
 
   const resetQuickVehicle = useCallback(() => {
     setQuickDraft({ brand: "", model: "", year: "" });
     setQuickStep(1);
 
     startTransition(() => {
-      navigateToState({ brand: "", model: "", year: "" });
+      navigateToState({ category: "",brand: "", model: "", year: "" });
       setKeyword("");
       setPage(1);
     });
@@ -1428,34 +1534,156 @@ export default function Home({
 
   // HANDLERS for quick panel steps
   const handleQuickPickBrand = useCallback((name) => {
-    setQuickDraft({ brand: name, model: "", year: "" });
+    const nextDraft = {
+      brand: name,
+      model: "",
+      year: "",
+    };
+
+    setQuickDraft(nextDraft);
     setQuickStep(2);
-  }, []);
+
+    startTransition(() => {
+      navigateToState(
+        {
+          category: "",
+          brand: name,
+          model: "",
+          year: "",
+        },
+        { skipRouteUpdate: isMobile && mobileFilter }
+      );
+      setPage(1);
+    });
+  }, [navigateToState, setPage, isMobile, mobileFilter]);
   const handleQuickPickModel = useCallback((name) => {
-    setQuickDraft((d) => ({ ...d, model: name, year: "" }));
+    const currentBrand = quickDraft.brand || brand;
+
+    const nextDraft = {
+      brand: currentBrand,
+      model: name,
+      year: "",
+    };
+
+    setQuickDraft(nextDraft);
     setQuickStep(3);
-  }, []);
+
+    startTransition(() => {
+      navigateToState(
+        {
+          category: "",
+          brand: currentBrand,
+          model: name,
+          year: "",
+        },
+        { skipRouteUpdate: isMobile && mobileFilter }
+      );
+      setPage(1);
+    });
+  }, [quickDraft.brand, brand, navigateToState, setPage, isMobile, mobileFilter]);
   const handleQuickPickYear = useCallback((y) => {
-    setQuickDraft((d) => ({ ...d, year: y }));
-  }, []);
+    const currentBrand =
+      quickDraft.brand || brand || "";
+
+    const currentModel =
+      quickDraft.model || model || "";
+
+    const nextDraft = {
+      brand: currentBrand,
+      model: currentModel,
+      year: y,
+    };
+
+    setQuickDraft(nextDraft);
+    setQuickStep(3);
+
+    startTransition(() => {
+      navigateToState({
+        category: "",
+        brand: currentBrand,
+        model: currentModel,
+        year: y,
+      });
+
+      setPage(1);
+    });
+  }, [
+    quickDraft.brand,
+    quickDraft.model,
+    brand,
+    model,
+    navigateToState,
+    setPage,
+  ]);
   const handleQuickClearYear = useCallback(() => {
     setQuickDraft((d) => ({ ...d, year: "" }));
   }, []);
   const handleQuickBreadcrumb = useCallback((step) => {
+
     if (step === 1) {
-      setQuickDraft({ brand: "", model: "", year: "" });
+
+      setQuickDraft({
+        brand: "",
+        model: "",
+        year: "",
+      });
+
       setQuickStep(1);
-    } else if (step === 2) {
-      setQuickDraft((d) => ({ ...d, model: "", year: "" }));
-      setQuickStep(2);
+
+      startTransition(() => {
+        navigateToState({
+          category: "",
+          brand: "",
+          model: "",
+          year: "",
+        });
+
+        setPage(1);
+      });
+
+      return;
     }
-  }, []);
+
+    if (step === 2) {
+
+      const currentBrand =
+        quickDraft.brand || brand || "";
+
+      setQuickDraft({
+        brand: currentBrand,
+        model: "",
+        year: "",
+      });
+
+      setQuickStep(2);
+
+      startTransition(() => {
+        navigateToState({
+          category: "",
+          brand: currentBrand,
+          model: "",
+          year: "",
+        });
+
+        setPage(1);
+      });
+    }
+
+  }, [
+    quickDraft.brand,
+    brand,
+    navigateToState,
+    setPage,
+  ]);
 
   // SEARCH PANEL/CATEGORY PANEL/LEFT QUICK
   const renderVehiclePanelBody = () => (
     <VehicleQuickPanel
       quickStep={quickStep}
       quickDraft={quickDraft}
+      brand={brand}
+      model={model}
+      year={year}
       onPickBrand={handleQuickPickBrand}
       onPickModel={handleQuickPickModel}
       onPickYear={handleQuickPickYear}
@@ -1755,9 +1983,9 @@ export default function Home({
                 </li>
               ))
             ) : (
-              displayCategories.map((item) => (
+              displayCategories.map((item, index) => (
                 <li
-                  key={item.canonical_slug || item.category_slug || item.slug || item.canonical_name}
+                  key={`${item.id || item.canonical_slug || item.category_slug || item.slug || item.canonical_name || "cat"}-${index}`}
                   ref={(el) => {
                     const k = `${isMobile ? "m" : "d"}-${item.canonical_name || item.category_name || item.name}`;
                     if (el) categoryItemRefs.current.set(k, el);
@@ -1893,13 +2121,56 @@ export default function Home({
     (m ? ofSearchInputMobileRef : ofSearchInputDesktopRef).current?.focus();
   }, []);
 
+  const homeSearchProps = {
+    searchInputValue,
+    suggestPanelOpen,
+    suggestItems,
+    categorySuggestions,
+    filteredCategories,
+    popularQuickKeywords,
+    recentSearches,
+    leftPopularOpen,
+    leftRecentOpen,
+    SEARCH_POPULAR_ANCHORS,
+    textMeasureRef,
+    categoryItemRefs,
+    setSuggestPanelOpen,
+    setSearchInputValue,
+    setMobileMenu,
+    setMobileFilter,
+    setLeftPopularOpen,
+    setLeftRecentOpen,
+    submitCommittedSearch,
+    clearSearchCommitted,
+    handleQuickProductClick,
+    navigateToState,
+    setKeyword,
+    setPage,
+    clearRecentSearches,
+  };
+
   return (
     <div className="of-home-root">
       <HomeHeader
         onOpenFilter={setMobileFilter}
         onOpenMenu={setMobileMenu}
-        searchDesktop={null}
-        searchMobile={renderSearchPanelOnly(true)}
+        searchDesktop={
+          <HomeSearch
+            isMobile={false}
+            searchPanelRef={searchPanelRef}
+            inputRef={ofSearchInputDesktopRef}
+            {...homeSearchProps}
+          />
+        }
+        searchMobile={
+          <HomeSearch
+            isMobile={true}
+            pageTitle={pageTitle}
+            searchPanelRef={searchPanelMobileRef}
+            inputRef={ofSearchInputMobileRef}
+            {...homeSearchProps}
+          />
+        }
       />
       <div className="page of-home-page">
         <main className="of-home-main" id="otofine-main" lang="vi">
@@ -1910,24 +2181,30 @@ export default function Home({
               <div className="car-left">
                 <div className="car-box" ref={carBoxRef}>
                   {/* Thanh chính */}
-                  <div className="car-header" onClick={() => setOpen(!open)}>
+                  <div className="car-header">
                     <div className="car-info">
                       <span className="car-icon">🚗</span>
-                      <div>
-                        <p className="car-header__eyebrow">Hãng xe / Dòng xe / Năm</p>
-                        <h4>Chọn xe</h4>
-                        {!open && (brand || model || year) ? (
-                          <p className="car-header__pick">
-                            {[brand, model, year]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        ) : !open ? (
-                          <p className="car-header__hint">Bấm để lọc nhanh theo xe</p>
-                        ) : null}
+
+                      <div className="car-info-text">
+                        <div className="car-header-top">
+                          <h4>Chọn xe</h4>
+
+                          <button
+                            type="button"
+                            className="car-advanced-btn"
+                            onClick={goToAdvancedFromQuick}
+                          >
+                            Chọn nâng cao
+                          </button>
+                        </div>
+
+                        <p className="car-header__eyebrow">
+                          {quickDraft.brand || "HÃNG XE"} /{" "}
+                          {quickDraft.model || "DÒNG XE"} /{" "}
+                          {quickDraft.year || "NĂM"}
+                        </p>
                       </div>
                     </div>
-                    <span className={`arrow ${open ? "rotate" : ""}`}>⌄</span>
                   </div>
                   {/* Nội dung ẩn hiện — Quick / Chọn nâng cao */}
                   {open && (
@@ -1940,9 +2217,62 @@ export default function Home({
                     </div>
                   )}
                 </div>
-                {renderSearchPanelOnly(false)}
-                {searchInputValue.trim().length >= 1 && renderCategoryPanel(false)}
-                {renderLeftQuickBlocks(false)}
+
+                    <div
+                      className="of-rail-card of-rail-links"
+                      aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
+                    >
+                      <h4 className="of-rail-card__h">Dòng xe phổ biến</h4>
+                      {/* <p className="of-rail-links__p">
+                        {seoDisplayBrands.map((b, i) => (
+                          <React.Fragment key={b}>
+                            {i > 0 && (
+                              <span className="of-rail-sep" aria-hidden>
+                                {" "}
+                                ·{" "}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="of-rail-link"
+                              onClick={() => applyVehicleQuickFilter(b, "")}
+                            >
+                              {b}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      </p> */}
+                      <p className="of-rail-links__p">
+                        {seoDisplayModels.slice(0, 20).map((row, i) => (
+                          <React.Fragment key={`${row.brand}-${row.model}`}>
+                            {i > 0 && (
+                              <span className="of-rail-sep" aria-hidden>
+                                {" "}
+                                ·{" "}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="of-rail-link of-rail-link--muted"
+                              onClick={() =>
+                                applyVehicleQuickFilter(row.brand, row.model)
+                              }
+                            >
+                              {row.brand} {row.model}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    </div>
+                    <div className="of-rail-cats">
+                      <PopularCategoriesBox
+                        categories={popularCategories}
+                        selectedCategory={category}
+                        onCtaClick={handlePopularCategoryClick}
+                      />
+                    </div>
+
+
               </div>
               <div className="content-right of-home-content">
                 <section
@@ -2258,59 +2588,44 @@ export default function Home({
                         Đăng ký cửa hàng ngay
                       </Link>
                     </div>
-                    <div
-                      className="of-rail-card of-rail-links"
-                      aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
-                    >
-                      <h4 className="of-rail-card__h">Mua phụ tùng theo xe</h4>
-                      <p className="of-rail-links__p">
-                        {seoDisplayBrands.map((b, i) => (
-                          <React.Fragment key={b}>
-                            {i > 0 && (
-                              <span className="of-rail-sep" aria-hidden>
-                                {" "}
-                                ·{" "}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className="of-rail-link"
-                              onClick={() => applyVehicleQuickFilter(b, "")}
-                            >
-                              {b}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </p>
-                      <p className="of-rail-links__p">
-                        {seoDisplayModels.slice(0, 20).map((row, i) => (
-                          <React.Fragment key={`${row.brand}-${row.model}`}>
-                            {i > 0 && (
-                              <span className="of-rail-sep" aria-hidden>
-                                {" "}
-                                ·{" "}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className="of-rail-link of-rail-link--muted"
-                              onClick={() =>
-                                applyVehicleQuickFilter(row.brand, row.model)
-                              }
-                            >
-                              {row.brand} {row.model}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </p>
+
+                    <div className="of-request-card of-rail-card">
+                      <h4 className="of-request-title">Báo giá phụ tùng</h4>
+                      <p className="of-request-subtitle">Gửi yêu cầu — nhiều shop báo giá nhanh</p>
+                      <div className="of-request-form">
+                        <input
+                          type="text"
+                          className="of-request-input"
+                          placeholder="VD: Má phanh Camry 2020, hoặc số khung"
+                        />
+                        <button type="button" className="of-request-upload-mini">
+                          📷 Đính kèm ảnh phụ tùng / đăng kiểm
+                        </button>
+                        <button type="button" className="of-request-submit">
+                          Gửi yêu cầu báo giá
+                        </button>
+                      </div>
+                      <ul className="of-request-trust">
+                        <li>✓ Nhiều shop nhận yêu cầu</li>
+                        <li>✓ Shop phản hồi báo giá ngay</li>
+                        <li>✓ Hỗ trợ tìm đúng phụ tùng</li>
+                      </ul>
                     </div>
-                    <div className="of-rail-cats">
-                      <PopularCategoriesBox
-                        categories={popularCategories}
-                        selectedCategory={category}
-                        onCtaClick={handlePopularCategoryClick}
-                      />
+
+                    <div className="of-maintenance-card of-rail-card">
+                      <h4 className="of-maintenance-title">Bảo dưỡng định kỳ</h4>
+                      <p className="of-maintenance-desc">
+                        Chọn mốc km để xem phụ tùng cần thay
+                      </p>
+                      <div className="of-maintenance-grid">
+                        <button type="button" className="of-maintenance-chip">5.000 km</button>
+                        <button type="button" className="of-maintenance-chip">10.000 km</button>
+                        <button type="button" className="of-maintenance-chip">20.000 km</button>
+                        <button type="button" className="of-maintenance-chip">40.000 km</button>
+                        <button type="button" className="of-maintenance-chip">80.000 km</button>
+                      </div>
                     </div>
+
                   </aside>
                 </div>
                 {finalSeoData && (
@@ -2330,20 +2645,20 @@ export default function Home({
                   <ul className="of-trust-market__grid" role="list">
                     {[
                       {
-                        t: "Cửa hàng đã xác minh",
-                        d: "Thông tin shop rõ ràng trên sàn — tăng niềm tin khi mua.",
+                        t: "✓ Shop đã xác minh",
+                        d: "Thông tin shop rõ ràng hơn",
                       },
                       {
-                        t: "Tìm theo xe và mã phụ tùng",
-                        d: "Lọc hãng, dòng, năm hoặc gõ từ khóa — đúng nhu cầu sửa chữa.",
+                        t: "✓ Hỗ trợ tìm đúng xe",
+                        d: "Lọc theo hãng, dòng, năm",
                       },
                       {
-                        t: "Minh bạch và liên hệ nhanh",
-                        d: "Giá hiển thị, gọi điện hoặc Zalo trực tiếp như marketplace hiện đại.",
+                        t: "✓ Nhiều lựa chọn giá",
+                        d: "So sánh nhiều shop nhanh",
                       },
                       {
-                        t: "Tốc độ và chuẩn SEO",
-                        d: "Trang nhanh, cấu trúc tốt cho tìm kiếm phụ tùng Toyota, Honda, Hyundai, Kia…",
+                        t: "✓ Hỗ trợ tìm phụ tùng",
+                        d: "Có thể gửi VIN hoặc ảnh",
                       },
                     ].map((x) => (
                       <li key={x.t} className="of-trust-market__item" role="listitem">
@@ -2488,31 +2803,54 @@ export default function Home({
         className="of-bottom-nav"
         aria-label="Thao tác nhanh"
       >
-        <Link href="/" className="of-bottom-nav__item" scroll={false} prefetch={false}>
-          Trang chủ
+        <Link href="/" className="of-bottom-nav__item of-bottom-nav__item--home" scroll={false} prefetch={false}>
+          <span className="of-bottom-nav__icon">🏠</span>
+          <span className="of-bottom-nav__label">Trang chủ</span>
         </Link>
         <button
           type="button"
           className="of-bottom-nav__item"
-          onClick={focusHomeSearch}
+          onClick={() => setMobileFilter(true)}
         >
-          Tìm kiếm
+          <span className="of-bottom-nav__icon">🚗</span>
+          <span className="of-bottom-nav__label">Chọn xe</span>
+        </button>
+        <button
+          type="button"
+          className="of-bottom-nav__item of-bottom-nav__item--quote"
+          onClick={() => setMobileQuote(true)}
+        >
+          <span className="of-bottom-nav__icon">$</span>
+          <span className="of-bottom-nav__label">Hỏi giá</span>
+        </button>
+        <button
+          type="button"
+          className="of-bottom-nav__item"
+          onClick={() => {
+            const el = document.querySelector(".seo-ab-root") || document.querySelector(".of-trust-market");
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          <span className="of-bottom-nav__icon">📚</span>
+          <span className="of-bottom-nav__label">Cẩm nang</span>
         </button>
         <button
           type="button"
           className="of-bottom-nav__item"
           onClick={() => setMobileMenu(true)}
         >
-          Danh mục
-        </button>
-        <button
-          type="button"
-          className="of-bottom-nav__item of-bottom-nav__item--accent"
-          onClick={() => setMobileFilter(true)}
-        >
-          Chọn xe
+          <span className="of-bottom-nav__icon">🏪</span>
+          <span className="of-bottom-nav__label">Shop</span>
         </button>
       </nav>
+      <Link
+        href="/shop/register"
+        className="of-seller-float-cta"
+        prefetch={false}
+      >
+        <span className="of-seller-float-cta__icon">🏪</span>
+        <span className="of-seller-float-cta__text">Đăng bán</span>
+      </Link>
       {contactPhone && (
         <div className="contact-modal" onClick={() => setContactPhone("")}>
           <div className="contact-box" onClick={(e) => e.stopPropagation()}>
@@ -2578,6 +2916,51 @@ export default function Home({
             <div className="mobile-menu-body">
               {renderCategoryPanel(true)}
               {renderLeftQuickBlocks(true)}
+            </div>
+          </div>
+        </div>
+      )}
+      {mobileQuote && (
+        <div className="mobile-drawer" onClick={() => setMobileQuote(false)}>
+          <div className="mobile-panel mobile-panel--quote" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-head mobile-head--quote">
+              <span className="mobile-head-title">Yêu cầu báo giá phụ tùng</span>
+              <button
+                type="button"
+                className="mobile-head-close"
+                onClick={() => setMobileQuote(false)}
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mobile-quote-body">
+              <p className="mobile-quote-subtitle">Nhiều shop sẽ nhận yêu cầu và báo giá nhanh.</p>
+              <div className="mobile-quote-form">
+                <label className="mobile-quote-label">Tên phụ tùng</label>
+                <input
+                  type="text"
+                  className="mobile-quote-input"
+                  placeholder="VD: Má phanh Camry 2020"
+                />
+                <label className="mobile-quote-label">Số khung / VIN (nếu có)</label>
+                <input
+                  type="text"
+                  className="mobile-quote-input"
+                  placeholder="VD: JTDBR9HX..."
+                />
+                <button type="button" className="mobile-quote-upload">
+                  📷 Đính kèm ảnh phụ tùng / đăng kiểm
+                </button>
+                <button type="button" className="mobile-quote-submit">
+                  Gửi yêu cầu báo giá
+                </button>
+              </div>
+              <ul className="mobile-quote-trust">
+                <li>✓ Nhiều shop nhận yêu cầu</li>
+                <li>✓ Báo giá nhanh trong ngày</li>
+                <li>✓ Hỗ trợ tìm đúng phụ tùng</li>
+              </ul>
             </div>
           </div>
         </div>

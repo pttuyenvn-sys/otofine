@@ -221,8 +221,8 @@ export async function searchCategories(req, res) {
  * Match priority: canonical_name prefix, canonical_name contains, category_name contains
  * Filters: is_active=1 AND approved=1
  * Returns: canonical_name, canonical_slug, total_count (grouped)
- * Order: match_priority ASC, total_count DESC
- * Limit: 8
+ * Order: total_count DESC
+ * Limit: none (returns all matching categories)
  */
 export async function searchSidebarCategories(req, res) {
   try {
@@ -256,7 +256,6 @@ export async function searchSidebarCategories(req, res) {
         COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug)
       HAVING total_count > 0
       ORDER BY total_count DESC
-      LIMIT 8
     `, params);
 
     return res.json(rows);

@@ -29,10 +29,10 @@ export async function requireShop(req, res, next) {
       return res.status(401).json({ message: "Unauthenticated" });
     }
 
-    const userId = req.user.id;
+    const accountId = req.user.id;
 
-    const [rows] = await pool.query("SELECT id FROM shops WHERE userId = ?", [
-      userId,
+    const [rows] = await pool.query("SELECT id FROM shops WHERE accountId = ?", [
+      accountId,
     ]);
 
     if (rows.length === 0) {

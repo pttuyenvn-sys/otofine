@@ -12,7 +12,7 @@ export async function registerShop(req, res) {
     const hash = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO Shop (shopId, name, email, phone, passwordHash, status)
+      `INSERT INTO shop_accounts (shopId, name, email, phone, passwordHash, status)
        VALUES (?, ?, ?, ?, ?, 'pending')`,
       [shopId, name, email, phone, hash]
     );
@@ -30,7 +30,7 @@ export async function shopLogin(req, res) {
     const { email, password } = req.body;
 
     const [rows] = await pool.query(
-      "SELECT * FROM Shop WHERE email = ? LIMIT 1",
+      "SELECT * FROM shop_accounts WHERE email = ? LIMIT 1",
       [email]
     );
 
@@ -61,9 +61,17 @@ export async function shopLogin(req, res) {
       { expiresIn: "7d" }
     );
 
+    /** `shops.id` (khoản mục trong bảng shops) — dùng cho push / storefront; không trùng `shop_accounts.id` */
+    const [[sellerShop]] = await pool.query(
+      `SELECT id FROM shops WHERE accountId = ? LIMIT 1`,
+      [shopUser.id]
+    );
+
     res.json({
       token,
       shop: {
+        id: sellerShop?.id ?? null,
+        accountId: shopUser.id,
         name: shopUser.name,
         email: shopUser.email,
         status: shopUser.status,
@@ -79,7 +87,7 @@ export async function shopLogin(req, res) {
 export async function shopForgotPassword(req, res) {
   const { email } = req.body;
 
-  const [rows] = await pool.query("SELECT * FROM Shop WHERE email = ?", [
+  const [rows] = await pool.query("SELECT * FROM shop_accounts WHERE email = ?", [
     email,
   ]);
   if (!rows.length)
@@ -88,7 +96,7 @@ export async function shopForgotPassword(req, res) {
   const newPassword = Math.random().toString(36).slice(-8);
   const hash = await bcrypt.hash(newPassword, 10);
 
-  await pool.query("UPDATE Shop SET passwordHash = ? WHERE email = ?", [
+  await pool.query("UPDATE shop_accounts SET passwordHash = ? WHERE email = ?", [
     hash,
     email,
   ]);
@@ -100,7 +108,7 @@ export async function shopForgotPassword(req, res) {
 export async function adminForgotPassword(req, res) {
   const { email } = req.body;
 
-  const [rows] = await pool.query("SELECT * FROM Admin WHERE email = ?", [
+  const [rows] = await pool.query("SELECT * FROM admin WHERE email = ?", [
     email,
   ]);
   if (!rows.length) return res.status(400).json({ error: "Email không đúng" });
@@ -108,7 +116,7 @@ export async function adminForgotPassword(req, res) {
   const newPassword = Math.random().toString(36).slice(-8);
   const hash = await bcrypt.hash(newPassword, 10);
 
-  await pool.query("UPDATE Admin SET passwordHash = ? WHERE email = ?", [
+  await pool.query("UPDATE admin SET passwordHash = ? WHERE email = ?", [
     hash,
     email,
   ]);
@@ -126,7 +134,7 @@ export async function adminLogin(req, res) {
     }
 
     const [rows] = await pool.query(
-      "SELECT * FROM Admin WHERE email = ? LIMIT 1",
+      "SELECT * FROM admin WHERE email = ? LIMIT 1",
       [email]
     );
 

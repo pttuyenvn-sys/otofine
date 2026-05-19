@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import axios from "axios";
 
 dotenv.config();
 
@@ -34,14 +35,24 @@ import {
 } from "./controllers/product.controller.js";
 import { normalizeListingQuery } from "./utils/listingQueryNormalize.js";
 import vehicleSeoRoutes from "./routes/vehicleSeo.routes.js";
+import { mountRfqRoutes } from "./modules/rfq/index.js";
+import rfqAdminRoutes from "./modules/rfq/routes/rfq.admin.routes.js";
+import rfqPushRoutes from "./routes/rfqPush.routes.js";
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+import pushRoutes from "./routes/push.routes.js";
+app.use("/api/push", pushRoutes);
 
 const defaultOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://192.168.1.10:3000",
   "http://192.168.0.1:3000",
+  "http://180.93.1.24:3000",
+  "http://180.93.1.24:3001",
 ];
 
 const extraOrigins = (process.env.CORS_ORIGINS || "")
@@ -58,6 +69,9 @@ app.use(
 
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+
+/** Anonymous RFQ buyer — OneSignal subscription registration (no JWT) */
+app.use("/api/rfq-push", rfqPushRoutes);
 
 /** Kiểm tra nhanh API có sống (dùng /health hoặc /api/health) */
 const healthPayload = { ok: true, service: "otofine-api" };
@@ -144,7 +158,104 @@ app.get("/", (req, res) => {
 
 app.use("/api", vehicleSeoRoutes);
 
+app.use("/api/admin/rfq", requireAuth, requireAdmin, rfqAdminRoutes);
+
+mountRfqRoutes(app);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server chạy port ${PORT}`);
+});
+
+app.get("/api/zalo/webhook", (req, res) => {
+  res.json({ ok: true, type: "webhook" });
+});
+
+
+
+app.get("/api/zalo/oa/callback", async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    const response = await axios.post(
+      "https://oauth.zaloapp.com/v4/oa/access_token",
+      null,
+      {
+        params: {
+          app_id: process.env.ZALO_OA_APP_ID,
+          code,
+          grant_type: "authorization_code",
+        },
+        headers: {
+          secret_key: process.env.ZALO_OA_SECRET,
+        },
+      }
+    );
+
+    console.log("ZALO TOKEN:", response.data);
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error(
+      "ZALO TOKEN ERROR:",
+      err?.response?.data || err.message
+    );
+
+    res.status(500).json({
+      error: err?.response?.data || err.message,
+    });
+  }
+});
+
+app.get("/api/zalo/test-send", async (req, res) => {
+  try {
+
+    const axios = (await import("axios")).default;
+
+    const response = await axios.post(
+      "https://openapi.zalo.me/v3.0/oa/message/cs",
+      {
+        recipient: {
+          user_id: "4106984553499884062"
+        },
+        message: {
+          text: "Test OA Otofine hoạt động."
+        }
+      },
+      {
+        headers: {
+          access_token: process.env.ZALO_OA_ACCESS_TOKEN,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+
+    console.error(
+      err?.response?.data || err.message
+    );
+
+    res.status(500).json(
+      err?.response?.data || {
+        error: err.message
+      }
+    );
+  }
+});
+
+app.post("/api/zalo/webhook", async (req, res) => {
+
+  console.log(
+    "ZALO WEBHOOK:",
+    JSON.stringify(req.body, null, 2)
+  );
+
+  res.json({
+    error: 0,
+    message: "success"
+  });
 });

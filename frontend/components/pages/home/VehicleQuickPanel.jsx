@@ -4,6 +4,18 @@ import React from "react";
 
 const HOT_COUNT = 8;
 
+function pickBrandLabel(item) {
+  return String(item?.hang_xe || item?.brand || item?.name || item?.label || "").trim();
+}
+
+function pickModelLabel(item) {
+  return String(item?.ten_xe || item?.model || item?.name || item?.label || item || "").trim();
+}
+
+function pickYearLabel(item) {
+  return String(item?.year || item?.nam_san_xuat || item?.name || item?.label || item || "").trim();
+}
+
 /**
  * Flow chọn nhanh 3 bước — hãng → dòng → năm.
  * Data: brands / draftModels / draftYears giống thứ tự API (top theo total).
@@ -28,11 +40,12 @@ export default function VehicleQuickPanel({
   const brandLabel = (quickDraft.brand || "").trim();
   const modelLabel = (quickDraft.model || "").trim();
   const yearLabel = quickDraft.year != null ? String(quickDraft.year).trim() : "";
+  const renderStep = modelLabel ? 3 : brandLabel ? 2 : 1;
 
   return (
     <div className="vehicle-quick-root">
       {/* Chỉ nút Chọn nâng cao — tiêu đề đã có ở car-header / mobile-head */}
-      <div className="vehicle-quick-advanced-row">
+      {/* <div className="vehicle-quick-advanced-row">
         <button
           type="button"
           className="vehicle-quick-advanced-btn"
@@ -43,7 +56,7 @@ export default function VehicleQuickPanel({
         >
           Chọn nâng cao
         </button>
-      </div>
+      </div> */}
 
       {(quickStep >= 2 || brandLabel) && (
         <div className="vehicle-breadcrumb-chips" aria-live="polite">
@@ -87,39 +100,49 @@ export default function VehicleQuickPanel({
       )}
 
       <div className="vehicle-quick-body">
-        {quickStep === 1 && (
+        {renderStep === 1 && (
           <VehiclePickList
             ariaLabel="Danh sách hãng xe"
             variant="brand"
             loading={false}
             emptyHint="Chưa có dữ liệu hãng xe."
-            items={brands.map((item, index) => ({
-              key: item.hang_xe,
-              label: item.hang_xe,
-              hot: index < HOT_COUNT,
-              selected: brandLabel === item.hang_xe,
-              onSelect: () => onPickBrand(item.hang_xe),
-            }))}
+            items={brands
+              .map((item, index) => {
+                const label = pickBrandLabel(item);
+                return {
+                  key: `brand-${label || index}-${index}`,
+                  label,
+                  hot: index < HOT_COUNT,
+                  selected: brandLabel === label,
+                  onSelect: () => onPickBrand(label),
+                };
+              })
+              .filter((item) => item.label)}
           />
         )}
 
-        {quickStep === 2 && (
+        {renderStep === 2 && (
           <VehiclePickList
             ariaLabel="Danh sách dòng xe"
             variant="model"
             loading={modelsLoading}
             emptyHint={brandLabel ? "Không có dòng xe cho hãng này." : "Chọn hãng trước."}
-            items={draftModels.map((item, index) => ({
-              key: item.ten_xe,
-              label: item.ten_xe,
-              hot: index < HOT_COUNT,
-              selected: modelLabel === item.ten_xe,
-              onSelect: () => onPickModel(item.ten_xe),
-            }))}
+            items={draftModels
+              .map((item, index) => {
+                const label = pickModelLabel(item);
+                return {
+                  key: `model-${label || index}-${index}`,
+                  label,
+                  hot: index < HOT_COUNT,
+                  selected: modelLabel === label,
+                  onSelect: () => onPickModel(label),
+                };
+              })
+              .filter((item) => item.label)}
           />
         )}
 
-        {quickStep === 3 &&
+        {renderStep === 3 &&
           (yearLabel ? (
             <p className="vehicle-quick-done">
               Đã chọn đủ hãng, dòng và năm. Bấm <strong>Chọn</strong> để lọc sản phẩm hoặc đổi năm ở trên.
@@ -134,13 +157,18 @@ export default function VehicleQuickPanel({
                   ? "Không có năm cho dòng này."
                   : "Chọn hãng và dòng trước."
               }
-              items={draftYears.map((year, idx) => ({
-                key: String(year),
-                label: String(year),
-                hot: idx < HOT_COUNT,
-                selected: yearLabel === String(year),
-                onSelect: () => onPickYear(String(year)),
-              }))}
+              items={draftYears
+                .map((year, idx) => {
+                  const label = pickYearLabel(year);
+                  return {
+                    key: `year-${label || idx}-${idx}`,
+                    label,
+                    hot: idx < HOT_COUNT,
+                    selected: yearLabel === label,
+                    onSelect: () => onPickYear(label),
+                  };
+                })
+                .filter((item) => item.label)}
             />
           ))}
       </div>
@@ -192,7 +220,7 @@ function VehiclePickList({ ariaLabel, loading, emptyHint, items, variant = "bran
 
   return (
     <div className={listClass} role="list" aria-label={ariaLabel}>
-      {items.map((it) => {
+      {items.map((it, index) => {
         const chipClass = [
           "vehicle-chip",
           "vehicle-chip--pick",
@@ -207,7 +235,7 @@ function VehiclePickList({ ariaLabel, loading, emptyHint, items, variant = "bran
 
         return (
           <button
-            key={it.key}
+            key={it.key || `${variant}-${it.label}-${index}`}
             type="button"
             role="listitem"
             className={chipClass}

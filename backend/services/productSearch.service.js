@@ -11,6 +11,7 @@ import { getProductsColumnsResolved } from "../utils/productsTableColumns.server
 import {
   cleanHttpQueryValue,
   normalizeListFilterYear,
+  normalizePartNumber,
 } from "../utils/listingQueryNormalize.js";
 
 const COLLECTION =
@@ -52,6 +53,7 @@ export function getProductCollectionSchema() {
     fields: [
       { name: "id", type: "string" },
       { name: "partNumber", type: "string", stem: false },
+      { name: "partNumber_norm", type: "string", stem: false, optional: true },
       { name: "partName", type: "string", locale: "vi" },
       { name: "search_blob", type: "string", locale: "vi" },
       { name: "slug", type: "string", optional: true },
@@ -95,20 +97,35 @@ async function mysqlSearchIds(opts) {
     return { ids: [], found: 0, source: "mysql" };
   }
 
+  const normalizedQ = normalizePartNumber(q);
   const words = normalizeText(q)
     .split(/\s+/)
     .filter(Boolean);
   let where = ` WHERE 1=1 `;
   const params = [];
 
-  for (const w of words) {
-    const like = `%${w}%`;
-    where += ` AND (
-      LOWER(p.partName) LIKE ?
-      OR LOWER(p.partNumber) LIKE ?
-      OR LOWER(COALESCE(p.shortDescription,'')) LIKE ?
-    ) `;
-    params.push(like, like, like);
+  if (words.length > 0 || (normalizedQ && normalizedQ.length > 2)) {
+    where += ` AND (`;
+    const likeConditions = [];
+    
+    for (const w of words) {
+      const like = `%${w}%`;
+      likeConditions.push(`(
+        LOWER(p.partName) LIKE ?
+        OR LOWER(p.partNumber) LIKE ?
+        OR LOWER(COALESCE(p.shortDescription,'')) LIKE ?
+      )`);
+      params.push(like, like, like);
+    }
+
+    // Add normalized partNumber matching for exact partNumber searches
+    if (normalizedQ && normalizedQ.length > 2) {
+      likeConditions.push(`REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ?`);
+      params.push(normalizedQ);
+    }
+
+    where += likeConditions.join(" OR ");
+    where += `)`;
   }
 
   const filterBrand = cleanHttpQueryValue(opts.brand);
@@ -182,7 +199,7 @@ async function mysqlSearchIds(opts) {
   const pc = await getProductsColumnsResolved();
   const ord = pc.orderExprQualified("p");
 
-  const orderParams = [...params, likePN, likePN, perPage, offset];
+  const orderParams = [...params, likePN, likePN, normalizedQ, perPage, offset];
   const [rows] = await pool.query(
     `
     SELECT p.id
@@ -191,6 +208,7 @@ async function mysqlSearchIds(opts) {
     ${where}
     GROUP BY p.id
     ORDER BY
+      MIN(CASE WHEN REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ? THEN 0 ELSE 1 END),
       MIN(CASE WHEN LOWER(p.partNumber) LIKE ? THEN 0 ELSE 1 END),
       MIN(CASE WHEN LOWER(p.partName) LIKE ? THEN 0 ELSE 1 END),
       MAX(${ord}) DESC
@@ -246,7 +264,7 @@ function buildTypesenseSearchPayload({ q, perPage, page, filter_by }) {
 
   const payload = {
     q,
-    query_by: "partNumber,partName,search_blob",
+    query_by: "partNumber_norm,partNumber,partName,search_blob",
     query_by_weights: weights,
     prioritize_exact_match,
     num_typos,

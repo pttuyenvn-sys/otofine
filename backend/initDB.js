@@ -52,7 +52,7 @@ async function init() {
 
     await pool.query(`
       ALTER TABLE products 
-      ADD COLUMN IF NOT EXISTS shopId INT NULL;
+      ADD COLUMN shopId INT NULL;
     `);
 
     console.log("Hoàn tất khởi tạo database!");

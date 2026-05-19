@@ -1,6 +1,7 @@
 import { pool } from "../config/db.js";
 import { sqlCategoryKeyFromPartName } from "../utils/categoryKey.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { normalizePartNumber } from "../utils/listingQueryNormalize.js";
 
 /**
  * Một dòng product + facet xe → document Typesense (dùng sync batch + realtime).
@@ -35,6 +36,7 @@ export function rowToTypesenseDocument(row) {
   const doc = {
     id: String(row.id),
     partNumber: String(row.partNumber || ""),
+    partNumber_norm: normalizePartNumber(row.partNumber || ""),
     partName: String(row.partName || ""),
     search_blob: search_blob.slice(0, 6000),
     slug:

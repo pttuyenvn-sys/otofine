@@ -3,6 +3,22 @@
  * never become SQL filter binds.
  */
 
+/**
+ * Normalize partNumber for search matching.
+ * Converts to lowercase, removes hyphens and spaces.
+ * Example: "04465-0K340" -> "044650k340"
+ * @param {string} partNumber
+ * @returns {string}
+ */
+export function normalizePartNumber(partNumber) {
+  if (!partNumber) return "";
+  return String(partNumber)
+    .toLowerCase()
+    .replace(/-/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
 /** @param {unknown} value */
 export function cleanHttpQueryValue(value) {
   if (value == null) return null;

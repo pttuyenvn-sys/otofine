@@ -7,8 +7,8 @@ import { syncProductListViewForShop } from "../services/productListViewSync.serv
 
 export async function getMyShop(req, res) {
   try {
-    const userId = req.user.id;
-    const shop = await Shop.getByUserId(userId);
+    const accountId = req.user.id;
+    const shop = await Shop.getByAccountId(accountId);
 
     if (!shop) {
       return res.status(200).json(null);
@@ -23,12 +23,12 @@ export async function getMyShop(req, res) {
 
 export async function createShop(req, res) {
   try {
-    const userId = req.user.id;
-    const existing = await Shop.getByUserId(userId);
+    const accountId = req.user.id;
+    const existing = await Shop.getByAccountId(accountId);
     if (existing) return res.status(400).json({ message: "Bạn đã có shop" });
 
     const data = {
-      userId,
+      accountId,
       name: req.body.name,
       phone: req.body.phone,
       email: req.body.email,
@@ -83,8 +83,8 @@ export async function createShop(req, res) {
 
 export async function updateMyShop(req, res) {
   try {
-    const userId = req.user.id;
-    const shop = await Shop.getByUserId(userId);
+    const accountId = req.user.id;
+    const shop = await Shop.getByAccountId(accountId);
     if (!shop) return res.status(404).json({ message: "Shop không tồn tại" });
 
     const data = {
@@ -126,7 +126,7 @@ export async function updateMyShop(req, res) {
     }
 
     await Shop.update(shop.id, data);
-    await syncProductListViewForShop(shop.id).catch(() => {});
+    await syncProductListViewForShop(shop.id).catch(() => { });
     res.json({ message: "Cập nhật shop thành công" });
   } catch (err) {
     console.error(err);

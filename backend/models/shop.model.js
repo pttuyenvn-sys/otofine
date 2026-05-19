@@ -2,10 +2,12 @@
 import { pool } from "../config/db.js";
 
 export default {
-  async getByUserId(userId) {
-    const [rows] = await pool.query("SELECT * FROM shops WHERE userId = ?", [
-      userId,
-    ]);
+  async getByAccountId(accountId) {
+    const [rows] = await pool.query(
+      "SELECT * FROM shops WHERE accountId = ?",
+      [accountId],
+    );
+
     return rows[0] || null;
   },
 
@@ -16,13 +18,13 @@ export default {
 
   async create(data) {
     const sql = `INSERT INTO shops
-      (userId, name, avatar, cover, phone, email, zalo, website,
+      (accountId, name, avatar, cover, phone, email, zalo, website,
        provinceId, districtId, wardId, addressDetail,
        descriptionHtml, salePolicy, warrantyPolicy)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      data.userId,
+      data.accountId,
       data.name || null,
       data.avatar || null,
       data.cover || null,

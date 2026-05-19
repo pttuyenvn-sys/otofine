@@ -23,10 +23,22 @@
     "sync:scheduler": "node jobs/scheduler.js",
     "migrate:seo": "node scripts/run-seo-migrations.js",
     "seed:seo-routes": "node scripts/seedSeoRoutes.js",
-    "rebuild:seo-cache": "node scripts/rebuildSeoCache.js"
+    "rebuild:seo-cache": "node scripts/rebuildSeoCache.js",
+    "migrate:rfq": "node scripts/run-rfq-migration.js",
+    "migrate:rfq:hardening": "node scripts/run-rfq-migration.js 021_rfq_hardening_sprint15.sql",
+    "migrate:rfq:sprint2": "node scripts/run-rfq-migration.js 022_rfq_sprint2.sql",
+    "migrate:rfq:closed-beta": "node scripts/run-rfq-migration.js 023_rfq_closed_beta_ops.sql",
+    "migrate:rfq:push-subscriptions": "node scripts/run-rfq-migration.js 025_rfq_push_subscriptions.sql",
+    "migrate:rfq:push-viewer-token": "node scripts/run-rfq-migration.js 026_rfq_push_subscriptions_viewer_link.sql",
+    "migrate:rfq:push-viewer-path": "node scripts/run-rfq-migration.js 027_rfq_push_subscriptions_viewer_path.sql",
+    "worker:rfq-escalation": "node jobs/rfqEscalation.worker.js",
+    "cron:rfq-escalation-repair": "node jobs/rfqEscalation.repair.js",
+    "cron:rfq-upload-retention": "node jobs/rfqUploadRetention.js",
+    "test:rfq": "node --test modules/rfq/tests"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1020.0",
+    "axios": "^1.16.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
