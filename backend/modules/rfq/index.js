@@ -1,6 +1,7 @@
 import { rfqFlags } from "../../config/rfq.config.js";
 import publicRouter from "./routes/rfq.public.routes.js";
 import shopRouter from "./routes/rfq.shop.routes.js";
+import conversationRouter from "./routes/rfq.conversation.routes.js";
 
 /**
  * Mount RFQ HTTP routes. No-op when RFQ_MODULE_ENABLED is false (default).
@@ -11,6 +12,7 @@ export function mountRfqRoutes(app) {
     return;
   }
   app.use("/api/rfq", publicRouter);
+  app.use("/api/rfq/conversations", conversationRouter);
   app.use("/api/shop/rfq", shopRouter);
 }
 

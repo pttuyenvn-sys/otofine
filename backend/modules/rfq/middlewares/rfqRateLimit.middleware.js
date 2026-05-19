@@ -14,7 +14,10 @@ export function rfqRateLimit({ windowMs, max, bucketPrefix, keyFn }) {
     arr = arr.filter((t) => now - t < windowMs);
     if (arr.length >= max) {
       res.setHeader("Retry-After", Math.ceil(windowMs / 1000));
-      return res.status(429).json({ message: "Too many requests" });
+      return res.status(429).json({
+        code: "RATE_LIMIT",
+        message: "Quá nhiều yêu cầu — thử lại sau",
+      });
     }
     arr.push(now);
     hits.set(bucket, arr);

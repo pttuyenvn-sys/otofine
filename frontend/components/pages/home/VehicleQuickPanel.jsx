@@ -1,20 +1,13 @@
 "use client";
 
 import React from "react";
+import {
+  pickBrandLabel,
+  pickModelLabel,
+  pickYearLabel,
+} from "@/lib/vehicle/vehicleFilterApi";
 
 const HOT_COUNT = 8;
-
-function pickBrandLabel(item) {
-  return String(item?.hang_xe || item?.brand || item?.name || item?.label || "").trim();
-}
-
-function pickModelLabel(item) {
-  return String(item?.ten_xe || item?.model || item?.name || item?.label || item || "").trim();
-}
-
-function pickYearLabel(item) {
-  return String(item?.year || item?.nam_san_xuat || item?.name || item?.label || item || "").trim();
-}
 
 /**
  * Flow chọn nhanh 3 bước — hãng → dòng → năm.
@@ -26,15 +19,12 @@ export default function VehicleQuickPanel({
   onPickBrand,
   onPickModel,
   onPickYear,
-  onClearYear,
   onBreadcrumbToStep,
   brands,
   draftModels,
   draftYears,
   modelsLoading,
   yearsLoading,
-  onAdvanced,
-  onApply,
   onReset,
 }) {
   const brandLabel = (quickDraft.brand || "").trim();
@@ -90,10 +80,22 @@ export default function VehicleQuickPanel({
               className={`vehicle-chip vehicle-chip--crumb vehicle-chip--crumb-year ${quickStep === 3 ? "vehicle-chip--crumb-active" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onClearYear();
               }}
             >
               {yearLabel}
+            </button>
+          ) : null}
+          {brandLabel ? (
+            <button
+              type="button"
+              className="vehicle-chip vehicle-chip--crumb"
+              aria-label="Xóa chọn xe"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReset();
+              }}
+            >
+              X
             </button>
           ) : null}
         </div>
@@ -142,58 +144,30 @@ export default function VehicleQuickPanel({
           />
         )}
 
-        {renderStep === 3 &&
-          (yearLabel ? (
-            <p className="vehicle-quick-done">
-              Đã chọn đủ hãng, dòng và năm. Bấm <strong>Chọn</strong> để lọc sản phẩm hoặc đổi năm ở trên.
-            </p>
-          ) : (
-            <VehiclePickList
-              ariaLabel="Danh sách năm sản xuất"
-              variant="year"
-              loading={yearsLoading}
-              emptyHint={
-                brandLabel && modelLabel
-                  ? "Không có năm cho dòng này."
-                  : "Chọn hãng và dòng trước."
-              }
-              items={draftYears
-                .map((year, idx) => {
-                  const label = pickYearLabel(year);
-                  return {
-                    key: `year-${label || idx}-${idx}`,
-                    label,
-                    hot: idx < HOT_COUNT,
-                    selected: yearLabel === label,
-                    onSelect: () => onPickYear(label),
-                  };
-                })
-                .filter((item) => item.label)}
-            />
-          ))}
-      </div>
-
-      <div className="vehicle-quick-actions choose-wrap">
-        <button
-          type="button"
-          className="search-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onApply();
-          }}
-        >
-          Chọn
-        </button>
-        <button
-          type="button"
-          className="clear-filter-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReset();
-          }}
-        >
-          ↺ Reset
-        </button>
+        {renderStep === 3 && (
+          <VehiclePickList
+            ariaLabel="Danh sách năm sản xuất"
+            variant="year"
+            loading={yearsLoading}
+            emptyHint={
+              brandLabel && modelLabel
+                ? "Không có năm cho dòng này."
+                : "Chọn hãng và dòng trước."
+            }
+            items={draftYears
+              .map((year, idx) => {
+                const label = pickYearLabel(year);
+                return {
+                  key: `year-${label || idx}-${idx}`,
+                  label,
+                  hot: idx < HOT_COUNT,
+                  selected: yearLabel === label,
+                  onSelect: () => onPickYear(label),
+                };
+              })
+              .filter((item) => item.label)}
+          />
+        )}
       </div>
     </div>
   );

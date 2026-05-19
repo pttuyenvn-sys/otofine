@@ -11,11 +11,23 @@ function normalizeSubscriptionIds(subscriptionIds) {
 
 export async function sendBuyerQuotePush({
   subscriptionIds,
+  rfqRequestId,
   rfqId,
   shopName,
   viewerPath,
 }) {
+  const resolvedRfqRequestId = rfqRequestId ?? rfqId;
+
   try {
+    if (
+      resolvedRfqRequestId == null ||
+      !Number.isFinite(Number(resolvedRfqRequestId)) ||
+      Number(resolvedRfqRequestId) <= 0
+    ) {
+      console.warn("[BUYER PUSH] skip: invalid rfqRequestId", resolvedRfqRequestId);
+      return;
+    }
+
     const ids =
       normalizeSubscriptionIds(subscriptionIds);
 
@@ -36,7 +48,7 @@ export async function sendBuyerQuotePush({
 
     console.log(
       "[BUYER PUSH] RFQ ID:",
-      rfqId
+      resolvedRfqRequestId
     );
 
     console.log(
@@ -104,7 +116,7 @@ export async function sendBuyerQuotePush({
 
     console.log(
       "[BUYER PUSH] SENT:",
-      res.data.id
+      res.data?.id ?? null
     );
 
     console.log(

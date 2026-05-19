@@ -5,14 +5,26 @@ import * as quoteRepo from "../repositories/rfqQuote.repository.js";
 import * as audit from "./rfqAudit.service.js";
 import { rfqLog } from "../utils/rfqLogger.js";
 import { rfqCounterInc } from "./rfqObservability.service.js";
+import { mapInboxDispatchRow } from "../utils/rfqInboxMap.js";
+import { parseInboxFilterQuery } from "../utils/rfqVehicleNormalize.js";
+import {
+  appendQuoteTimelineEvent,
+  getMessageUnreadMapForShop,
+} from "./rfqConversation.service.js";
 
 /** Fire-and-forget buyer push — never throws into quote flow */
 function notifyBuyerQuotePushed(rfqRequestId, shopId) {
   void (async () => {
     try {
+      const rid = Number(rfqRequestId);
+      if (!Number.isFinite(rid) || rid <= 0) {
+        console.warn("[RFQ PUSH] buyer notify skipped: invalid rfqRequestId", rfqRequestId);
+        return;
+      }
+
       const [subRows] = await pool.query(
         `SELECT onesignal_subscription_id FROM rfq_push_subscriptions WHERE rfq_request_id = ?`,
-        [rfqRequestId],
+        [rid],
       );
       const subscriptionIds = subRows
         .map((r) => r.onesignal_subscription_id)
@@ -37,17 +49,20 @@ function notifyBuyerQuotePushed(rfqRequestId, shopId) {
           ORDER BY id DESC
           LIMIT 1
           `,
-        [rfqRequestId]
+        [rid]
       );
 
       await sendBuyerQuotePush({
         subscriptionIds,
-        rfqId: rfqRequestId,
+        rfqRequestId: rid,
         shopName,
         viewerPath: pushRow?.viewer_path || null,
       });
     } catch (e) {
-      console.warn("[RFQ PUSH] buyer notify failed:", e?.message || e);
+      console.warn("[RFQ PUSH] buyer notify failed:", e?.message || e, {
+        rfq_request_id: rfqRequestId,
+        shop_id: shopId,
+      });
     }
   })();
 }
@@ -57,13 +72,39 @@ export async function listInbox(shopId, query) {
   const offset = Math.max(Number(query.offset) || 0, 0);
   const filter = query.filter || "all";
   const sort = query.sort || "sla";
-  const items = await dispatchRepo.listInboxForShop(shopId, { limit, offset, filter, sort });
-  return { items, limit, offset, filter, sort };
+  const vehicleFilters = parseInboxFilterQuery(query);
+  const rows = await dispatchRepo.listInboxForShop(shopId, {
+    limit,
+    offset,
+    filter,
+    sort,
+    ...vehicleFilters,
+  });
+  const messageUnreadMap = await getMessageUnreadMapForShop(shopId);
+  const items = rows.map((row) =>
+    mapInboxDispatchRow(row, messageUnreadMap.get(Number(row.id)) || 0),
+  );
+  return {
+    items,
+    limit,
+    offset,
+    filter,
+    sort,
+    filters: vehicleFilters,
+  };
 }
 
 export async function inboxSummary(shopId) {
-  const unread = await dispatchRepo.countInboxUnread(shopId);
-  return { unreadCount: unread };
+  const buckets = await dispatchRepo.countInboxBuckets(shopId);
+  const messageUnreadMap = await getMessageUnreadMapForShop(shopId);
+  let messageUnreadTotal = 0;
+  for (const c of messageUnreadMap.values()) messageUnreadTotal += c;
+  return {
+    unreadCount: buckets.unread,
+    messageUnreadTotal,
+    waitingCount: buckets.waiting,
+    quotedCount: buckets.quoted,
+  };
 }
 
 export async function getDispatchDetail(dispatchId, shopId) {
@@ -142,8 +183,9 @@ export async function submitQuote(dispatchId, shopId, body) {
       return { ok: true, idempotent: true };
     }
 
+    let quoteId;
     try {
-      await quoteRepo.insertQuote(conn, {
+      quoteId = await quoteRepo.insertQuote(conn, {
         rfq_request_id: d.rfq_request_id,
         dispatch_id: dispatchId,
         shop_id: shopId,
@@ -153,6 +195,25 @@ export async function submitQuote(dispatchId, shopId, body) {
         note,
         line_type,
       });
+
+      // Timeline reflects rfq_quotes (source of truth) — failure must not block quote submit.
+      try {
+        await appendQuoteTimelineEvent(conn, {
+          dispatch_id: dispatchId,
+          shop_id: shopId,
+          quote_id: quoteId,
+          price_amount: price,
+          currency,
+          note,
+          line_type,
+        });
+      } catch (timelineErr) {
+        console.error(
+          "[RFQ] quote timeline failed:",
+          timelineErr?.message || timelineErr,
+          { dispatch_id: dispatchId, quote_id: quoteId },
+        );
+      }
     } catch (e) {
       if (e?.code === "ER_DUP_ENTRY") {
         const [[row]] = await conn.query(

@@ -14,6 +14,7 @@ import Link from "next/link";
 import { getProductDetailHref } from "@/lib/productDetailHref";
 import { API_BASE } from "@/lib/config";
 import { fetchJsonCached } from "@/lib/clientJsonCache";
+import { getApiList } from "@/lib/vehicle/vehicleFilterApi";
 import {
   buildHomePageTitle,
 } from "@/lib/seo/homePageTitle";
@@ -76,12 +77,6 @@ function cleanQueryValue(value) {
     return trimmed;
   }
   return value;
-}
-
-function getApiList(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
 }
 
 function buildDbBackedPageTitle({ categoryName, hasCategory, brand, model, year, location }) {
@@ -305,6 +300,7 @@ export { buildHomePageTitle };
 const SUGGEST_FETCH_DEBOUNCE_MS = 200;
 const RECENT_SEARCHES_KEY = "otofine_recent_searches_v1";
 const QUICK_VEHICLE_STORAGE_KEY = "otofine_vehicle_quick_v1";
+const MOBILE_VEHICLE_PANEL_OPEN_KEY = "otofine_mobile_vehicle_panel_open_v1";
 
 /** Gợi ý nhanh — đồng bộ tone phụ tùng ô tô */
 const HOT_KEYWORDS = [
@@ -381,16 +377,6 @@ export default function Home({
   const [mobileFilter, setMobileFilter] = useState(false);
   const [mobileQuote, setMobileQuote] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState("");
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
   const {
     category,
     setCategory,
@@ -511,6 +497,33 @@ export default function Home({
     () => ({ category, brand, model, year, location }),
     [category, brand, model, year, location],
   );
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(MOBILE_VEHICLE_PANEL_OPEN_KEY) !== "1") return;
+      setMobileFilter(true);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mobileFilter) return;
+    try {
+      sessionStorage.setItem(MOBILE_VEHICLE_PANEL_OPEN_KEY, "1");
+    } catch {
+      // ignore
+    }
+  }, [mobileFilter]);
+
+  const closeMobileVehiclePanel = useCallback(() => {
+    try {
+      sessionStorage.removeItem(MOBILE_VEHICLE_PANEL_OPEN_KEY);
+    } catch {
+      // ignore
+    }
+    setMobileFilter(false);
+  }, []);
 
   const navigateToState = useCallback(
     (patch, options = {}) => {
@@ -707,8 +720,8 @@ export default function Home({
       setPage(1);
     });
     setOpen(false);
-    setMobileFilter(false);
-  }, [router, setCategory, setBrand, setModel, setYear, setLocation, setKeyword, setPage]);
+    closeMobileVehiclePanel();
+  }, [router, closeMobileVehiclePanel, setCategory, setBrand, setModel, setYear, setLocation, setKeyword, setPage]);
 
   // Vehicle Quick Select Handler (ALIGNED: sets brand/model/year/page, clears lower when upper changed)
   const applyVehicleQuickFilter = useCallback(
@@ -794,12 +807,12 @@ export default function Home({
       setSuggestPanelOpen(false);
       if (fromMobileSearch) {
         setMobileMenu(false);
-        setMobileFilter(false);
+        closeMobileVehiclePanel();
       }
       // IN PRODUCTION: replace with page navigation logic, for now: window.location
       window.location.href = getProductDetailHref(row);
     },
-    [],
+    [closeMobileVehiclePanel],
   );
 
   // SEO chip brands/models (unchanged)
@@ -969,6 +982,25 @@ export default function Home({
       // ignore
     }
   }, [quickDraft]);
+
+  useEffect(() => {
+    const isHomepage = pathname === "/";
+    const hasVehicleFilter = Boolean(brand || model || year);
+    if (!isHomepage || hasVehicleFilter) return;
+
+    setQuickDraft({ brand: "", model: "", year: "" });
+    setDraftModels([]);
+    setDraftYears([]);
+    setQuickStep(1);
+    panelModelsFetchKeyRef.current = "";
+    panelYearsFetchKeyRef.current = "";
+
+    try {
+      localStorage.removeItem(QUICK_VEHICLE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }, [pathname, brand, model, year]);
 
   useEffect(() => {
     if (!open && !mobileFilter) return;
@@ -1515,16 +1547,56 @@ export default function Home({
       setPage(1);
     });
 
-       setMobileFilter(false);
     scrollProductsIntoView();
   }, [quickDraft, location, navigateToState, setPage, scrollProductsIntoView]);
 
-  const resetQuickVehicle = useCallback(() => {
+  const persistQuickVehicleDraft = useCallback((draft) => {
+    if (typeof window === "undefined") return;
+    const b = String(draft?.brand || "").trim();
+    try {
+      if (!b) {
+        localStorage.removeItem(QUICK_VEHICLE_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(
+        QUICK_VEHICLE_STORAGE_KEY,
+        JSON.stringify({
+          brand: b,
+          model: draft.model ? String(draft.model) : "",
+          year: draft.year != null ? String(draft.year) : "",
+        }),
+      );
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const resetQuickVehicle = useCallback((opts = {}) => {
+    const keepMobileDrawer = Boolean(opts.keepMobileDrawer);
+    if (keepMobileDrawer) {
+      try {
+        sessionStorage.setItem(MOBILE_VEHICLE_PANEL_OPEN_KEY, "1");
+      } catch {
+        // ignore
+      }
+      setMobileFilter(true);
+    }
+
     setQuickDraft({ brand: "", model: "", year: "" });
+    setDraftModels([]);
+    setDraftYears([]);
     setQuickStep(1);
+    panelModelsFetchKeyRef.current = "";
+    panelYearsFetchKeyRef.current = "";
+
+    try {
+      localStorage.removeItem(QUICK_VEHICLE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
 
     startTransition(() => {
-      navigateToState({ category: "",brand: "", model: "", year: "" });
+      navigateToState({ category: "", brand: "", model: "", year: "" });
       setKeyword("");
       setPage(1);
     });
@@ -1541,6 +1613,7 @@ export default function Home({
     };
 
     setQuickDraft(nextDraft);
+    persistQuickVehicleDraft(nextDraft);
     setQuickStep(2);
 
     startTransition(() => {
@@ -1550,12 +1623,11 @@ export default function Home({
           brand: name,
           model: "",
           year: "",
-        },
-        { skipRouteUpdate: isMobile && mobileFilter }
+        }
       );
       setPage(1);
     });
-  }, [navigateToState, setPage, isMobile, mobileFilter]);
+  }, [navigateToState, persistQuickVehicleDraft, setPage]);
   const handleQuickPickModel = useCallback((name) => {
     const currentBrand = quickDraft.brand || brand;
 
@@ -1566,6 +1638,7 @@ export default function Home({
     };
 
     setQuickDraft(nextDraft);
+    persistQuickVehicleDraft(nextDraft);
     setQuickStep(3);
 
     startTransition(() => {
@@ -1575,12 +1648,11 @@ export default function Home({
           brand: currentBrand,
           model: name,
           year: "",
-        },
-        { skipRouteUpdate: isMobile && mobileFilter }
+        }
       );
       setPage(1);
     });
-  }, [quickDraft.brand, brand, navigateToState, setPage, isMobile, mobileFilter]);
+  }, [quickDraft.brand, brand, navigateToState, persistQuickVehicleDraft, setPage]);
   const handleQuickPickYear = useCallback((y) => {
     const currentBrand =
       quickDraft.brand || brand || "";
@@ -1595,6 +1667,7 @@ export default function Home({
     };
 
     setQuickDraft(nextDraft);
+    persistQuickVehicleDraft(nextDraft);
     setQuickStep(3);
 
     startTransition(() => {
@@ -1613,6 +1686,7 @@ export default function Home({
     brand,
     model,
     navigateToState,
+    persistQuickVehicleDraft,
     setPage,
   ]);
   const handleQuickClearYear = useCallback(() => {
@@ -1627,6 +1701,7 @@ export default function Home({
         model: "",
         year: "",
       });
+      persistQuickVehicleDraft({ brand: "", model: "", year: "" });
 
       setQuickStep(1);
 
@@ -1654,6 +1729,11 @@ export default function Home({
         model: "",
         year: "",
       });
+      persistQuickVehicleDraft({
+        brand: currentBrand,
+        model: "",
+        year: "",
+      });
 
       setQuickStep(2);
 
@@ -1673,6 +1753,7 @@ export default function Home({
     quickDraft.brand,
     brand,
     navigateToState,
+    persistQuickVehicleDraft,
     setPage,
   ]);
 
@@ -1696,7 +1777,11 @@ export default function Home({
       yearsLoading={draftYearsLoading}
       onAdvanced={goToAdvancedFromQuick}
       onApply={applyQuickVehicle}
-      onReset={resetQuickVehicle}
+      onReset={
+        mobileFilter
+          ? () => resetQuickVehicle({ keepMobileDrawer: true })
+          : resetQuickVehicle
+      }
     />
   );
 
@@ -1761,7 +1846,7 @@ export default function Home({
                       submitCommittedSearch();
                       if (isMobile) {
                         setMobileMenu(false);
-                        setMobileFilter(false);
+                        closeMobileVehiclePanel();
                       }
                     }
                     if (e.key === "Escape") setSuggestPanelOpen(false);
@@ -1789,7 +1874,7 @@ export default function Home({
                     submitCommittedSearch();
                     if (isMobile) {
                       setMobileMenu(false);
-                      setMobileFilter(false);
+                      closeMobileVehiclePanel();
                     }
                   }}
                 >
@@ -2218,12 +2303,12 @@ export default function Home({
                   )}
                 </div>
 
-                    <div
-                      className="of-rail-card of-rail-links"
-                      aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
-                    >
-                      <h4 className="of-rail-card__h">Dòng xe phổ biến</h4>
-                      {/* <p className="of-rail-links__p">
+                <div
+                  className="of-rail-card of-rail-links"
+                  aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
+                >
+                  <h4 className="of-rail-card__h">Dòng xe phổ biến</h4>
+                  {/* <p className="of-rail-links__p">
                         {seoDisplayBrands.map((b, i) => (
                           <React.Fragment key={b}>
                             {i > 0 && (
@@ -2242,35 +2327,35 @@ export default function Home({
                           </React.Fragment>
                         ))}
                       </p> */}
-                      <p className="of-rail-links__p">
-                        {seoDisplayModels.slice(0, 20).map((row, i) => (
-                          <React.Fragment key={`${row.brand}-${row.model}`}>
-                            {i > 0 && (
-                              <span className="of-rail-sep" aria-hidden>
-                                {" "}
-                                ·{" "}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className="of-rail-link of-rail-link--muted"
-                              onClick={() =>
-                                applyVehicleQuickFilter(row.brand, row.model)
-                              }
-                            >
-                              {row.brand} {row.model}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </p>
-                    </div>
-                    <div className="of-rail-cats">
-                      <PopularCategoriesBox
-                        categories={popularCategories}
-                        selectedCategory={category}
-                        onCtaClick={handlePopularCategoryClick}
-                      />
-                    </div>
+                  <p className="of-rail-links__p">
+                    {seoDisplayModels.slice(0, 20).map((row, i) => (
+                      <React.Fragment key={`${row.brand}-${row.model}`}>
+                        {i > 0 && (
+                          <span className="of-rail-sep" aria-hidden>
+                            {" "}
+                            ·{" "}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="of-rail-link of-rail-link--muted"
+                          onClick={() =>
+                            applyVehicleQuickFilter(row.brand, row.model)
+                          }
+                        >
+                          {row.brand} {row.model}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </div>
+                <div className="of-rail-cats">
+                  <PopularCategoriesBox
+                    categories={popularCategories}
+                    selectedCategory={category}
+                    onCtaClick={handlePopularCategoryClick}
+                  />
+                </div>
 
 
               </div>
@@ -2803,10 +2888,17 @@ export default function Home({
         className="of-bottom-nav"
         aria-label="Thao tác nhanh"
       >
-        <Link href="/" className="of-bottom-nav__item of-bottom-nav__item--home" scroll={false} prefetch={false}>
+        <button
+          type="button"
+          className="of-bottom-nav__item of-bottom-nav__item--home"
+          onClick={() => {
+            window.location.href = "/";
+          }}
+        >
           <span className="of-bottom-nav__icon">🏠</span>
           <span className="of-bottom-nav__label">Trang chủ</span>
-        </Link>
+        </button>
+
         <button
           type="button"
           className="of-bottom-nav__item"
@@ -2818,7 +2910,9 @@ export default function Home({
         <button
           type="button"
           className="of-bottom-nav__item of-bottom-nav__item--quote"
-          onClick={() => setMobileQuote(true)}
+          onClick={() => {
+            window.location.href = "https://otofine.com/rfq/new";
+          }}
         >
           <span className="of-bottom-nav__icon">$</span>
           <span className="of-bottom-nav__label">Hỏi giá</span>
@@ -2877,17 +2971,17 @@ export default function Home({
         </div>
       )}
       {mobileFilter && (
-        <div className="mobile-drawer" onClick={() => setMobileFilter(false)}>
+        <div className="mobile-drawer" onClick={closeMobileVehiclePanel}>
           <div className="mobile-panel" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-head">
               <span className="mobile-head-title">Chọn xe</span>
               <button
                 type="button"
                 className="mobile-head-close"
-                onClick={() => setMobileFilter(false)}
+                onClick={closeMobileVehiclePanel}
                 aria-label="Đóng"
               >
-                ✕
+                Xem
               </button>
             </div>
             <div className="mobile-filter-body mobile-filter-body--vehicle">

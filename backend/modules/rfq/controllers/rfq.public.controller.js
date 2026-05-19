@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import * as pub from "../services/rfqPublic.service.js";
@@ -6,6 +6,7 @@ import * as uxTrack from "../services/rfqUxTracking.service.js";
 import * as reqRepo from "../repositories/rfqRequest.repository.js";
 import { sendHttpError } from "../utils/httpError.js";
 import { processRfqGuestUpload } from "../utils/rfqImageProcess.js";
+import { rfqLog } from "../utils/rfqLogger.js";
 
 export async function rfqCreate(req, res) {
   try {
@@ -39,8 +40,15 @@ export async function rfqGetByToken(req, res) {
 }
 
 export async function rfqUploadImage(req, res) {
+  const publicId = String(req.body?.publicId || "").trim();
   try {
-    const publicId = String(req.body?.publicId || "").trim();
+    rfqLog.info("rfq.upload.image_start", {
+      public_id: publicId || null,
+      has_file: Boolean(req.file?.buffer),
+      mime: req.file?.mimetype ?? null,
+      bytes: req.file?.size ?? null,
+    });
+
     if (!publicId) throw Object.assign(new Error("MISSING_PUBLIC_ID"), { status: 400 });
     if (!req.file?.buffer) throw Object.assign(new Error("MISSING_FILE"), { status: 400 });
 
@@ -53,15 +61,23 @@ export async function rfqUploadImage(req, res) {
 
     const name = `${crypto.randomUUID()}.jpg`;
     const dir = path.join(process.cwd(), "uploads", "rfq");
-    fs.mkdirSync(dir, { recursive: true });
+    await fs.mkdir(dir, { recursive: true });
     const diskPath = path.join(dir, name);
-    fs.writeFileSync(diskPath, jpegBuf);
+    await fs.writeFile(diskPath, jpegBuf);
 
     const url = `/uploads/rfq/${name}`;
     await reqRepo.appendImages(publicId, [url]);
 
+    rfqLog.info("rfq.upload.image_done", { public_id: publicId, url });
+
     res.status(201).json({ url });
   } catch (e) {
+    rfqLog.error("rfq.upload.image_failed", {
+      public_id: publicId || null,
+      code: String(e?.message || "INTERNAL"),
+      status: e?.status ?? 500,
+      err: String(e?.message || e),
+    });
     sendHttpError(res, e);
   }
 }

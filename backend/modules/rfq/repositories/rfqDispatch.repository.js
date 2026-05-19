@@ -1,5 +1,64 @@
 import { pool } from "../../../config/db.js";
 import { rfqDispatchTuning } from "../../../config/rfq.config.js";
+import { parseInboxFilterQuery } from "../utils/rfqVehicleNormalize.js";
+
+/** Active RFQ/dispatch — same semantics as countInboxUnread. */
+const ACTIVE_RFQ_SQL = `
+  d.status NOT IN ('expired','failed','skipped')
+  AND (r.expires_at IS NULL OR r.expires_at > NOW(3))
+  AND r.status NOT IN ('expired','cancelled','closed')
+`;
+
+const QUOTE_SUBMITTED_EXISTS = `
+  EXISTS (
+    SELECT 1 FROM rfq_quotes q
+    WHERE q.dispatch_id = d.id AND q.deleted_at IS NULL AND q.status = 'submitted'
+  )
+`;
+
+function applyInboxStatusFilter(filter, where) {
+  if (filter === "unread") {
+    where.push(`d.first_viewed_at IS NULL`);
+    where.push(ACTIVE_RFQ_SQL);
+  } else if (filter === "quoted") {
+    where.push(`(d.status = 'quoted' OR ${QUOTE_SUBMITTED_EXISTS})`);
+  } else if (filter === "waiting") {
+    where.push(ACTIVE_RFQ_SQL);
+    where.push(`NOT (${QUOTE_SUBMITTED_EXISTS})`);
+  } else if (filter === "expired") {
+    where.push(`(
+       d.status = 'expired'
+       OR d.status = 'failed'
+       OR (d.respond_by IS NOT NULL AND d.respond_by < NOW(3))
+       OR (r.expires_at IS NOT NULL AND r.expires_at < NOW(3))
+       OR r.status IN ('expired','cancelled','closed')
+     )`);
+  }
+}
+
+/**
+ * Vehicle/category filters use STORED generated cols (migration 028) — indexed, aligned
+ * with normalized buyer vehicle_json. Future conversation routing should reuse these keys.
+ */
+function applyInboxVehicleFilters(vehicleFilters, where, params) {
+  const { brand, model, year, categoryKey } = vehicleFilters;
+  if (brand) {
+    where.push(`r.vehicle_brand_norm = ?`);
+    params.push(brand);
+  }
+  if (model) {
+    where.push(`r.vehicle_model_norm = ?`);
+    params.push(model);
+  }
+  if (year != null) {
+    where.push(`r.vehicle_year = ?`);
+    params.push(year);
+  }
+  if (categoryKey) {
+    where.push(`LOWER(TRIM(COALESCE(r.category_key, ''))) = ?`);
+    params.push(categoryKey);
+  }
+}
 
 export async function insertDispatch(conn, row) {
   const c = conn || pool;
@@ -27,28 +86,13 @@ export async function listInboxForShop(shopId, opts = {}) {
   const offset = Math.max(Number(opts.offset) || 0, 0);
   const filter = String(opts.filter || "all").toLowerCase();
   const sort = String(opts.sort || "sla").toLowerCase();
+  const vehicleFilters = parseInboxFilterQuery(opts);
 
   const where = [`d.shop_id = ?`, `r.deleted_at IS NULL`, `COALESCE(r.spam_flag, 0) = 0`];
   const params = [shopId];
 
-  if (filter === "unread") {
-    where.push(`d.first_viewed_at IS NULL`);
-  } else if (filter === "quoted") {
-    where.push(
-      `(d.status = 'quoted' OR EXISTS (
-         SELECT 1 FROM rfq_quotes q
-         WHERE q.dispatch_id = d.id AND q.deleted_at IS NULL AND q.status = 'submitted'
-       ))`,
-    );
-  } else if (filter === "expired") {
-    where.push(`(
-       d.status = 'expired'
-       OR d.status = 'failed'
-       OR (d.respond_by IS NOT NULL AND d.respond_by < NOW(3))
-       OR (r.expires_at IS NOT NULL AND r.expires_at < NOW(3))
-       OR r.status IN ('expired','cancelled','closed')
-     )`);
-  }
+  applyInboxStatusFilter(filter, where);
+  applyInboxVehicleFilters(vehicleFilters, where, params);
 
   let orderBy;
   if (sort === "recent") {
@@ -62,7 +106,8 @@ export async function listInboxForShop(shopId, opts = {}) {
 
   const sql = `
     SELECT d.*, r.public_id, r.part_description, r.status AS rfq_status, r.vehicle_json,
-           r.created_at AS rfq_created_at, r.expires_at AS rfq_expires_at
+           r.category_key, r.created_at AS rfq_created_at, r.expires_at AS rfq_expires_at,
+           (${QUOTE_SUBMITTED_EXISTS}) AS has_submitted_quote
     FROM rfq_dispatches d
     INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
     WHERE ${where.join(" AND ")}
@@ -82,13 +127,38 @@ export async function countInboxUnread(shopId) {
      WHERE d.shop_id = ?
        AND r.deleted_at IS NULL
        AND d.first_viewed_at IS NULL
-       AND d.status NOT IN ('expired','failed','skipped')
-       AND (r.expires_at IS NULL OR r.expires_at > NOW(3))
-       AND r.status NOT IN ('expired','cancelled','closed')
+       AND ${ACTIVE_RFQ_SQL}
        AND COALESCE(r.spam_flag, 0) = 0`,
     [shopId],
   );
   return Number(row?.c || 0);
+}
+
+/** Single round-trip badge counts for shop inbox header (no N+1). */
+export async function countInboxBuckets(shopId) {
+  const [[row]] = await pool.query(
+    `SELECT
+       SUM(
+         CASE WHEN d.first_viewed_at IS NULL AND ${ACTIVE_RFQ_SQL} THEN 1 ELSE 0 END
+       ) AS unread_count,
+       SUM(
+         CASE WHEN ${ACTIVE_RFQ_SQL} AND NOT (${QUOTE_SUBMITTED_EXISTS}) THEN 1 ELSE 0 END
+       ) AS waiting_count,
+       SUM(
+         CASE WHEN (d.status = 'quoted' OR ${QUOTE_SUBMITTED_EXISTS}) THEN 1 ELSE 0 END
+       ) AS quoted_count
+     FROM rfq_dispatches d
+     INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
+     WHERE d.shop_id = ?
+       AND r.deleted_at IS NULL
+       AND COALESCE(r.spam_flag, 0) = 0`,
+    [shopId],
+  );
+  return {
+    unread: Number(row?.unread_count || 0),
+    waiting: Number(row?.waiting_count || 0),
+    quoted: Number(row?.quoted_count || 0),
+  };
 }
 
 export async function findDispatchForShop(dispatchId, shopId) {

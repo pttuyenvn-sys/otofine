@@ -20,3 +20,23 @@ frontend/.next
 
 .env.*
 *.backup
+
+# backups
+*_backup_*
+db_backup_*.sql
+pm2_backup_*.json
+
+# dev copies
+backend-rfq-dev/
+frontend-rfq-dev/
+
+# uploads
+backend/uploads/
+
+# env
+backend/.env
+frontend/.env.local
+
+# node
+**/node_modules/
+

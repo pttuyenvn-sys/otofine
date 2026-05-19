@@ -2,7 +2,7 @@ import sql from "mssql";
 import dotenv from "dotenv";
 import { getDbEngine } from "./db.engine.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 let poolPromise = null;
 

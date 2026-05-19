@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import path from "path";
 import axios from "axios";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 import authRoutes from "./routes/auth.routes.js";
 import shopRoutes from "./routes/shop.routes.js";
@@ -35,7 +35,7 @@ import {
 } from "./controllers/product.controller.js";
 import { normalizeListingQuery } from "./utils/listingQueryNormalize.js";
 import vehicleSeoRoutes from "./routes/vehicleSeo.routes.js";
-import { mountRfqRoutes } from "./modules/rfq/index.js";
+import { mountRfqRoutes, rfqFlags } from "./modules/rfq/index.js";
 import rfqAdminRoutes from "./modules/rfq/routes/rfq.admin.routes.js";
 import rfqPushRoutes from "./routes/rfqPush.routes.js";
 
@@ -164,7 +164,10 @@ mountRfqRoutes(app);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server chạy port ${PORT}`);
+  console.info("[api] listening", {
+    port: PORT,
+    rfq_module: rfqFlags.RFQ_MODULE_ENABLED,
+  });
 });
 
 app.get("/api/zalo/webhook", (req, res) => {

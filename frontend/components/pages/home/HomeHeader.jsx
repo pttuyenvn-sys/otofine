@@ -16,7 +16,7 @@ export default function HomeHeader({
   return (
     <header className="of-top-header">
       <div className="of-top-header__accent" aria-hidden />
-      <div className="of-top-header__mobile-actions">
+      {/* <div className="of-top-header__mobile-actions">
         <button
           type="button"
           onClick={() => onOpenFilter(true)}
@@ -42,11 +42,11 @@ export default function HomeHeader({
         >
           Danh mục
         </button>
-      </div>
+      </div> */}
       {searchMobile}
 
       <div className="of-top-header__desktop">
-        <div className="of-top-header__inner of-top-header__inner--no-search">
+        <div className={`of-top-header__inner${searchDesktop ? "" : " of-top-header__inner--no-search"}`}>
           <Link
             href="/"
             className="of-brand"

@@ -10,15 +10,10 @@ import * as audit from "./rfqAudit.service.js";
 import { rfqCounterInc } from "./rfqObservability.service.js";
 import { generatePublicId, runDispatchForOpenRequest } from "./rfqDispatch.service.js";
 import { scheduleInitialAutoWaveJob } from "./rfqAutoWave.schedule.js";
-
-function normalizePhoneVN(raw) {
-  let s = String(raw || "").trim().replace(/\s+/g, "");
-  if (!s) return "";
-  if (s.startsWith("+")) return s;
-  if (s.startsWith("84")) return `+${s}`;
-  if (s.startsWith("0")) return `+84${s.slice(1)}`;
-  return `+${s}`;
-}
+import {
+  normalizePhoneVN,
+  validateRfqCreateBody,
+} from "../utils/rfqCreateValidation.js";
 
 function randomOtp6() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -49,18 +44,16 @@ function mergeImageLists(existingJson, incomingUrls) {
 }
 
 export async function createRfqDraft(body) {
-  const phoneE164 = normalizePhoneVN(body.phone);
-  const partDescription = String(body.partDescription || "").trim();
-  if (!phoneE164 || phoneE164.length < 10)
-    throw Object.assign(new Error("INVALID_PHONE"), { status: 400 });
-  if (partDescription.length < 8)
-    throw Object.assign(new Error("SHORT_DESCRIPTION"), { status: 400 });
-  if (partDescription.length > 8000)
-    throw Object.assign(new Error("LONG_DESCRIPTION"), { status: 400 });
+  const validated = validateRfqCreateBody(body || {});
+  if (!validated.ok) {
+    throw Object.assign(new Error(validated.code), { status: 400 });
+  }
+
+  const { phoneE164, partDescription, vehicle, imageUrls } = validated;
 
   const fp = buildDedupeFingerprint({
     phoneE164,
-    vehicle: body.vehicle,
+    vehicle,
     partDescription,
   });
 
@@ -77,11 +70,11 @@ export async function createRfqDraft(body) {
         const otpHash = hashOtpCode(code, phoneE164);
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-        const mergedImages = mergeImageLists(dup.images_json, body.imageUrls);
+        const mergedImages = mergeImageLists(dup.images_json, imageUrls);
 
         await reqRepo.mergePendingOtp(conn, dup.id, {
           part_description_append: partDescription,
-          vehicle_json: body.vehicle ?? null,
+          vehicle_json: vehicle,
           images_json: mergedImages,
           otp_code_hash: otpHash,
           otp_expires_at: otpExpires,
@@ -144,11 +137,11 @@ export async function createRfqDraft(body) {
       dedupe_fingerprint: fp,
       otp_code_hash: otpHash,
       otp_expires_at: otpExpires,
-      vehicle_json: body.vehicle || null,
+      vehicle_json: vehicle,
       part_description: partDescription,
       category_key: body.categoryKey ?? null,
       location_json: body.location ?? null,
-      images_json: Array.isArray(body.imageUrls) ? body.imageUrls : [],
+      images_json: imageUrls,
       expires_at: rfqExpires,
     });
 
@@ -271,7 +264,9 @@ export async function verifyOtp(body) {
     try {
       await runDispatchForOpenRequest(locked.id);
     } catch (err) {
-      console.error("[RFQ] dispatch failed post-verify:", err?.message || err);
+      console.error("[RFQ] dispatch failed post-verify:", err?.message || err, {
+        rfq_request_id: locked.id,
+      });
     }
 
     try {
@@ -317,6 +312,8 @@ export async function getRfqForViewer(rfqRow) {
     images,
     quotes: quotes.map((q) => ({
       id: q.id,
+      dispatchId: q.dispatch_id,
+      shopId: q.shop_id,
       shopName: q.shop_name,
       priceAmount: Number(q.price_amount),
       currency: q.currency,

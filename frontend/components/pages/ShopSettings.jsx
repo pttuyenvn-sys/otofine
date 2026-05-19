@@ -56,6 +56,9 @@ export default function ShopSettings() {
 
           // 🔥 FIX 2: set shopId
           setShopId(s.id);
+          try {
+            localStorage.setItem("shopId", String(s.id));
+          } catch (_) { }
 
           setForm({
             name: s.name || "",
@@ -158,7 +161,12 @@ export default function ShopSettings() {
 
       if (!shopId) {
         // 👉 CHƯA CÓ SHOP → CREATE
-        await createShop(fd);
+        const cre = await createShop(fd);
+        if (cre.data?.id != null) {
+          const sid = String(cre.data.id);
+          localStorage.setItem("shopId", sid);
+          setShopId(cre.data.id);
+        }
       } else {
         // 👉 ĐÃ CÓ SHOP → UPDATE
         await updateMyShop(fd);

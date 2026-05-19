@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useMemo, useCallback, memo } from "react";
+import React, {
+  useMemo,
+  useCallback,
+  useEffect,
+  useState,
+  memo,
+} from "react";
 import { FiPhoneCall } from "react-icons/fi";
 import Link from "next/link";
 import { getProductDetailHref } from "@/lib/productDetailHref";
@@ -41,6 +47,22 @@ function getCardHighlights(item) {
 }
 
 function HomeProductCardComponent({ item, index, onSelectPhone }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth <= 768);
+      };
+
+      checkMobile();
+
+      window.addEventListener("resize", checkMobile);
+
+      return () => {
+        window.removeEventListener("resize", checkMobile);
+      };
+    }, []);
+  
   const href = useMemo(
     () => getProductDetailHref(item),
     [item.slug, item.id],
@@ -112,14 +134,31 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
           <p className="of-product__price" aria-label={`Giá ${item.priceText}`}>
             {item.priceText}
           </p>
+          {isMobile && (
+            <>
+              <div className="of-product__meta">
+                {item.partNumber && (
+                  <span className="of-product__code">{item.partNumber}</span>
+                )}
+                {item.origin && (
+                  <span className="of-product__origin">{item.origin}</span>
+                )}
+              </div>
+
+              <div className="of-product__meta of-product__meta--l3">
+                {item.shopName && (
+                  <span className="of-product__shop">{item.shopName}</span>
+                )}
+
+                {item.provinceName && (
+                  <span className="of-product__location">{item.provinceName}</span>
+                )}
+
+                <span className="of-product__stock">Còn hàng</span>
+              </div>
+            </>
+          )}
           <div className="of-product__side-cta">
-            <Link
-              href={href}
-              className="of-product__cta of-product__cta--detail"
-              prefetch={index < 4}
-            >
-              Xem SP
-            </Link>
             <button
               type="button"
               className="of-product__cta of-product__cta--call"
@@ -127,13 +166,6 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
             >
               <FiPhoneCall className="of-product__phone-ic" aria-hidden />
               Gọi báo giá
-            </button>
-            <button
-              type="button"
-              className="of-product__cta of-product__cta--zalo of-product__cta--ghost"
-              onClick={onPhone}
-            >
-              Liên hệ ngay
             </button>
           </div>
         </div>

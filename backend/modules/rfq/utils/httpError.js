@@ -2,8 +2,15 @@ export function sendHttpError(res, err, fallbackMessage = "Lỗi server") {
   const status = Number(err.status || err.statusCode || 500);
   const code = String(err.message || "INTERNAL");
   const body = { code };
-  if (status >= 500) body.message = fallbackMessage;
-  else body.message = mapMessage(code);
+  if (status >= 500) {
+    body.message = fallbackMessage;
+    if (process.env.RFQ_DEBUG_ERRORS === "1" && err?.code) {
+      body.debug = String(err.code);
+      if (err.sqlMessage) body.debug_sql = String(err.sqlMessage);
+    }
+  } else {
+    body.message = mapMessage(code);
+  }
   if (code === "DEDUPE_COOLDOWN" && err.existingPublicId) {
     body.existingPublicId = err.existingPublicId;
   }
@@ -18,6 +25,9 @@ function mapMessage(code) {
     INVALID_PHONE: "Số điện thoại không hợp lệ",
     SHORT_DESCRIPTION: "Mô tả quá ngắn",
     LONG_DESCRIPTION: "Mô tả quá dài",
+    INVALID_DESCRIPTION: "Mô tả chưa cụ thể — vui lòng ghi rõ phụ tùng hoặc triệu chứng",
+    INVALID_VEHICLE: "Vui lòng chọn đầy đủ hãng, dòng và năm sản xuất",
+    TOO_MANY_IMAGES: "Tối đa 10 ảnh cho mỗi yêu cầu",
     INVALID_INPUT: "Thông tin không hợp lệ",
     NOT_FOUND: "Không tìm thấy",
     INVALID_STATE: "Trạng thái không hợp lệ",
@@ -39,6 +49,12 @@ function mapMessage(code) {
     VIEWER_TOKEN_BRUTE: "Quá nhiều lần thử token",
     INVALID_LINE_TYPE: "Loại hàng không hợp lệ",
     ZALO_ESC_OFF: "Chưa bật escalation Zalo trên server",
+    EMPTY_MESSAGE: "Tin nhắn không được để trống",
+    MESSAGE_TOO_LONG: `Tin nhắn tối đa ${2000} ký tự`,
+    CONVERSATION_CLOSED: "Hội thoại đã đóng",
+    INVALID_MESSAGE_ID: "Tin nhắn không hợp lệ",
+    MESSAGE_SPAM: "Tin nhắn không hợp lệ hoặc bị coi là spam",
+    RATE_LIMIT: "Quá nhiều yêu cầu — thử lại sau",
   };
   return m[code] || code;
 }

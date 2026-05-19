@@ -29,7 +29,7 @@ export async function findQuoteByDispatchForUpdate(conn, dispatchId) {
 
 export async function listQuotesForRequest(rfqRequestId) {
   const [rows] = await pool.query(
-    `SELECT q.id, q.shop_id, q.price_amount, q.currency, q.note, q.line_type, q.submitted_at,
+    `SELECT q.id, q.dispatch_id, q.shop_id, q.price_amount, q.currency, q.note, q.line_type, q.submitted_at,
             s.name AS shop_name
      FROM rfq_quotes q
      LEFT JOIN shops s ON s.id = q.shop_id

@@ -3,7 +3,7 @@
  */
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 function envBool(name, defaultValue = false) {
   const raw = process.env[name];
@@ -39,6 +39,18 @@ export const rfqLimits = {
   /** GET /api/rfq/by-token per IP per minute */
   viewerByTokenPerIpMinute: Number(process.env.RFQ_RL_VIEWER_TOKEN_IP_MIN || 90),
   shopQuotePerShopPerMinute: Number(process.env.RFQ_RL_SHOP_QUOTE_MIN || 40),
+  /** POST conversation text — buyer */
+  conversationBuyerSendPerMinute: Number(process.env.RFQ_RL_CONV_BUYER_SEND_MIN || 30),
+  /** POST conversation text — shop */
+  conversationShopSendPerMinute: Number(process.env.RFQ_RL_CONV_SHOP_SEND_MIN || 60),
+  /** GET messages / read / conversation meta per participant */
+  conversationReadPerParticipantMinute: Number(
+    process.env.RFQ_RL_CONV_READ_MIN || 120,
+  ),
+  /** GET unread-summary (buyer) */
+  conversationUnreadSummaryPerBuyerMinute: Number(
+    process.env.RFQ_RL_CONV_UNREAD_SUM_MIN || 60,
+  ),
 };
 
 /** Dedup window for phone+vehicle+keyword fingerprint (hours) */
@@ -47,12 +59,22 @@ export const rfqDedupeWindowHours = Number(process.env.RFQ_DEDUPE_WINDOW_HOURS |
 /** Guest upload max bytes (multer + controller second check) */
 export const rfqUploadMaxBytes = Number(process.env.RFQ_UPLOAD_MAX_BYTES || 5 * 1024 * 1024);
 
-/** Guest RFQ images — reuse sharp resize/compress patterns aligned with product pipeline (subset). */
+/**
+ * Guest RFQ images — server-side sharp pipeline (see utils/rfqImageProcess.js).
+ * Defaults target ~200–600KB JPEGs after mobile camera uploads; tune via env on staging.
+ */
 export const rfqImageLimits = {
-  maxWidth: Number(process.env.RFQ_IMG_MAX_WIDTH || 1920),
-  maxHeight: Number(process.env.RFQ_IMG_MAX_HEIGHT || 1920),
+  /** Long-edge cap via width + fit:inside (portrait height scales down proportionally). */
+  maxWidth: Number(process.env.RFQ_IMG_MAX_WIDTH || 1600),
+  /** Legacy env; height is not a separate resize bound (width + aspect ratio only). */
+  maxHeight: Number(process.env.RFQ_IMG_MAX_HEIGHT || 1600),
   /** Reject decoded bitmaps above this megapixel count (DoS guard). */
   maxMegapixels: Number(process.env.RFQ_IMG_MAX_MEGAPIXELS || 24),
+  /** mozjpeg output — API still returns .jpg URLs; do not switch to WebP without contract change. */
+  jpegQuality: Math.min(
+    100,
+    Math.max(50, Number(process.env.RFQ_IMG_JPEG_QUALITY || 78)),
+  ),
 };
 
 /** Debounce window for updating shops.last_seen_at via RFQ seller routes */

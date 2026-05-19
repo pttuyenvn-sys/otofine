@@ -45,3 +45,9 @@ export const API_ORIGIN = (() => {
   }
   return publicOrigin || internalOrigin;
 })();
+
+/**
+ * Zalo OA (NEXT_PUBLIC_ZALO_OA_URL). Frontend-only link.
+ * TODO: future OA API integration — CMS/static JSON if needed.
+ */
+export const ZALO_OA_URL = (process.env.NEXT_PUBLIC_ZALO_OA_URL || "").trim() || "";

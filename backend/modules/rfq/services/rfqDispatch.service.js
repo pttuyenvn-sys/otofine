@@ -9,9 +9,15 @@ import { rfqLog } from "../utils/rfqLogger.js";
 import { rfqCounterInc } from "./rfqObservability.service.js";
 import { scheduleZaloEscalationJob } from "./rfqEscalation.schedule.js";
 import { sendPush } from "../../../services/onesignalService.js";
+import { ensureConversationForDispatch } from "./rfqConversation.service.js";
 
 /** Wave dispatch — respects max_dispatches_per_rfq, excludes shops already dispatched, env tuning only */
 async function appendDispatchWaveInternal(rfqRequestId) {
+  const rid = Number(rfqRequestId);
+  if (!Number.isFinite(rid) || rid <= 0) {
+    throw new Error("INVALID_RFQ_REQUEST_ID");
+  }
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -19,13 +25,13 @@ async function appendDispatchWaveInternal(rfqRequestId) {
 
     const [[waveRow]] = await conn.query(
       `SELECT COALESCE(MAX(wave), 0) AS mx FROM rfq_dispatches WHERE rfq_request_id = ?`,
-      [rfqRequestId],
+      [rid],
     );
     const nextWave = Number(waveRow?.mx || 0) + 1;
 
     const [[cntRow]] = await conn.query(
       `SELECT COUNT(*) AS c FROM rfq_dispatches WHERE rfq_request_id = ?`,
-      [rfqRequestId],
+      [rid],
     );
     const existing = Number(cntRow?.c || 0);
     const remainingSlots = Math.max(0, tuning.maxDispatchesPerRfq - existing);
@@ -34,7 +40,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
     let excludeIds = [];
     if (existing > 0) {
       const [rows] = await conn.query(`SELECT shop_id FROM rfq_dispatches WHERE rfq_request_id = ?`, [
-        rfqRequestId,
+        rid,
       ]);
       excludeIds = rows.map((r) => r.shop_id);
     }
@@ -61,7 +67,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
       console.log("SHOP PLAYER:", shopId, playerId);
 
       const dispatchId = await dispatchRepo.insertDispatch(conn, {
-        rfq_request_id: rfqRequestId,
+        rfq_request_id: rid,
         shop_id: shopId,
         wave: nextWave,
         status: "web_notified",
@@ -71,6 +77,21 @@ async function appendDispatchWaveInternal(rfqRequestId) {
         respond_by: respondBy,
       });
       dispatchIds.push(dispatchId);
+
+      // Conversation room (1:1 per dispatch) — idempotent; failure must not block dispatch.
+      try {
+        await ensureConversationForDispatch(conn, {
+          rfq_request_id: rid,
+          dispatch_id: dispatchId,
+          shop_id: shopId,
+        });
+      } catch (convErr) {
+        console.error(
+          "[RFQ] conversation ensure failed:",
+          convErr?.message || convErr,
+          { dispatch_id: dispatchId },
+        );
+      }
 
       if (playerId) {
         // Shop push URL: always /rfq/shop/:dispatchId — dispatchId is the
@@ -93,7 +114,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
       }
 
       await notifRepo.insertNotification(conn, {
-        rfq_request_id: rfqRequestId,
+        rfq_request_id: rid,
         dispatch_id: dispatchId,
         channel: "in_app",
         recipient_type: "shop",
@@ -101,7 +122,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
         payload_json: {
           kind: "rfq_web_inbox",
           dispatchId,
-          rfqRequestId,
+          rfqRequestId: rid,
           wave: nextWave,
         },
         status: "sent",
@@ -109,14 +130,14 @@ async function appendDispatchWaveInternal(rfqRequestId) {
     }
 
     if (shopIds.length > 0) {
-      await reqRepo.setStatus(conn, rfqRequestId, "dispatching");
+      await reqRepo.setStatus(conn, rid, "dispatching");
     } else if (existing === 0) {
-      await reqRepo.setStatus(conn, rfqRequestId, "open");
+      await reqRepo.setStatus(conn, rid, "open");
     }
 
     if (shopIds.length > 0) {
       await audit.audit(conn, {
-        rfq_request_id: rfqRequestId,
+        rfq_request_id: rid,
         from_status: existing > 0 ? "dispatching" : "open",
         to_status: "dispatching",
         actor_type: "system",
@@ -133,7 +154,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
       });
     } else if (existing === 0) {
       await audit.audit(conn, {
-        rfq_request_id: rfqRequestId,
+        rfq_request_id: rid,
         from_status: "open",
         to_status: "open",
         actor_type: "system",
@@ -151,16 +172,16 @@ async function appendDispatchWaveInternal(rfqRequestId) {
     await conn.commit();
 
     rfqLog.metric("rfq.dispatch.wave_completed", {
-      rfq_request_id: rfqRequestId,
+      rfq_request_id: rid,
       dispatched: shopIds.length,
       shop_ids: shopIds,
       wave: nextWave,
     });
 
-    for (const id of dispatchIds) {
+    for (const scheduledDispatchId of dispatchIds) {
       rfqCounterInc("dispatch_created");
       try {
-        await scheduleZaloEscalationJob(id);
+        await scheduleZaloEscalationJob(scheduledDispatchId);
       } catch (err) {
         console.error("[RFQ] schedule Zalo escalation:", err?.message || err);
       }

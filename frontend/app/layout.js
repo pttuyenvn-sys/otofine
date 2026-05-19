@@ -4,6 +4,7 @@ import WebSiteJsonLd from "@/components/seo/WebSiteJsonLd";
 import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
 import { Inter } from "next/font/google";
+import PushInit from "@/components/PushInit";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -45,6 +46,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="vi" className={inter.variable}>
       <body className={inter.className}>
+        <PushInit />
         <WebSiteJsonLd />
         <OrganizationJsonLd />
         <AppShell>{children}</AppShell>

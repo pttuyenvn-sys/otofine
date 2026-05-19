@@ -30,6 +30,10 @@
    - `npm run migrate:rfq:push-subscriptions` — `025` (base table)
    - `npm run migrate:rfq:push-viewer-token` — `026` (`viewer_link_token`, legacy/unused by current app code)
    - `npm run migrate:rfq:push-viewer-path` — `027` (`viewer_path`, required by register + notify)
+7. **Conversation foundation:** `npm run migrate:rfq:conversations` — `029` (`rfq_conversations`, `rfq_messages`). See `modules/rfq/CONVERSATIONS.md`. Dispatch/quote keep working if migration lags (hooks log errors only).
+8. **Conversation read cursors:** `npm run migrate:rfq:conversation-reads` — `030` (`rfq_conversation_reads`). Enables POST `…/read` + unread badges; polling unchanged (no websocket).
+9. **Message query indexes:** `npm run migrate:rfq:message-indexes` — `031` (unread/list indexes). Safe to run after `029`; improves poll/unread under load.
+10. **RFQ image upload (nginx):** See `NGINX_RFQ_UPLOAD.md` — `client_max_body_size 12m`, proxy `/uploads/` to Express, 120s proxy timeouts. Without this: **413** on large photos, broken thumbnails after upload.
 
 ### Rollback — push subscription `viewer_path` (`027`)
 
@@ -102,11 +106,12 @@ Single-column `viewer_token_hash`: rotating invalidates prior links immediately 
 
 ## API (when module ON)
 
-- `POST /api/rfq/create`
+- `POST /api/rfq/create` — server validates VN mobile, description (≥8, no placeholders), required `vehicle` (brand/model/year), max **10** `imageUrls` (`utils/rfqCreateValidation.js`)
 - `POST /api/rfq/upload-image` (multipart `file` + `publicId`)
 - `POST /api/rfq/verify-otp`
 - `GET /api/rfq/by-token` + header `X-RFQ-Viewer-Token`
 - Shop: `GET /api/shop/rfq/inbox`, `PATCH /api/shop/rfq/:dispatchId/view`, `GET /api/shop/rfq/:dispatchId`, `POST /api/shop/rfq/:dispatchId/quote`
+- Shop inbox filters (query params, additive): `filter` (`all`|`unread`|`waiting`|`quoted`|`expired`), `brand`, `model`, `year`, `categoryKey` — requires migration `028` (`npm run migrate:rfq:vehicle-filter-cols`) for indexed vehicle columns
 
 ## Frontend
 
@@ -165,7 +170,7 @@ Workers / cron (Sprint 2):
 ### OUTPUT — Image pipeline integration
 
 - Không nhân đôi pipeline product/R2 — RFQ guest vẫn `uploads/rfq/`.
-- `utils/rfqImageProcess.js` — sharp decode, guard megapixel (`RFQ_IMG_MAX_MEGAPIXELS`), resize bounded (`RFQ_IMG_MAX_*`), JPEG + strip metadata (như pattern production sharp hiện có).
+- `utils/rfqImageProcess.js` — sharp decode, megapixel guard (`RFQ_IMG_MAX_MEGAPIXELS`), max width default **1600px** (`RFQ_IMG_MAX_WIDTH`), mozjpeg quality **78** (`RFQ_IMG_JPEG_QUALITY`), metric log `rfq.upload.image_optimized` (original/optimized bytes). API response unchanged (`{ url }` `.jpg`).
 - Cron retention `jobs/rfqUploadRetention.js` + env `RFQ_UPLOAD_RETENTION_DAYS`.
 
 ### OUTPUT — Staging rollout checklist
