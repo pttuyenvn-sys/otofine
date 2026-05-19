@@ -17,3 +17,6 @@ backend/utils/buildVehicleSeoArticle.js
 frontend/.env.local
 backend/.env
 frontend/.next
+
+.env.*
+*.backup
