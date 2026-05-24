@@ -8,6 +8,7 @@ import {
   fetchPublicShop,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
+  getShopBasePath,
 } from "@/services/shopPublic.service";
 
 export default async function ShopTenantHomePage({ params }) {
@@ -21,6 +22,7 @@ export default async function ShopTenantHomePage({ params }) {
 
   if (!shop) notFound();
 
+  const basePath = await getShopBasePath(shop.slug);
   const featured = (productsPage?.items || []).slice(0, 5);
   const categories = (categoriesPayload?.items || []).slice(0, 7).map((c, i) => ({
     id: c.id ?? i,
@@ -49,7 +51,7 @@ export default async function ShopTenantHomePage({ params }) {
           <AboutCard shop={shop} />
         </div>
         <div className="lg:col-span-5">
-          <PromoBanner slug={shop.slug} cover={shop.cover} />
+          <PromoBanner basePath={basePath} cover={shop.cover} />
         </div>
         <div className="lg:col-span-3">
           <ShopContactCard shop={toContactShape(shop)} />
@@ -60,7 +62,7 @@ export default async function ShopTenantHomePage({ params }) {
         <div className="lg:col-span-9">
           <ShopSection
             title="Sản phẩm nổi bật"
-            rightHref={`/shops/${shop.slug}/san-pham`}
+            rightHref={`${basePath}/san-pham`}
             bodyClassName="!p-3"
           >
             {featured.length === 0 ? (
@@ -75,7 +77,7 @@ export default async function ShopTenantHomePage({ params }) {
           </ShopSection>
         </div>
         <div className="lg:col-span-3">
-          <ShopSidebar categories={categories} basePath={`/shops/${shop.slug}`} />
+          <ShopSidebar categories={categories} basePath={basePath} />
         </div>
       </div>
 
@@ -115,7 +117,7 @@ function AboutCard({ shop }) {
   );
 }
 
-function PromoBanner({ slug, cover }) {
+function PromoBanner({ basePath, cover }) {
   return (
     <div className="relative h-full min-h-[200px] rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white shadow-sm">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -137,7 +139,7 @@ function PromoBanner({ slug, cover }) {
           TẠO NIỀM TIN
         </div>
         <a
-          href={`/shops/${slug}/san-pham`}
+          href={`${basePath}/san-pham`}
           className="mt-3 inline-flex w-fit items-center gap-1 bg-[#e60012] hover:bg-[#c1000f] text-white text-sm font-semibold px-4 py-2 rounded-xl"
         >
           Xem ngay ›

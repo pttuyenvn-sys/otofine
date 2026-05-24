@@ -4,6 +4,7 @@ import ShopTabs from "@/components/shopsite/ShopTabs";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
+  getShopBasePath,
 } from "@/services/shopPublic.service";
 
 export async function generateMetadata({ params }) {
@@ -18,7 +19,9 @@ export async function generateMetadata({ params }) {
   return {
     title: `${shop.name} — Phụ tùng ô tô | Otofine`,
     description: shop.shortDescription || `Phụ tùng ô tô — ${shop.name}`,
-    robots: { index: false, follow: false }, // Phase 2: indexing arrives with subdomain in Phase 3
+    // Phase 3 still keeps subdomain pages out of the index.
+    // Indexable canonicals + sitemap arrive in Phase 4.
+    robots: { index: false, follow: false },
   };
 }
 
@@ -35,10 +38,17 @@ export default async function ShopTenantLayout({ children, params }) {
   const shop = await fetchPublicShop(slug);
   if (!shop) notFound();
 
+  // When the request arrived via cuahangoto355.otofine.com (subdomain
+  // rewrite from middleware) we generate root-relative tab links so
+  // the pretty URL stays sticky after a click. When the request hit
+  // apex (`https://otofine.com/shops/<slug>`), we keep the full
+  // /shops/<slug> prefix so the URL remains routable.
+  const basePath = await getShopBasePath(shop.slug);
+
   return (
     <>
       <ShopHeader shop={mapToHeaderShape(shop)} />
-      <ShopTabs basePath={`/shops/${shop.slug}`} />
+      <ShopTabs basePath={basePath} />
       <main className="space-y-3">{children}</main>
       <footer className="py-6 text-center text-xs text-gray-500">
         © {new Date().getFullYear()} {shop.name} · Powered by{" "}

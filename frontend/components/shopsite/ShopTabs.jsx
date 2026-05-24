@@ -19,17 +19,21 @@ function isActive(pathname, href) {
 }
 
 /**
- * `basePath` is the URL prefix this shop owns (e.g. "/shop-demo" or
- * "/shops/cuahangoto355"). Hard-coding it removed in Phase 2 so the
- * same component renders for both the hardcoded demo (Phase 1) and
- * every DB-backed shop slug (Phase 2).
+ * `basePath` is the URL prefix this shop owns. Three regimes:
+ *
+ *   "/shop-demo"            → Phase 1 hardcoded demo
+ *   "/shops/cuahangoto355"  → Phase 2 DB-backed on apex
+ *   ""                      → Phase 3 served via *.otofine.com subdomain
+ *                             (middleware rewrote the request, so the
+ *                             tab hrefs need to be root-relative so the
+ *                             browser URL stays on the subdomain).
  */
 export default function ShopTabs({ basePath = "/shop-demo" }) {
-  const pathname = usePathname() || basePath;
-  const TABS = TAB_SUFFIXES.map((t) => ({
-    href: `${basePath}${t.suffix}`,
-    label: t.label,
-  }));
+  const pathname = usePathname() || basePath || "/";
+  const TABS = TAB_SUFFIXES.map((t) => {
+    const href = `${basePath}${t.suffix}` || "/";
+    return { href, label: t.label };
+  });
   return (
     <nav
       aria-label="Điều hướng cửa hàng"

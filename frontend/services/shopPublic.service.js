@@ -7,7 +7,9 @@
  *
  * Endpoint contract: see backend/routes/publicShop.routes.js.
  */
+import { headers } from "next/headers";
 import { API_BASE } from "@/lib/config";
+import { isShopSubdomainHost } from "@/lib/shopHost";
 
 const REVALIDATE_SECONDS = 60;
 
@@ -60,4 +62,20 @@ export async function fetchPublicShopSafe(slug) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Compute the basePath for in-shop links given the current request host.
+ *
+ * - On `cuahangoto355.otofine.com` (and local *.localhost variants):
+ *     returns ""  → tabs/sidebar emit "/", "/san-pham", … so the
+ *     browser URL stays sticky on the subdomain after a click.
+ * - On apex `https://otofine.com/shops/<slug>`:
+ *     returns "/shops/<slug>" → links stay routable on apex.
+ *
+ * Server-only — calls `next/headers`. Do NOT import from client code.
+ */
+export async function getShopBasePath(slug) {
+  const hostHeader = (await headers()).get("host") || "";
+  return isShopSubdomainHost(hostHeader, slug) ? "" : `/shops/${slug}`;
 }

@@ -7,6 +7,7 @@ import {
   fetchPublicShop,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
+  getShopBasePath,
 } from "@/services/shopPublic.service";
 
 export default async function ShopTenantProductsPage({ params, searchParams }) {
@@ -32,6 +33,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
 
   if (!shop) notFound();
 
+  const basePath = await getShopBasePath(shop.slug);
   const items = productsPage?.items || [];
   const total = productsPage?.total || 0;
   const totalPages = productsPage?.totalPages || 1;
@@ -42,6 +44,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
   }));
 
   const hasNext = page < totalPages;
+  const nextHref = `${basePath}/san-pham?page=${page + 1}`;
 
   return (
     <div className="space-y-3">
@@ -52,7 +55,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
           <ShopSidebar
             categories={categories}
             activeSlug={search.category}
-            basePath={`/shops/${shop.slug}`}
+            basePath={basePath}
           />
         </aside>
 
@@ -75,7 +78,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
                 {hasNext && (
                   <div className="mt-4 flex justify-center">
                     <a
-                      href={`/shops/${shop.slug}/san-pham?page=${page + 1}`}
+                      href={nextHref}
                       className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-[#e60012] hover:text-[#e60012] text-sm text-gray-700 font-medium px-5 py-2 rounded-xl"
                     >
                       Xem thêm sản phẩm ›
