@@ -147,6 +147,16 @@ export default function ShopLogin() {
             {msg}
           </p>
 
+          <p className="text-sm text-center mt-2">
+            <Link
+              href="/shop/forgot-password"
+              className="text-blue-600"
+              prefetch={false}
+            >
+              Quên mật khẩu?
+            </Link>
+          </p>
+
           <p className="text-sm text-center mt-3">
             Chưa có shop?{" "}
             <Link

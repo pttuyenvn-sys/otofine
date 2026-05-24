@@ -14,6 +14,7 @@ import {
 import ShopAddressSelector from "../ShopAddressSelector";
 import { useRouter } from "next/navigation";
 import { API_ORIGIN } from "@/lib/config";
+import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 
 export default function ShopSettings() {
   const router = useRouter();
@@ -92,7 +93,7 @@ export default function ShopSettings() {
         }
       } catch (err) {
         if (err?.response?.status === 401) {
-          router.push("/shop/login");
+          router.push(buildShopLoginUrl(getCurrentShopReturnPath()));
         }
       }
       setLoading(false);
@@ -298,6 +299,12 @@ export default function ShopSettings() {
       <button className="btn btn-primary mt-4" onClick={handleSave}>
         Cập nhật Shop
       </button>
+
+      <p className="mt-6 text-sm">
+        <a href="/shop/change-password" className="text-blue-600 hover:underline">
+          Đổi mật khẩu đăng nhập
+        </a>
+      </p>
     </div>
   );
 }
