@@ -1,12 +1,10 @@
-import ShopGuard from "@/components/ShopGuard";
-import ShopPublicPage from "@/components/pages/ShopPublicPage";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
+/**
+ * /shop/public-page is now merged into /shop/settings.
+ * Permanently redirect with the #public anchor so bookmarks and
+ * the sidebar link both land on the correct section.
+ */
 export default function Page() {
-  return (
-    <ShopGuard>
-      <ShopPublicPage />
-    </ShopGuard>
-  );
+  redirect("/shop/settings#public");
 }

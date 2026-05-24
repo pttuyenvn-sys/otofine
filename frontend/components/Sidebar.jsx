@@ -24,7 +24,7 @@ export default function Sidebar() {
 
       <nav className="nav" style={{ marginTop: 12 }}>
         <Link href="/shop/settings" className={itemClass("/shop/settings")} prefetch={false}>
-          🏬 <span style={{ marginLeft: 8 }}>Shop</span>
+          🏬 <span style={{ marginLeft: 8 }}>Shop & Storefront</span>
         </Link>
 
         <Link href="/shop/products" className={itemClass("/shop/products")} prefetch={false}>
@@ -33,10 +33,6 @@ export default function Sidebar() {
 
         <Link href="/shop/add-product" className={itemClass("/shop/add-product")} prefetch={false}>
           ➕ <span style={{ marginLeft: 8 }}>Add Product</span>
-        </Link>
-
-        <Link href="/shop/public-page" className={itemClass("/shop/public-page")} prefetch={false}>
-          🌐 <span style={{ marginLeft: 8 }}>Public Page</span>
         </Link>
       </nav>
     </aside>

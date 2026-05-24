@@ -1,310 +1,739 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+/**
+ * ShopSettings — Phase A merge
+ *
+ * Single source of truth for all shop configuration.  Replaces both
+ * the old `/shop/settings` (basic info via /api/shop/me) and the
+ * now-redirected `/shop/public-page` (storefront via /api/shop/public-page).
+ *
+ * Sections
+ *   A. Basic info         → PUT /api/shop/me   (FormData, backward-compat)
+ *   B. Public storefront  ┐
+ *   C. Branding           ├ → PUT /api/shop/public-page  (JSON + R2 uploads)
+ *   D. Intro content      │
+ *   E. Contact & social   ┘
+ *
+ * Legacy rich-text fields (descriptionHtml, salePolicy, warrantyPolicy)
+ * are preserved as plain textareas in Phase A.  Phase B will swap them
+ * back to the Quill editor once the unified page is stable.
+ *
+ * Backward-compatibility guarantees:
+ *   - /api/shop/me response shape is NEVER changed here
+ *   - /api/shop/public-page response shape is NEVER changed here
+ *   - DB columns are not renamed
+ *   - Existing consumers of both APIs keep working
+ */
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   getMyShop,
   createShop,
   updateMyShop,
-  uploadEditorImage,
 } from "../../api/shopApi";
 
+import {
+  getMyPublicPage,
+  updateMyPublicPage,
+  checkSlugAvailability,
+  uploadAvatar,
+  uploadCover,
+} from "../../api/shopPublicPageApi";
+
 import ShopAddressSelector from "../ShopAddressSelector";
-import { useRouter } from "next/navigation";
-import { API_ORIGIN } from "@/lib/config";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
+
+// ---------------------------------------------------------------------------
+// Tiny helpers
+// ---------------------------------------------------------------------------
+
+function useDebouncedValue(value, ms) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
+
+function useSlugStatus(slug, originalSlug) {
+  const debounced = useDebouncedValue(slug, 350);
+  const [status, setStatus] = useState({ state: "idle" });
+  useEffect(() => {
+    let cancelled = false;
+    const value = (debounced || "").trim().toLowerCase();
+    if (!value) { setStatus({ state: "idle" }); return; }
+    if (value === (originalSlug || "").toLowerCase()) {
+      setStatus({ state: "ok", message: "Slug hiện tại của shop bạn", mine: true });
+      return;
+    }
+    setStatus({ state: "checking" });
+    checkSlugAvailability(value)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.available) {
+          setStatus({ state: "ok", message: res.data.mine ? "Slug của shop bạn" : "Slug có thể dùng", mine: !!res.data.mine });
+        } else {
+          setStatus({ state: "bad", message: res.data?.error || "Slug không hợp lệ", code: res.data?.code });
+        }
+      })
+      .catch(() => { if (!cancelled) setStatus({ state: "bad", message: "Không kiểm tra được slug.", code: "NETWORK" }); });
+    return () => { cancelled = true; };
+  }, [debounced, originalSlug]);
+  return status;
+}
+
+// ---------------------------------------------------------------------------
+// Small sub-components
+// ---------------------------------------------------------------------------
+
+function SectionCard({ id, title, subtitle, children }) {
+  return (
+    <section
+      id={id}
+      className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-20"
+    >
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+      </div>
+      <div className="p-5 sm:p-6">{children}</div>
+    </section>
+  );
+}
+
+function FieldText({ label, value, onChange, placeholder, error, className = "", type = "text", maxLength, hint }) {
+  return (
+    <div className={className}>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      <input
+        type={type}
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        className={
+          "w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 " +
+          (error ? "border-red-400" : "border-gray-300")
+        }
+      />
+      {hint && !error && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function FieldTextarea({ label, value, onChange, placeholder, error, className = "", rows = 3, maxLength, hint }) {
+  return (
+    <div className={className}>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      <textarea
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength}
+        className={
+          "w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 resize-y " +
+          (error ? "border-red-400" : "border-gray-300")
+        }
+      />
+      {maxLength && (
+        <p className="text-xs text-gray-400 mt-1 text-right">{(value || "").length}/{maxLength}</p>
+      )}
+      {hint && !maxLength && !error && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function SlugHint({ status, value }) {
+  if (!value) return <p className="text-xs text-gray-400 mt-1">Chỉ chữ thường, số và dấu gạch (-). 3–40 ký tự.</p>;
+  if (status.state === "checking") return <p className="text-xs text-gray-500 mt-1">Đang kiểm tra…</p>;
+  if (status.state === "ok") return <p className="text-xs text-emerald-600 mt-1">✓ {status.message}</p>;
+  if (status.state === "bad") return <p className="text-xs text-red-600 mt-1">✗ {status.message}</p>;
+  return null;
+}
+
+function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1", helperText }) {
+  const inputRef = useRef(null);
+  return (
+    <div>
+      <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
+      <div
+        className="relative w-full max-w-[260px] bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl overflow-hidden"
+        style={{ aspectRatio: aspect }}
+      >
+        {previewUrl
+          ? <img src={previewUrl} alt={label} className="w-full h-full object-cover" />
+          : <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">Chưa có ảnh</div>
+        }
+        {uploading && (
+          <div className="absolute inset-0 bg-white/75 flex items-center justify-center text-sm text-gray-600 font-medium">Đang upload…</div>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickFile(f); e.target.value = ""; }}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+      >
+        {previewUrl ? "Đổi ảnh" : "Tải ảnh lên"}
+      </button>
+      {helperText && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+    </div>
+  );
+}
+
+function PreviewLinks({ preview }) {
+  if (!preview?.subdomain) {
+    return <p className="text-sm text-gray-500">Lưu slug rồi mới có URL preview.</p>;
+  }
+  return (
+    <div className="space-y-1.5 text-sm">
+      <div className="flex items-start gap-2">
+        <span className="text-gray-500 w-28 shrink-0 pt-0.5">Subdomain:</span>
+        <a href={preview.subdomain} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline break-all">{preview.subdomain}</a>
+      </div>
+      <div className="flex items-start gap-2">
+        <span className="text-gray-500 w-28 shrink-0 pt-0.5">Apex preview:</span>
+        <a href={preview.apex} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline break-all">{preview.apex}</a>
+      </div>
+      {!preview.isLive && (
+        <p className="text-xs text-amber-600">Storefront chỉ hiển thị khi trạng thái = Công khai.</p>
+      )}
+    </div>
+  );
+}
+
+const STATUS_OPTIONS = [
+  { value: "draft",     label: "Bản nháp — chưa hiển thị", hint: "Khách truy cập subdomain sẽ thấy 404." },
+  { value: "public",    label: "Công khai — đang hiển thị", hint: "Subdomain hiển thị storefront cho khách." },
+  { value: "suspended", label: "Tạm dừng",                  hint: "Ẩn cho đến khi bật lại." },
+];
+
+// ---------------------------------------------------------------------------
+// Toast / feedback
+// ---------------------------------------------------------------------------
+
+function Toast({ feedback }) {
+  if (!feedback) return null;
+  return (
+    <div className={
+      "fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm border max-w-sm " +
+      (feedback.type === "ok"
+        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+        : "bg-red-50 border-red-200 text-red-800")
+    }>
+      {feedback.text}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Initial states
+// ---------------------------------------------------------------------------
+
+const EMPTY_BASIC = {
+  name: "", phone: "", email: "", zalo: "", website: "",
+  address: { provinceId: "", wardId: "", detail: "" },
+  descriptionHtml: "", salePolicy: "", warrantyPolicy: "",
+};
+
+const EMPTY_PUBLIC = {
+  slug: "", publicStatus: "draft", bio: "", introHtml: "",
+  facebookUrl: "", zaloPhone: "", workingHours: "", mapEmbedUrl: "", addressDetail: "",
+};
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export default function ShopSettings() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-
-  // 🔥 FIX 1: thêm shopId
+  const [saving, setSaving] = useState(false);
   const [shopId, setShopId] = useState(null);
 
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [coverFile, setCoverFile] = useState(null);
+  const [basic, setBasic] = useState(EMPTY_BASIC);
+  const [pub, setPub] = useState(EMPTY_PUBLIC);
 
+  const [originalSlug, setOriginalSlug] = useState("");
+  const [preview, setPreview] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    zalo: "",
-    website: "",
-    address: {
-      provinceId: "",
-      wardId: "",
-      detail: "",
-    },
-    descriptionHtml: "",
-    salePolicy: "",
-    warrantyPolicy: "",
-  });
+  const [feedback, setFeedback] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  // LOAD SHOP DATA
+  const slugStatus = useSlugStatus(pub.slug, originalSlug);
+  const slugBad = pub.slug && slugStatus.state === "bad";
+  const canSave = !loading && !saving && !slugBad;
+
+  function setB(name, value) { setBasic((p) => ({ ...p, [name]: value })); }
+  function setP(name, value) { setPub((p) => ({ ...p, [name]: value })); setFieldErrors((p) => p[name] ? { ...p, [name]: undefined } : p); }
+
+  // Auto-dismiss feedback toast
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await getMyShop();
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(null), 5000);
+    return () => clearTimeout(t);
+  }, [feedback]);
 
-        if (res.data && res.data.id) {
-          const s = res.data;
-
-          // 🔥 FIX 2: set shopId
-          setShopId(s.id);
-          try {
-            localStorage.setItem("shopId", String(s.id));
-          } catch (_) { }
-
-          setForm({
-            name: s.name || "",
-            phone: s.phone || "",
-            email: s.email || "",
-            zalo: s.zalo || "",
-            website: s.website || "",
-            address: {
-              provinceId: s.provinceId || "",
-              wardId: s.wardId || "",
-              detail: s.addressDetail || "",
-            },
-            descriptionHtml: s.descriptionHtml || "",
-            salePolicy: s.salePolicy || "",
-            warrantyPolicy: s.warrantyPolicy || "",
-          });
-
-          const base = API_ORIGIN;
-
-          if (s.avatar) {
-            setAvatarPreview(
-              s.avatar.startsWith("http") ? s.avatar : base + s.avatar
-            );
-          }
-
-          if (s.cover) {
-            setCoverPreview(
-              s.cover.startsWith("http") ? s.cover : base + s.cover
-            );
-          }
-        }
-      } catch (err) {
-        if (err?.response?.status === 401) {
-          router.push(buildShopLoginUrl(getCurrentShopReturnPath()));
-        }
+  // Load both APIs in parallel
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      getMyShop().catch((err) => {
+        if (err?.response?.status === 401) router.push(buildShopLoginUrl(getCurrentShopReturnPath()));
+        return null;
+      }),
+      getMyPublicPage().catch(() => null),
+    ]).then(([shopRes, pubRes]) => {
+      if (!mounted) return;
+      const s = shopRes?.data || {};
+      if (s.id) {
+        setShopId(s.id);
+        try { localStorage.setItem("shopId", String(s.id)); } catch (_) {}
+        setBasic({
+          name: s.name || "",
+          phone: s.phone || "",
+          email: s.email || "",
+          zalo: s.zalo || "",
+          website: s.website || "",
+          address: { provinceId: s.provinceId || "", wardId: s.wardId || "", detail: s.addressDetail || "" },
+          descriptionHtml: s.descriptionHtml || "",
+          salePolicy: s.salePolicy || "",
+          warrantyPolicy: s.warrantyPolicy || "",
+        });
+        // Prefer R2 public-page images if available; fall back to legacy avatar/cover
+        // (populated below from pubRes if present)
+        if (s.avatar) setAvatarPreview(s.avatar.startsWith("http") ? s.avatar : s.avatar);
+        if (s.cover)  setCoverPreview(s.cover.startsWith("http")  ? s.cover  : s.cover);
       }
-      setLoading(false);
-    }
-
-    load();
+      const d = pubRes?.data || {};
+      if (d.slug) {
+        setPub({
+          slug:         d.slug         || "",
+          publicStatus: d.publicStatus || "draft",
+          bio:          d.bio          || "",
+          introHtml:    d.introHtml    || "",
+          facebookUrl:  d.facebookUrl  || "",
+          zaloPhone:    d.zaloPhone    || "",
+          workingHours: d.workingHours || "",
+          mapEmbedUrl:  d.mapEmbedUrl  || "",
+          addressDetail:d.addressDetail|| "",
+        });
+        setOriginalSlug(d.slug || "");
+        setPreview(d.preview || null);
+        // R2 images take priority over legacy URLs
+        if (d.avatar)     setAvatarPreview(d.avatar);
+        if (d.coverImage) setCoverPreview(d.coverImage);
+      }
+    }).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // IMAGE UPLOAD FOR EDITOR
-  const imageUploadHandler = async (file) => {
-    const res = await uploadEditorImage(file);
-    const location = res.data.location;
-    const base = API_ORIGIN;
-    return location.startsWith("/") ? base + location : location;
-  };
-
-  const quillModules = {
-    toolbar: {
-      container: [
-        [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline"],
-        [{ color: [] }, { background: [] }],
-        [{ list: "ordered" }, { list: "bullet" }],
-        ["link", "image"],
-        ["clean"],
-      ],
-      handlers: {
-        image: function () {
-          const input = document.createElement("input");
-          input.type = "file";
-          input.accept = "image/*";
-          input.click();
-
-          input.onchange = async () => {
-            const file = input.files[0];
-            const url = await imageUploadHandler(file);
-            const range = this.quill.getSelection();
-            this.quill.insertEmbed(range ? range.index : 0, "image", url);
-          };
-        },
-      },
-    },
-  };
-
-  // SUBMIT FORM
-  const handleSave = async () => {
+  // Image upload handlers
+  async function handleAvatarPick(file) {
+    setUploadingAvatar(true);
+    setFeedback(null);
     try {
+      const res = await uploadAvatar(file);
+      setAvatarPreview(res.data?.avatar || null);
+      setFeedback({ type: "ok", text: "Đã cập nhật avatar." });
+    } catch (err) {
+      setFeedback({ type: "error", text: err?.response?.data?.error || "Upload avatar thất bại." });
+    } finally { setUploadingAvatar(false); }
+  }
+
+  async function handleCoverPick(file) {
+    setUploadingCover(true);
+    setFeedback(null);
+    try {
+      const res = await uploadCover(file);
+      setCoverPreview(res.data?.coverImage || null);
+      setFeedback({ type: "ok", text: "Đã cập nhật ảnh bìa." });
+    } catch (err) {
+      setFeedback({ type: "error", text: err?.response?.data?.error || "Upload ảnh bìa thất bại." });
+    } finally { setUploadingCover(false); }
+  }
+
+  // Save — calls both APIs in parallel where possible
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!canSave) return;
+    setSaving(true);
+    setFeedback(null);
+    setFieldErrors({});
+    const errors = [];
+    try {
+      // ── A: basic info via /api/shop/me  ────────────────────────────────
       const fd = new FormData();
+      fd.append("name",          basic.name);
+      fd.append("phone",         basic.phone);
+      fd.append("email",         basic.email);
+      fd.append("zalo",          basic.zalo);
+      fd.append("website",       basic.website);
+      fd.append("provinceId",    basic.address.provinceId || "");
+      fd.append("wardId",        basic.address.wardId     || "");
+      fd.append("addressDetail", basic.address.detail     || "");
+      fd.append("descriptionHtml", basic.descriptionHtml);
+      fd.append("salePolicy",    basic.salePolicy);
+      fd.append("warrantyPolicy",basic.warrantyPolicy);
 
-      fd.append("name", form.name);
-      fd.append("phone", form.phone);
-      fd.append("email", form.email);
-      fd.append("zalo", form.zalo);
-      fd.append("website", form.website);
+      // ── B–E: storefront via /api/shop/public-page  ─────────────────────
+      const pubPayload = {
+        slug:          pub.slug.trim(),
+        public_status: pub.publicStatus,
+        bio:           pub.bio,
+        intro_html:    pub.introHtml,
+        facebook_url:  pub.facebookUrl,
+        zalo_phone:    pub.zaloPhone,
+        working_hours: pub.workingHours,
+        map_embed_url: pub.mapEmbedUrl,
+        addressDetail: pub.addressDetail,
+      };
 
-      fd.append("provinceId", form.address.provinceId || "");
-      fd.append("wardId", form.address.wardId || "");
-      fd.append("addressDetail", form.address.detail || "");
+      const [basicRes, pubRes] = await Promise.allSettled([
+        shopId ? updateMyShop(fd) : createShop(fd),
+        pub.slug.trim() ? updateMyPublicPage(pubPayload) : Promise.resolve(null),
+      ]);
 
-      fd.append("descriptionHtml", form.descriptionHtml);
-      fd.append("salePolicy", form.salePolicy);
-      fd.append("warrantyPolicy", form.warrantyPolicy);
-
-      if (avatarFile) fd.append("avatar", avatarFile);
-      if (coverFile) fd.append("cover", coverFile);
-
-      if (!shopId) {
-        // 👉 CHƯA CÓ SHOP → CREATE
-        const cre = await createShop(fd);
-        if (cre.data?.id != null) {
-          const sid = String(cre.data.id);
-          localStorage.setItem("shopId", sid);
-          setShopId(cre.data.id);
+      // Handle basic info result
+      if (basicRes.status === "fulfilled" && !shopId) {
+        const id = basicRes.value?.data?.id;
+        if (id) {
+          setShopId(id);
+          try { localStorage.setItem("shopId", String(id)); } catch (_) {}
         }
-      } else {
-        // 👉 ĐÃ CÓ SHOP → UPDATE
-        await updateMyShop(fd);
+      }
+      if (basicRes.status === "rejected") {
+        errors.push("Lưu thông tin cơ bản thất bại.");
       }
 
-      alert("Lưu shop thành công!");
-    } catch (err) {
-      console.error(err);
-      alert("Lỗi khi lưu thông tin shop!");
-    }
-  };
+      // Handle public page result
+      if (pubRes.status === "fulfilled" && pubRes.value) {
+        const d = pubRes.value?.data?.data;
+        if (d) {
+          setOriginalSlug(d.slug || "");
+          setPreview(d.preview || null);
+        }
+      }
+      if (pubRes.status === "rejected") {
+        const errs = pubRes.reason?.response?.data?.errors;
+        if (Array.isArray(errs)) {
+          const next = {};
+          for (const it of errs) { if (it.field) next[it.field] = it.message; }
+          setFieldErrors(next);
+        }
+        errors.push(pubRes.reason?.response?.data?.error || "Lưu storefront thất bại.");
+      }
 
-  if (loading) return <div>Đang tải...</div>;
+      if (errors.length === 0) {
+        setFeedback({ type: "ok", text: "Đã lưu tất cả thay đổi." });
+      } else {
+        setFeedback({ type: "error", text: errors.join(" | ") });
+      }
+    } catch (err) {
+      setFeedback({ type: "error", text: err?.message || "Lỗi không xác định." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="main-content" style={{ padding: 24 }}>
+        <div className="space-y-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-200 h-36 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="card">
-      <h3 className="mb-4">Thiết lập Shop</h3>
+    <div className="main-content" style={{ padding: "16px 24px" }}>
+      <Toast feedback={feedback} />
 
-      {/* UPLOAD AVATAR */}
-      <div className="form-group">
-        <label>Avatar</label>
-        <input
-          type="file"
-          className="form-control"
-          onChange={(e) => {
-            setAvatarFile(e.target.files[0]);
-            setAvatarPreview(URL.createObjectURL(e.target.files[0]));
-          }}
-        />
-        {avatarPreview && (
-          <img
-            src={avatarPreview}
-            alt="avatar"
-            style={{ width: 90, marginTop: 8, borderRadius: 8 }}
-          />
-        )}
-      </div>
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Cài đặt Shop</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Quản lý toàn bộ thông tin, storefront và liên hệ của shop.
+        </p>
+      </header>
 
-      {/* UPLOAD COVER */}
-      <div className="form-group">
-        <label>Ảnh bìa</label>
-        <input
-          type="file"
-          className="form-control"
-          onChange={(e) => {
-            setCoverFile(e.target.files[0]);
-            setCoverPreview(URL.createObjectURL(e.target.files[0]));
-          }}
-        />
-        {coverPreview && (
-          <img
-            src={coverPreview}
-            alt="cover"
-            style={{ width: "100%", marginTop: 8, borderRadius: 8 }}
-          />
-        )}
-      </div>
+      {/* Jump-to nav */}
+      <nav className="mb-6 flex flex-wrap gap-2">
+        {[
+          ["#basic",       "Thông tin cơ bản"],
+          ["#public",      "Storefront công khai"],
+          ["#branding",    "Branding"],
+          ["#intro",       "Giới thiệu"],
+          ["#contact",     "Liên hệ & mạng xã hội"],
+          ["#policies",    "Chính sách"],
+        ].map(([href, label]) => (
+          <a
+            key={href}
+            href={href}
+            className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-700 transition-colors"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
 
-      {/* BASIC INFO */}
-      <div className="form-group">
-        <label>Tên shop</label>
-        <input
-          className="form-control"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-      </div>
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* ── A. Thông tin cơ bản ─────────────────────────────────────── */}
+        <SectionCard
+          id="basic"
+          title="A. Thông tin cơ bản"
+          subtitle="Tên, số điện thoại và địa chỉ shop trên Otofine Marketplace."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <FieldText
+              label="Tên shop *"
+              value={basic.name}
+              onChange={(v) => setB("name", v)}
+              placeholder="Tên shop của bạn"
+              className="md:col-span-2"
+            />
+            <FieldText label="Số điện thoại" value={basic.phone} onChange={(v) => setB("phone", v)} placeholder="0901 234 567" />
+            <FieldText label="Email" value={basic.email} onChange={(v) => setB("email", v)} placeholder="shop@example.com" type="email" />
+            <FieldText label="Zalo (số/link)" value={basic.zalo} onChange={(v) => setB("zalo", v)} placeholder="0901 234 567" />
+            <FieldText label="Website" value={basic.website} onChange={(v) => setB("website", v)} placeholder="https://example.com" type="url" />
+          </div>
+          <div className="mt-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Địa chỉ</p>
+            {/* ShopAddressSelector uses its own CSS; wrapped to isolate */}
+            <div className="shop-address-wrapper">
+              <ShopAddressSelector
+                value={basic.address}
+                onChange={(addr) => setB("address", addr)}
+              />
+            </div>
+          </div>
+        </SectionCard>
 
-      <div style={{ display: "flex", gap: 12 }}>
-        <div className="form-group" style={{ flex: 1 }}>
-          <label>Số điện thoại</label>
-          <input
-            className="form-control"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          />
+        {/* ── B. Storefront công khai ─────────────────────────────────── */}
+        <SectionCard
+          id="public"
+          title="B. Storefront công khai"
+          subtitle="Cấu hình URL subdomain và trạng thái trang public của shop."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Trạng thái</label>
+              <select
+                value={pub.publicStatus}
+                onChange={(e) => setP("publicStatus", e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {STATUS_OPTIONS.find((o) => o.value === pub.publicStatus)?.hint}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Slug (URL subdomain)</label>
+              <div className="flex items-stretch">
+                <input
+                  value={pub.slug}
+                  onChange={(e) => setP("slug", e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                  placeholder="vd: cuahangoto355"
+                  maxLength={40}
+                  className={
+                    "flex-1 px-3 py-2.5 rounded-l-lg border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 " +
+                    (slugBad ? "border-red-400" : "border-gray-300")
+                  }
+                />
+                <span className="px-3 inline-flex items-center text-sm text-gray-500 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg">
+                  .otofine.com
+                </span>
+              </div>
+              <SlugHint status={slugStatus} value={pub.slug} />
+              {fieldErrors.slug && <p className="text-xs text-red-600 mt-1">{fieldErrors.slug}</p>}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Preview URL</label>
+              <PreviewLinks preview={preview} />
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── C. Branding ─────────────────────────────────────────────── */}
+        <SectionCard
+          id="branding"
+          title="C. Branding"
+          subtitle="Ảnh đại diện và ảnh bìa hiển thị trên trang storefront. Ảnh tự động chuyển sang WebP và tối ưu kích thước."
+        >
+          <div className="grid gap-8 md:grid-cols-2">
+            <ImageUploader
+              label="Avatar"
+              previewUrl={avatarPreview}
+              onPickFile={handleAvatarPick}
+              uploading={uploadingAvatar}
+              aspect="1/1"
+              helperText="Vuông. PNG / JPG / WEBP. Tối đa 5 MB. Tự động resize 512×512."
+            />
+            <ImageUploader
+              label="Ảnh bìa (cover)"
+              previewUrl={coverPreview}
+              onPickFile={handleCoverPick}
+              uploading={uploadingCover}
+              aspect="16/6"
+              helperText="Tỉ lệ 16:6 (ví dụ 1600×600). Tự động resize max-width 1600px."
+            />
+          </div>
+        </SectionCard>
+
+        {/* ── D. Giới thiệu ───────────────────────────────────────────── */}
+        <SectionCard
+          id="intro"
+          title="D. Giới thiệu"
+          subtitle="Nội dung xuất hiện trên trang storefront và trong danh sách Otofine."
+        >
+          <div className="space-y-4">
+            <FieldTextarea
+              label="Giới thiệu ngắn (bio)"
+              value={pub.bio}
+              onChange={(v) => setP("bio", v)}
+              placeholder="Một câu mô tả shop, hiển thị ngay dưới tên shop."
+              maxLength={255}
+              rows={2}
+            />
+            <FieldTextarea
+              label="Giới thiệu chi tiết (intro — storefront)"
+              value={pub.introHtml}
+              onChange={(v) => setP("introHtml", v)}
+              placeholder="Nội dung giới thiệu đầy đủ hiển thị trên trang 'Giới thiệu' của storefront."
+              rows={6}
+              hint="Phase B: sẽ có trình soạn thảo rich text. HTML hợp lệ được chấp nhận."
+            />
+            <FieldTextarea
+              label="Mô tả shop (marketplace — Otofine.com)"
+              value={basic.descriptionHtml}
+              onChange={(v) => setB("descriptionHtml", v)}
+              placeholder="Mô tả shop hiển thị trên trang Otofine marketplace."
+              rows={4}
+              hint="Trường cũ, dùng cho trang shop trên Otofine.com — riêng biệt với trang storefront."
+            />
+          </div>
+        </SectionCard>
+
+        {/* ── E. Liên hệ & mạng xã hội ───────────────────────────────── */}
+        <SectionCard
+          id="contact"
+          title="E. Liên hệ & mạng xã hội"
+          subtitle="Thông tin liên lạc hiển thị trên trang storefront và tab Liên hệ."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <FieldText
+              label="Zalo (số/link — storefront)"
+              value={pub.zaloPhone}
+              onChange={(v) => setP("zaloPhone", v)}
+              placeholder="0901 234 567"
+              hint="Hiển thị nút Zalo trên storefront. Có thể khác với Zalo ở mục A."
+              error={fieldErrors.zalo_phone}
+            />
+            <FieldText
+              label="Facebook URL"
+              value={pub.facebookUrl}
+              onChange={(v) => setP("facebookUrl", v)}
+              placeholder="https://facebook.com/shop"
+              error={fieldErrors.facebook_url}
+            />
+            <FieldText
+              label="Địa chỉ chi tiết (storefront)"
+              value={pub.addressDetail}
+              onChange={(v) => setP("addressDetail", v)}
+              placeholder="Số nhà, đường, phường, quận, tỉnh"
+              className="md:col-span-2"
+              error={fieldErrors.addressDetail}
+            />
+            <FieldText
+              label="Giờ làm việc"
+              value={pub.workingHours}
+              onChange={(v) => setP("workingHours", v)}
+              placeholder="08:00 - 18:00 (T2 - T7)"
+              error={fieldErrors.working_hours}
+            />
+            <FieldText
+              label="Google Maps embed URL"
+              value={pub.mapEmbedUrl}
+              onChange={(v) => setP("mapEmbedUrl", v)}
+              placeholder="https://www.google.com/maps/embed?pb=…"
+              error={fieldErrors.map_embed_url}
+            />
+          </div>
+        </SectionCard>
+
+        {/* ── Legacy policy fields (preserved, not removed) ────────────── */}
+        <SectionCard
+          id="policies"
+          title="Chính sách"
+          subtitle="Chính sách bán hàng và bảo hành hiển thị trên marketplace Otofine.com."
+        >
+          <div className="space-y-4">
+            <FieldTextarea
+              label="Chính sách bán hàng"
+              value={basic.salePolicy}
+              onChange={(v) => setB("salePolicy", v)}
+              placeholder="Chính sách đổi trả, thanh toán…"
+              rows={4}
+            />
+            <FieldTextarea
+              label="Chính sách bảo hành"
+              value={basic.warrantyPolicy}
+              onChange={(v) => setB("warrantyPolicy", v)}
+              placeholder="Thời hạn và điều kiện bảo hành…"
+              rows={4}
+            />
+          </div>
+        </SectionCard>
+
+        {/* ── Sticky save bar ─────────────────────────────────────────── */}
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 py-3 -mx-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 z-20">
+          <p className="text-xs text-gray-500 mr-auto">
+            {slugBad
+              ? "Sửa lỗi slug trước khi lưu."
+              : "Lưu sẽ cập nhật cả thông tin cơ bản lẫn storefront."}
+          </p>
+          <a
+            href="/shop/change-password"
+            className="text-sm text-gray-500 hover:text-gray-700 underline self-center mr-4"
+          >
+            Đổi mật khẩu
+          </a>
+          <button
+            type="submit"
+            disabled={!canSave}
+            className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Đang lưu…" : "Lưu thay đổi"}
+          </button>
         </div>
-
-        <div className="form-group" style={{ flex: 1 }}>
-          <label>Email</label>
-          <input
-            className="form-control"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Website</label>
-        <input
-          className="form-control"
-          value={form.website}
-          onChange={(e) => setForm({ ...form, website: e.target.value })}
-        />
-      </div>
-
-      {/* ADDRESS */}
-      <h4 className="mt-4 mb-2">Địa chỉ</h4>
-      <ShopAddressSelector
-        value={form.address}
-        onChange={(addr) => setForm({ ...form, address: addr })}
-      />
-
-      {/* DESCRIPTION */}
-      <h4 className="mt-4">Giới thiệu shop</h4>
-      <ReactQuill
-        value={form.descriptionHtml}
-        modules={quillModules}
-        onChange={(v) => setForm({ ...form, descriptionHtml: v })}
-      />
-
-      {/* SALE POLICY */}
-      <h4 className="mt-4">Chính sách bán hàng</h4>
-      <ReactQuill
-        value={form.salePolicy}
-        modules={quillModules}
-        onChange={(v) => setForm({ ...form, salePolicy: v })}
-      />
-
-      {/* WARRANTY POLICY */}
-      <h4 className="mt-4">Chính sách bảo hành</h4>
-      <ReactQuill
-        value={form.warrantyPolicy}
-        modules={quillModules}
-        onChange={(v) => setForm({ ...form, warrantyPolicy: v })}
-      />
-
-      <button className="btn btn-primary mt-4" onClick={handleSave}>
-        Cập nhật Shop
-      </button>
-
-      <p className="mt-6 text-sm">
-        <a href="/shop/change-password" className="text-blue-600 hover:underline">
-          Đổi mật khẩu đăng nhập
-        </a>
-      </p>
+      </form>
     </div>
   );
 }
