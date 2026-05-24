@@ -118,6 +118,32 @@ export async function countPublicShopProducts(shopId) {
  * those categories used to filter by a non-matching string and
  * return zero results.
  */
+/**
+ * Top vehicle brands for a shop, ordered by distinct product coverage.
+ * Used by the storefront trust badges ("Chuyên Toyota / Peugeot…").
+ *
+ * Returns at most `limit` brands. Empty array when the shop has no
+ * fitment data — the trust component then gracefully drops the
+ * "Chuyên X" chip.
+ */
+export async function listShopTopBrands(shopId, limit = 3) {
+  if (!shopId) return [];
+  const [rows] = await pool.query(
+    `
+      SELECT cm.hang_xe AS brand, COUNT(DISTINCT pca.productId) AS cnt
+      FROM product_car_applications pca
+      JOIN car_models cm ON cm.id = pca.carModelId
+      JOIN products p     ON p.id  = pca.productId
+      WHERE p.shopId = ? AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+      GROUP BY cm.hang_xe
+      ORDER BY cnt DESC, brand ASC
+      LIMIT ?
+    `,
+    [shopId, Number(limit) || 3],
+  );
+  return rows.map((r) => ({ brand: r.brand, productCount: Number(r.cnt) || 0 }));
+}
+
 export async function listShopCategories(shopId) {
   if (!shopId) return [];
   const [rows] = await pool.query(

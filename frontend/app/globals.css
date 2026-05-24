@@ -18,6 +18,11 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Phase 5.1 — used by the storefront trust-badge strip + share menu
+   to scroll horizontally on mobile without showing the OS scrollbar. */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 body,
 html {
   height: 100%;

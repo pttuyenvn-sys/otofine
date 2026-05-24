@@ -132,6 +132,7 @@ export async function listShopProducts({
       p.partName,
       p.partNumber,
       p.price,
+      p.origin,
       p.createdAt,
       (
         SELECT pi.url

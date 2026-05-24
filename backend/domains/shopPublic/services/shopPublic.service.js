@@ -2,6 +2,7 @@ import {
   findPublicShopBySlug,
   countPublicShopProducts,
   listShopCategories,
+  listShopTopBrands,
 } from "../repositories/shopPublic.repository.js";
 import {
   listShopProducts,
@@ -55,7 +56,38 @@ function toPublicDto(row, extras = {}) {
     createdAt: row.createdAt || null,
 
     productCount: extras.productCount ?? null,
+
+    /**
+     * Trust signals — additive only. Frontend may consume any subset.
+     * Phase 5.1: powers the trust-badge strip + storefront completion
+     * scoring without changing the legacy DTO contract.
+     */
+    trust: {
+      verified: !!row.verified_at,
+      // Whole-year tenure, computed from `published_at` if the shop
+      // has actually gone live, else `createdAt`. Floor to integer; a
+      // brand-new shop returns 0 → frontend hides the "Hoạt động X năm"
+      // chip.
+      establishedYears: yearsSince(row.published_at || row.createdAt),
+      // Heuristic "responsive" signal: shop has both phone *and* a
+      // direct messaging channel (zalo or facebook). Cheap proxy until
+      // we have a real response-time SLO.
+      quickResponse: Boolean(
+        (row.phone && (row.zalo_phone || row.zalo)) ||
+          (row.phone && row.facebook_url),
+      ),
+      topBrands: extras.topBrands || [],
+    },
   };
+}
+
+function yearsSince(dateLike) {
+  if (!dateLike) return 0;
+  const t = new Date(dateLike).getTime();
+  if (!Number.isFinite(t)) return 0;
+  const ms = Date.now() - t;
+  if (ms <= 0) return 0;
+  return Math.floor(ms / (365.25 * 24 * 60 * 60 * 1000));
 }
 
 function stripHtmlOneLine(html, limit = 160) {
@@ -99,8 +131,14 @@ function splitWorkingHoursLines(value) {
 export async function getPublicShopBySlug(slug) {
   const row = await findPublicShopBySlug(slug);
   if (!row) return null;
-  const productCount = await countPublicShopProducts(row.id);
-  return toPublicDto(row, { productCount });
+  // Both queries are independent of each other and only depend on
+  // `row.id` — fan them out in parallel so the trust-badge data
+  // doesn't add a serial round-trip.
+  const [productCount, topBrands] = await Promise.all([
+    countPublicShopProducts(row.id),
+    listShopTopBrands(row.id, 3),
+  ]);
+  return toPublicDto(row, { productCount, topBrands });
 }
 
 /**
@@ -154,6 +192,11 @@ export async function getPublicShopProducts(slug, query = {}) {
       // legacy `category_name` is often a Title-Case clone of `partName`
       // for seed data, so the card prefers `partType` when present.
       partType: p.partTypeLabel || null,
+      // Raw `origin` string (e.g. "OEM", "Chính hãng", "Aftermarket")
+      // surfaced for the product card's trust-badge derivation. Kept
+      // as a free-form string so existing seller workflows don't need
+      // to migrate to an enum.
+      origin: p.origin || null,
       brand: p.brandLabel || null,
       // Phase polish: surface model + year range so the card can show
       // "Toyota • Vios • 2018-2021". Nulls are normalised so the

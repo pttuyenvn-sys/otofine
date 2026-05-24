@@ -109,7 +109,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {items.map((product) => (
-                    <ShopProductCard key={product.id} product={product} />
+                    <ShopProductCard key={product.id} product={product} shopSlug={shop?.slug || slug} />
                   ))}
                 </div>
                 <Suspense fallback={null}>

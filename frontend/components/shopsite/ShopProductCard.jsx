@@ -2,6 +2,8 @@
 
 import { formatPrice } from "@/data/shop-demo";
 import { apexProductUrl } from "@/lib/apexOrigin";
+import { deriveProductTrustBadge } from "@/lib/shopsite/productTrust";
+import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
 
 /**
  * Vertical product card (Shopee-like).
@@ -26,7 +28,7 @@ import { apexProductUrl } from "@/lib/apexOrigin";
  * The fitment line uses `line-clamp-1` + `truncate` so it never
  * pushes the price below the fold on narrow mobile widths.
  */
-export default function ShopProductCard({ product }) {
+export default function ShopProductCard({ product, shopSlug }) {
   if (!product) return null;
   const href = product.productId ? apexProductUrl(product.productId) : "#";
   const fitmentLine = formatVehicleLine(product);
@@ -36,11 +38,22 @@ export default function ShopProductCard({ product }) {
   // to `category`, and finally renders nothing if both are absent so
   // the chip degrades gracefully.
   const partTypeLabel = (product.partType || product.category || "").trim();
+  // Phase 5.1 — optional trust pill (Chính hãng / OEM / Aftermarket)
+  // derived from the seller-provided `origin` string. null → not shown.
+  const trustBadge = deriveProductTrustBadge(product);
+
+  const handleClick = () => {
+    trackShopsiteEvent(ShopsiteEvents.PRODUCT_CLICK, {
+      shopSlug,
+      productId: product.productId || product.id || null,
+    });
+  };
 
   return (
     <a
       href={href}
       rel="noopener"
+      onClick={handleClick}
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-md transition-all"
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
@@ -56,6 +69,14 @@ export default function ShopProductCard({ product }) {
           <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400 text-xs">
             Không có ảnh
           </div>
+        )}
+        {trustBadge && (
+          <span
+            className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm ring-1 backdrop-blur-sm ${TRUST_TONES[trustBadge.tone] || TRUST_TONES.gray}`}
+            title={trustBadge.label}
+          >
+            {trustBadge.label}
+          </span>
         )}
         <button
           type="button"
@@ -135,6 +156,13 @@ export function formatVehicleLine(p) {
   const parts = [brand, model, year].filter((s) => s && s.length > 0);
   return parts.length > 0 ? parts.join(" • ") : null;
 }
+
+const TRUST_TONES = {
+  emerald: "bg-emerald-50/90 text-emerald-700 ring-emerald-200",
+  blue:    "bg-blue-50/90 text-blue-700 ring-blue-200",
+  amber:   "bg-amber-50/90 text-amber-700 ring-amber-200",
+  gray:    "bg-white/85 text-gray-700 ring-gray-200",
+};
 
 function formatYearRange(yFrom, yTo) {
   const a = Number.isFinite(Number(yFrom)) ? Number(yFrom) : null;

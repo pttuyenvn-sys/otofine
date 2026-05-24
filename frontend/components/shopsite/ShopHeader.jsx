@@ -1,12 +1,25 @@
+import ShopTrustBadges from "./ShopTrustBadges";
+import ShopShareMenu from "./ShopShareMenu";
+
 /**
  * Top of the shop public site:
  *  A. utility topbar (phone, hours, follow, share, search)
  *  B. cover with avatar + name + meta + CTA buttons
+ *  C. trust-badge strip (Phase 5.1) — compact chips below the cover
  *
  * Tabs live in a separate <ShopTabs> below this header so the layout
  * can keep them sticky-ready without re-rendering the cover.
+ *
+ * Conversion polish (Phase 5.1):
+ *   - <ShopShareMenu /> replaces the topbar "Chia sẻ" placeholder
+ *     (Web Share API on mobile, dropdown elsewhere)
+ *   - trust-badge strip rendered under the cover
+ *
+ * Stays a server component — analytics tracking for the primary CTA
+ * happens in the client islands (<ShopFloatingMobileCTA />, sticky
+ * contact card) so this component stays in the static SSR tree.
  */
-export default function ShopHeader({ shop }) {
+export default function ShopHeader({ shop, badges }) {
   if (!shop) return null;
   const initials = (shop.name || "")
     .split(" ")
@@ -37,7 +50,7 @@ export default function ShopHeader({ shop }) {
 
         <div className="flex items-center gap-3 sm:gap-5 text-gray-600 shrink-0">
           <UtilButton icon={<HeartIcon />}>Theo dõi shop</UtilButton>
-          <UtilButton icon={<ShareIcon />}>Chia sẻ</UtilButton>
+          <ShopShareMenu shopName={shop.name} shopSlug={shop.slug} />
           <UtilButton icon={<SearchIcon />}>Tìm kiếm</UtilButton>
         </div>
       </div>
@@ -153,6 +166,11 @@ export default function ShopHeader({ shop }) {
           </div>
         </div>
       </div>
+
+      {/* C. Trust badges (Phase 5.1) — graceful no-op when empty. */}
+      {Array.isArray(badges) && badges.length > 0 && (
+        <ShopTrustBadges badges={badges} className="px-1" />
+      )}
     </div>
   );
 }
@@ -188,17 +206,6 @@ function HeartIcon() {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  );
-}
-function ShareIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   );
 }

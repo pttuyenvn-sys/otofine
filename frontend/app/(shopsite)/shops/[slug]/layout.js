@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import ShopHeader from "@/components/shopsite/ShopHeader";
 import ShopTabs from "@/components/shopsite/ShopTabs";
+import ShopFloatingMobileCTA from "@/components/shopsite/ShopFloatingMobileCTA";
+import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
+import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
@@ -60,12 +63,18 @@ export default async function ShopTenantLayout({ children, params }) {
   // apex (`https://otofine.com/shops/<slug>`), we keep the full
   // /shops/<slug> prefix so the URL remains routable.
   const basePath = await getShopBasePath(shop.slug);
+  const badges = deriveShopTrustBadges(shop);
 
   return (
     <>
-      <ShopHeader shop={mapToHeaderShape(shop)} />
+      <ShopHeader shop={mapToHeaderShape(shop)} badges={badges} />
       <ShopTabs basePath={basePath} />
-      <main className="space-y-3">{children}</main>
+      {/*
+        Phase 5.1 — bottom padding reserves room for the fixed mobile
+        CTA bar so it never covers the last row of products / footer.
+        Desktop ignores the padding (sm:pb-0).
+      */}
+      <main className="space-y-3 pb-24 sm:pb-0">{children}</main>
       <footer className="py-6 text-center text-xs text-gray-500">
         © {new Date().getFullYear()} {shop.name} · Powered by{" "}
         <a
@@ -75,6 +84,12 @@ export default async function ShopTenantLayout({ children, params }) {
           Otofine
         </a>
       </footer>
+
+      {/* Phase 5.1 — conversion layer islands. Both are SSR-safe
+          (`use client` only on interactive bits) and bail when there's
+          no contact data. */}
+      <ShopFloatingMobileCTA shop={mapToCtaShape(shop)} />
+      <ShopAnalyticsBoot shopSlug={shop.slug} shopName={shop.name} />
     </>
   );
 }
@@ -86,6 +101,7 @@ export default async function ShopTenantLayout({ children, params }) {
  */
 function mapToHeaderShape(shop) {
   return {
+    slug: shop.slug,
     name: shop.name,
     shortDescription: shop.shortDescription || "",
     verified: !!shop.verified,
@@ -100,5 +116,19 @@ function mapToHeaderShape(shop) {
       ? `${Math.max(1, Math.floor(shop.productCount / 100))}k+`
       : "—",
     workingHoursShort: shop.workingHoursShort || "Liên hệ shop",
+  };
+}
+
+/**
+ * Minimal shape needed by the floating mobile CTA. Kept separate from
+ * `mapToHeaderShape` so the CTA component never accidentally depends
+ * on cosmetic fields (rating, customerCount, …).
+ */
+function mapToCtaShape(shop) {
+  return {
+    slug: shop.slug,
+    phone: shop.phone || "",
+    zalo: shop.zalo || shop.phone || "",
+    facebook: shop.facebook || null,
   };
 }

@@ -60,7 +60,13 @@ export default async function ShopTenantHomePage({ params }) {
           <PromoBanner basePath={basePath} cover={shop.cover} />
         </div>
         <div className="lg:col-span-3">
-          <ShopContactCard shop={toContactShape(shop)} />
+          {/* Phase 5.1 — sticky on desktop so the buyer can always
+              reach the phone/zalo/facebook actions while browsing the
+              product grid below. Mobile stays unaffected because the
+              floating bottom CTA covers the same intent. */}
+          <div className="lg:sticky lg:top-[72px]">
+            <ShopContactCard shop={toContactShape(shop)} />
+          </div>
         </div>
       </div>
 
@@ -76,7 +82,7 @@ export default async function ShopTenantHomePage({ params }) {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {featured.map((product) => (
-                  <ShopProductCard key={product.id} product={product} />
+                  <ShopProductCard key={product.id} product={product} shopSlug={shop.slug} />
                 ))}
               </div>
             )}

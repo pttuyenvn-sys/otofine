@@ -48,6 +48,7 @@ import {
 import ShopAddressSelector from "../ShopAddressSelector";
 import ShopRichEditorWithPreview from "../shopsite/ShopRichEditorWithPreview";
 import ShopPolicyEditor from "../shopsite/ShopPolicyEditor";
+import ShopCompletionPanel from "./shop-settings/ShopCompletionPanel";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
 import { normalizeRichHtml } from "@/lib/shopsite/normalizeRichHtml";
@@ -538,6 +539,16 @@ export default function ShopSettings() {
           Quản lý toàn bộ thông tin, storefront và liên hệ của shop.
         </p>
       </header>
+
+      {/* Phase 5.1 — friendly completion nudge.  Computed live from
+          the current form state; never blocks saving.  Avatar / cover
+          live outside `pub` (they're managed via the upload endpoints
+          and held in `avatarPreview` / `coverPreview` local state), so
+          we splice them into the snapshot at the call site. */}
+      <ShopCompletionPanel
+        basic={basic}
+        pub={{ ...pub, avatar: avatarPreview, coverImage: coverPreview }}
+      />
 
       {/* Jump-to nav */}
       <nav className="mb-6 flex flex-wrap gap-2">
