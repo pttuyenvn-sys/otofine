@@ -1,0 +1,187 @@
+/*
+ * Styling for rich storefront content (intro_html).
+ * Shared between the live storefront and the editor preview pane.
+ * Class allow-list matches `backend/domains/shopPublic/utils/htmlSanitize.util.js`.
+ */
+
+.shop-rich-content {
+  color: #1f2937;
+  line-height: 1.7;
+  font-size: 15px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.shop-rich-content--empty {
+  color: #9ca3af;
+  font-style: italic;
+  padding: 1.25rem 0;
+}
+
+.shop-rich-content > * + * {
+  margin-top: 0.85rem;
+}
+
+.shop-rich-content h2,
+.shop-rich-content h3,
+.shop-rich-content h4 {
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  margin-top: 1.5rem;
+}
+
+.shop-rich-content h2 { font-size: 1.4rem; }
+.shop-rich-content h3 { font-size: 1.2rem; color: #e60012; }
+.shop-rich-content h4 { font-size: 1.05rem; }
+
+.shop-rich-content p { margin: 0; }
+
+.shop-rich-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.shop-rich-content a:hover { color: #1d4ed8; }
+
+.shop-rich-content ul,
+.shop-rich-content ol {
+  padding-left: 1.5rem;
+}
+.shop-rich-content ul { list-style: disc; }
+.shop-rich-content ol { list-style: decimal; }
+.shop-rich-content li { margin: 0.15rem 0; }
+
+.shop-rich-content blockquote {
+  border-left: 4px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 0.6rem 0.85rem;
+  color: #4b5563;
+  font-style: italic;
+  border-radius: 0 6px 6px 0;
+}
+
+.shop-rich-content hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.4rem 0;
+}
+
+/* ---------- Inline images ---------- */
+.shop-rich-content img,
+.shop-rich-content .shop-content-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  margin: 0.5rem auto;
+}
+.shop-rich-content figure,
+.shop-rich-content .shop-content-figure {
+  margin: 0.75rem 0;
+  text-align: center;
+}
+.shop-rich-content figcaption,
+.shop-rich-content .shop-content-caption {
+  font-size: 12.5px;
+  color: #6b7280;
+  margin-top: 0.4rem;
+}
+
+/* ---------- Embeds (YouTube / TikTok / Facebook) ---------- */
+.shop-rich-content .shop-embed {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  margin: 0.85rem 0;
+}
+.shop-rich-content .shop-embed--youtube,
+.shop-rich-content .shop-embed--facebook {
+  aspect-ratio: 16 / 9;
+}
+.shop-rich-content .shop-embed--tiktok {
+  aspect-ratio: 9 / 16;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.shop-rich-content .shop-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ---------- CTA buttons ---------- */
+.shop-rich-content .shop-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  margin: 0.2rem 0.35rem 0.2rem 0;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease;
+}
+.shop-rich-content .shop-cta:hover { filter: brightness(0.95); }
+
+.shop-rich-content .shop-cta--call {
+  background: #10b981;
+  color: #fff;
+}
+.shop-rich-content .shop-cta--zalo {
+  background: #0084ff;
+  color: #fff;
+}
+.shop-rich-content .shop-cta--facebook {
+  background: #1877f2;
+  color: #fff;
+}
+
+.shop-rich-content .shop-cta::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+}
+.shop-rich-content .shop-cta--call::before {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.33 1.85.57 2.81.7A2 2 0 0 1 22 16.92z'/%3E%3C/svg%3E");
+}
+.shop-rich-content .shop-cta--zalo::before {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2C6.48 2 2 5.86 2 10.62c0 2.36 1.1 4.5 2.88 6.04L4 22l5.4-2.04c.84.16 1.7.24 2.6.24 5.52 0 10-3.86 10-8.58S17.52 2 12 2z'/%3E%3C/svg%3E");
+}
+.shop-rich-content .shop-cta--facebook::before {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z'/%3E%3C/svg%3E");
+}
+
+/* ---------- Tables ---------- */
+.shop-rich-content table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+.shop-rich-content th,
+.shop-rich-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+.shop-rich-content th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .shop-rich-content { font-size: 14px; }
+  .shop-rich-content h2 { font-size: 1.2rem; }
+  .shop-rich-content h3 { font-size: 1.1rem; }
+}

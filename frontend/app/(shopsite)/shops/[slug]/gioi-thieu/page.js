@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
+import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
 import { fetchPublicShop, getShopCanonicalUrl } from "@/services/shopPublic.service";
 
 export async function generateMetadata({ params }) {
@@ -34,16 +35,9 @@ export default async function ShopTenantAboutPage({ params }) {
             </div>
           )}
 
-          {intro ? (
-            <article
-              className="prose prose-sm sm:prose-base max-w-none px-4 sm:px-6 py-5 text-gray-800 leading-relaxed space-y-3 [&_h3]:text-[#e60012] [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:text-lg [&_ul]:list-disc [&_ul]:pl-5 [&_p]:my-2"
-              dangerouslySetInnerHTML={{ __html: intro }}
-            />
-          ) : (
-            <div className="px-4 sm:px-6 py-5 text-sm text-gray-500">
-              Shop chưa cập nhật phần giới thiệu chi tiết.
-            </div>
-          )}
+          <div className="px-4 sm:px-6 py-5">
+            <ShopRichContentRenderer html={intro} />
+          </div>
         </ShopSection>
 
         <ShopSection title="Thống kê shop">

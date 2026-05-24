@@ -25,6 +25,7 @@ import sharp from "sharp";
 
 const AVATAR_SIZE = 512;
 const COVER_MAX_WIDTH = 1600;
+const CONTENT_MAX_WIDTH = 1600;
 
 async function ensureDecodable(buffer) {
   try {
@@ -62,6 +63,39 @@ export async function optimizeAvatar(inputBuffer, baseKey) {
     contentType: "image/webp",
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
+    bytesIn: inputBuffer.length,
+    bytesOut: buffer.length,
+    originalFormat: meta.format,
+  };
+}
+
+/**
+ * Inline content image used inside the rich-text storefront editor.
+ * Same pipeline as cover (1600w cap, webp, EXIF strip), but caller picks
+ * the key (we don't overwrite a fixed `cover.webp` — each image is its
+ * own object).
+ */
+export async function optimizeContent(inputBuffer, baseKey) {
+  const meta = await ensureDecodable(inputBuffer);
+  const buffer = await sharp(inputBuffer)
+    .rotate()
+    .resize({
+      width: CONTENT_MAX_WIDTH,
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82, effort: 4 })
+    .toBuffer();
+  const key = swapExt(baseKey, "webp");
+  // sharp's resize doesn't expose the post-resize dims unless we read
+  // back the metadata; do a second pass so the response carries it for
+  // Tiptap to embed naturally-sized images.
+  const finalMeta = await sharp(buffer).metadata();
+  return {
+    buffer,
+    key,
+    contentType: "image/webp",
+    width: finalMeta.width || null,
+    height: finalMeta.height || null,
     bytesIn: inputBuffer.length,
     bytesOut: buffer.length,
     originalFormat: meta.format,

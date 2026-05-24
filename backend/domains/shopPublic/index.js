@@ -41,6 +41,7 @@ export {
   handleCheckSlug,
   handleUploadAvatar,
   handleUploadCover,
+  handleUploadContent,
 } from "./controllers/sellerPublicPage.controller.js";
 
 export { handleGetCacheDebug } from "./controllers/cacheDebug.controller.js";

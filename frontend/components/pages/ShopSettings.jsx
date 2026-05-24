@@ -43,6 +43,7 @@ import {
 } from "../../api/shopPublicPageApi";
 
 import ShopAddressSelector from "../ShopAddressSelector";
+import ShopRichEditorWithPreview from "../shopsite/ShopRichEditorWithPreview";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
 
@@ -675,14 +676,15 @@ export default function ShopSettings() {
               maxLength={255}
               rows={2}
             />
-            <FieldTextarea
-              label="Giới thiệu chi tiết (intro — storefront)"
-              value={pub.introHtml}
-              onChange={(v) => setP("introHtml", v)}
-              placeholder="Nội dung giới thiệu đầy đủ hiển thị trên trang 'Giới thiệu' của storefront."
-              rows={6}
-              hint="Phase B: sẽ có trình soạn thảo rich text. HTML hợp lệ được chấp nhận."
-            />
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Giới thiệu chi tiết (intro — storefront)
+              </label>
+              <ShopRichEditorWithPreview
+                value={pub.introHtml}
+                onChange={(v) => setP("introHtml", v)}
+              />
+            </div>
             <FieldTextarea
               label="Mô tả shop (marketplace — Otofine.com)"
               value={basic.descriptionHtml}

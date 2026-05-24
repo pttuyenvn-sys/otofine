@@ -10,6 +10,7 @@ import {
   handleCheckSlug,
   handleUploadAvatar,
   handleUploadCover,
+  handleUploadContent,
 } from "../domains/shopPublic/index.js";
 
 /**
@@ -73,6 +74,19 @@ router.post(
   uploadOne.single("file"),
   uploadErrorHandler,
   handleUploadCover,
+);
+
+/**
+ * Inline content image used by the rich-text storefront editor.
+ * Same rate-limit + multer chain as avatar/cover; the controller
+ * uses a random key suffix so each image is its own R2 object.
+ */
+router.post(
+  "/upload-content",
+  publicPageUploadRateLimit,
+  uploadOne.single("file"),
+  uploadErrorHandler,
+  handleUploadContent,
 );
 
 // Route-level fallback for any multer error that escapes a single

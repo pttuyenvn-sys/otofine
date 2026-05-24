@@ -9,8 +9,10 @@ import { uploadToR2 } from "../../../utils/r2-sdk.js";
 import { invalidateShop } from "../cache/caches.js";
 import {
   optimizeAvatar,
+  optimizeContent,
   optimizeCover,
 } from "../utils/imageOptimize.util.js";
+import crypto from "node:crypto";
 import { shopsiteLog } from "../observability/logger.js";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -183,6 +185,65 @@ export async function handleUploadCover(req, res) {
     shopsiteLog.error("upload.fail", {
       shopId: req.shop?.id,
       kind: "cover",
+      msg: err?.message || "err",
+      dur_ms: Date.now() - t,
+    });
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/**
+ * POST /api/shop/public-page/upload-content
+ *
+ * Inline image used inside the rich-text storefront editor.
+ * Unlike avatar/cover, each upload is its own object (the editor can
+ * insert many images), so the key carries a random suffix.
+ *
+ * Response shape is shaped for the Tiptap image extension:
+ *   { ok: true, url, width, height }
+ */
+export async function handleUploadContent(req, res) {
+  const t = Date.now();
+  try {
+    const file = req.file;
+    const v = validateUploadFile(file);
+    if (!v.ok) return res.status(v.status).json({ ok: false, error: v.error });
+
+    const rand = crypto.randomBytes(8).toString("hex");
+    const baseKey = `shop-public/content/${req.shop.id}-${rand}.webp`;
+    let optimized;
+    try {
+      optimized = await optimizeContent(file.buffer, baseKey);
+    } catch (err) {
+      shopsiteLog.warn("upload.decode-failed", {
+        shopId: req.shop.id,
+        kind: "content",
+        bytes_in: file.size,
+        msg: err.message || "decode err",
+      });
+      return res.status(err.status || 400).json({ ok: false, error: err.message || "Ảnh không hợp lệ" });
+    }
+    const url = await uploadToR2(optimized.buffer, optimized.key, optimized.contentType);
+    shopsiteLog.info("upload.ok", {
+      shopId: req.shop.id,
+      kind: "content",
+      bytes_in: optimized.bytesIn,
+      bytes_out: optimized.bytesOut,
+      saved_pct: pctSaved(optimized.bytesIn, optimized.bytesOut),
+      width: optimized.width,
+      height: optimized.height,
+      dur_ms: Date.now() - t,
+    });
+    res.json({
+      ok: true,
+      url,
+      width: optimized.width,
+      height: optimized.height,
+    });
+  } catch (err) {
+    shopsiteLog.error("upload.fail", {
+      shopId: req.shop?.id,
+      kind: "content",
       msg: err?.message || "err",
       dur_ms: Date.now() - t,
     });
