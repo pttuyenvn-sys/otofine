@@ -11,15 +11,20 @@ const client = new S3Client({
   },
 });
 
-export async function uploadToR2(buffer, key) {
-  const contentType = mime.lookup(key) || "application/octet-stream";
+/**
+ * Upload `buffer` to R2 under `key`. `contentType` is optional —
+ * when omitted, derived from the key's extension (preserves the
+ * old call sites' behaviour exactly).
+ */
+export async function uploadToR2(buffer, key, contentType) {
+  const ct = contentType || mime.lookup(key) || "application/octet-stream";
 
   await client.send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET,
       Key: key,
       Body: buffer,
-      ContentType: contentType,
+      ContentType: ct,
     })
   );
 

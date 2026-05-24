@@ -1,4 +1,10 @@
 import { pool } from "../../../config/db.js";
+import {
+  MISS_SENTINEL,
+  TTL_MS,
+  shopExistenceCache,
+} from "../cache/caches.js";
+import { shopsiteLog } from "../observability/logger.js";
 
 /**
  * Read-only repository for the public shop site.
@@ -7,6 +13,11 @@ import { pool } from "../../../config/db.js";
  * existing seller-protected shop CRUD path. The `shops` table itself
  * is shared, but the queries below filter strictly by `slug` and
  * `public_status = 'public'` so a non-published shop can never leak.
+ *
+ * The slug → row lookup is fronted by `shopExistenceCache`. Both the
+ * "exists+public" path and the "not found / not public" path are
+ * cached (with different TTLs) so brute-force scans for invalid slugs
+ * stop hitting the DB after the first attempt.
  */
 
 const PUBLIC_SHOP_COLUMNS = `
@@ -40,9 +51,28 @@ const PUBLIC_SHOP_COLUMNS = `
   s.updatedAt
 `;
 
-/** Resolve a slug to a publicly-visible shop row, or null. */
+/**
+ * Resolve a slug to a publicly-visible shop row, or null.
+ *
+ * Cache contract:
+ *   - hit + public           → cached as the row object       (5 min)
+ *   - missing / not-public   → cached as MISS_SENTINEL        (1 min)
+ *   - empty slug             → never cached, returns null instantly
+ *   - DB error               → propagated, NOTHING cached
+ *
+ * Callers MUST treat the return value as read-only (`Object.freeze`
+ * would be safer but the row is consumed by `toPublicDto` which only
+ * reads it; we trust the call sites).
+ */
 export async function findPublicShopBySlug(slug) {
   if (!slug) return null;
+
+  const cached = shopExistenceCache.get(slug);
+  if (cached !== undefined) {
+    shopsiteLog.info("cache.hit", { cache: "shopExistence", slug, exists: cached !== MISS_SENTINEL });
+    return cached === MISS_SENTINEL ? null : cached;
+  }
+
   const [rows] = await pool.query(
     `
       SELECT ${PUBLIC_SHOP_COLUMNS},
@@ -54,7 +84,14 @@ export async function findPublicShopBySlug(slug) {
     `,
     [slug],
   );
-  return rows[0] || null;
+  const row = rows[0] || null;
+
+  shopExistenceCache.set(slug, row || MISS_SENTINEL, {
+    ttlMs: row ? TTL_MS.existence : TTL_MS.existenceMiss,
+    tags: [`shop:${slug}`],
+  });
+  shopsiteLog.info("cache.miss", { cache: "shopExistence", slug, exists: !!row });
+  return row;
 }
 
 /** Count published products owned by the shop. */

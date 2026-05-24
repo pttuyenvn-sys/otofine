@@ -76,49 +76,109 @@ export function stripPort(host) {
 }
 
 /**
- * Extract a shop subdomain label from a hostname.
- *
- * Returns:
- *   - string  → recognised "<sub>.otofine.com" / "<sub>.localhost" /
- *               "<sub>.lvh.me" / "<sub>.nip.io" style hostname
- *   - null    → apex, *.vercel.app, multi-level subdomain, or anything
- *               we don't recognise (caller MUST treat as "do nothing")
+ * Phase 4.5 hardening: a Host header longer than 253 chars (DNS spec
+ * cap) can be a poisoning probe or a bug; refuse to even parse it.
  */
-export function extractShopSubdomain(hostname) {
-  if (!hostname) return null;
-  const host = stripPort(hostname);
-  if (ROOT_HOSTS.has(host)) return null;
-  if (host.endsWith(".vercel.app")) return null;
+export const MAX_HOST_LENGTH = 253;
+
+/** Phase 4.5: legal DNS hostname charset (RFC 1035 — letters/digits/dot/hyphen). */
+const HOST_CHAR_REGEX = /^[a-z0-9.\-]+$/;
+
+/**
+ * Decision codes returned by `classifyHost` — used by the middleware
+ * to emit structured metric events and decide rewrite vs pass-through.
+ *
+ *   "rewrite_ok"          → real shop subdomain, route to internal path
+ *   "apex"                → apex host (do nothing)
+ *   "reserved_subdomain"  → reserved label (api/admin/...) — pass through
+ *   "invalid_subdomain"   → slug regex failed or empty — pass through
+ *   "multi_level"         → e.g. "foo.bar.otofine.com" — pass through
+ *   "host_too_long"       → > 253 chars — pass through
+ *   "host_invalid_chars"  → non-DNS chars — pass through
+ *   "unknown_suffix"      → e.g. "*.vercel.app" — pass through
+ */
+export const HOST_DECISIONS = Object.freeze({
+  REWRITE_OK: "rewrite_ok",
+  APEX: "apex",
+  RESERVED_SUBDOMAIN: "reserved_subdomain",
+  INVALID_SUBDOMAIN: "invalid_subdomain",
+  MULTI_LEVEL: "multi_level",
+  HOST_TOO_LONG: "host_too_long",
+  HOST_INVALID_CHARS: "host_invalid_chars",
+  UNKNOWN_SUFFIX: "unknown_suffix",
+});
+
+/**
+ * Single source of truth for "what should the middleware do with this
+ * host?". Returns `{ decision, slug?, suffix? }`. NEVER throws.
+ *
+ * Centralizing this here lets us unit-test the matrix and lets the
+ * middleware emit per-decision metrics without ad-hoc branches.
+ */
+export function classifyHost(hostname) {
+  if (!hostname) return { decision: HOST_DECISIONS.APEX };
+  const raw = String(hostname);
+  if (raw.length > MAX_HOST_LENGTH + 10 /* port + brackets margin */) {
+    return { decision: HOST_DECISIONS.HOST_TOO_LONG };
+  }
+  const host = stripPort(raw);
+  if (!host) return { decision: HOST_DECISIONS.APEX };
+  if (host.length > MAX_HOST_LENGTH) {
+    return { decision: HOST_DECISIONS.HOST_TOO_LONG };
+  }
+  if (!HOST_CHAR_REGEX.test(host)) {
+    return { decision: HOST_DECISIONS.HOST_INVALID_CHARS };
+  }
+  if (ROOT_HOSTS.has(host)) return { decision: HOST_DECISIONS.APEX };
+  if (host.endsWith(".vercel.app")) return { decision: HOST_DECISIONS.UNKNOWN_SUFFIX };
 
   const suffixes = [".otofine.com", ".localhost", ".lvh.me", ".nip.io"];
   for (const suffix of suffixes) {
-    if (host.endsWith(suffix)) {
-      const sub = host.slice(0, -suffix.length);
-      if (!sub || sub.includes(".")) return null;
-      return sub;
+    if (!host.endsWith(suffix)) continue;
+    const sub = host.slice(0, -suffix.length);
+    if (!sub) return { decision: HOST_DECISIONS.INVALID_SUBDOMAIN, suffix };
+    if (sub.includes(".")) return { decision: HOST_DECISIONS.MULTI_LEVEL, suffix };
+    if (RESERVED_SUBDOMAINS.has(sub)) {
+      return { decision: HOST_DECISIONS.RESERVED_SUBDOMAIN, slug: sub, suffix };
     }
+    if (!SUBDOMAIN_SLUG_REGEX.test(sub)) {
+      return { decision: HOST_DECISIONS.INVALID_SUBDOMAIN, slug: sub, suffix };
+    }
+    return { decision: HOST_DECISIONS.REWRITE_OK, slug: sub, suffix };
   }
-  return null;
+  return { decision: HOST_DECISIONS.UNKNOWN_SUFFIX };
+}
+
+/**
+ * Extract a shop subdomain label from a hostname.
+ * Thin wrapper around `classifyHost` for backward-compat callers.
+ *
+ * Returns the slug ONLY when the decision is `rewrite_ok`; otherwise
+ * null. Reserved / invalid / multi-level all return null so the
+ * existing call sites (basePath, canonical) keep their old semantics.
+ */
+export function extractShopSubdomain(hostname) {
+  const { decision, slug } = classifyHost(hostname);
+  return decision === HOST_DECISIONS.REWRITE_OK ? slug : null;
 }
 
 /**
  * Decide whether a (host, pathname) pair maps to a shop tenant
- * rewrite. Returns the target internal path, or null to do nothing.
+ * rewrite. Returns `{ slug, internalPath, decision }` or null.
  *
- * Pure function — used by middleware AND by server components that
- * need to know the basePath under which links should be generated.
+ * Phase 4.5: now also exposes the `decision` code on success so the
+ * middleware can attribute its metrics without re-running classification.
  */
 export function resolveShopRewrite({ host, pathname, flagEnabled }) {
   if (!flagEnabled) return null;
-  const sub = extractShopSubdomain(host);
-  if (!sub) return null;
-  if (RESERVED_SUBDOMAINS.has(sub)) return null;
-  if (!SUBDOMAIN_SLUG_REGEX.test(sub)) return null;
+  const cls = classifyHost(host);
+  if (cls.decision !== HOST_DECISIONS.REWRITE_OK) return null;
+  const sub = cls.slug;
   if (pathname.startsWith(`/shops/${sub}`)) return null;
   const cleanPath = pathname.replace(/\/+$/, "") || "/";
   if (!SHOP_REWRITE_PATHS.has(cleanPath)) return null;
   const internalPath = cleanPath === "/" ? `/shops/${sub}` : `/shops/${sub}${cleanPath}`;
-  return { slug: sub, internalPath };
+  return { slug: sub, internalPath, decision: cls.decision };
 }
 
 /**

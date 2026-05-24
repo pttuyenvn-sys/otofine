@@ -1,4 +1,3 @@
-import path from "path";
 import {
   checkSlugAvailability,
   getMyPublicPage,
@@ -7,22 +6,15 @@ import {
   updateMyPublicPage,
 } from "../services/sellerPublicPage.service.js";
 import { uploadToR2 } from "../../../utils/r2-sdk.js";
+import { invalidateShop } from "../cache/caches.js";
+import {
+  optimizeAvatar,
+  optimizeCover,
+} from "../utils/imageOptimize.util.js";
+import { shopsiteLog } from "../observability/logger.js";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
-
-function extFromMime(mime) {
-  switch (mime) {
-    case "image/png": return "png";
-    case "image/jpeg":
-    case "image/jpg":
-      return "jpg";
-    case "image/webp":
-      return "webp";
-    default:
-      return "bin";
-  }
-}
 
 /** GET /api/shop/public-page */
 export async function handleGetMyPublicPage(req, res) {
@@ -41,7 +33,25 @@ export async function handleUpdateMyPublicPage(req, res) {
   try {
     const result = await updateMyPublicPage(req.shop.id, req.body || {});
     if (!result.ok) {
+      const slugErr = (result.errors || []).find((e) => e.field === "slug");
+      if (slugErr) {
+        shopsiteLog.warn("seller.slug-collision", {
+          shopId: req.shop.id,
+          code: slugErr.code,
+        });
+      }
       return res.status(400).json({ ok: false, errors: result.errors });
+    }
+
+    const slug = result.data?.slug;
+    if (slug) {
+      const inv = invalidateShop(slug);
+      shopsiteLog.info("seller.publish-toggle", {
+        shopId: req.shop.id,
+        slug,
+        status: result.data?.publicStatus,
+        invalidated_api_entries: inv.apiEntries,
+      });
     }
     res.json(result);
   } catch (err) {
@@ -81,38 +91,106 @@ function validateUploadFile(file) {
   return { ok: true };
 }
 
-/** POST /api/shop/public-page/upload-avatar */
+/**
+ * POST /api/shop/public-page/upload-avatar
+ *
+ * Pipeline: multer (already enforced size + mime allow-list) →
+ * `validateUploadFile` (re-check at handler layer) → `optimizeAvatar`
+ * (re-decode + 512² webp + strip EXIF; rejects non-images) → R2 →
+ * DB save → cache invalidation.
+ */
 export async function handleUploadAvatar(req, res) {
+  const t = Date.now();
   try {
     const file = req.file;
     const v = validateUploadFile(file);
     if (!v.ok) return res.status(v.status).json({ ok: false, error: v.error });
 
-    const ext = extFromMime(file.mimetype);
-    const key = `shop-public/avatar/${req.shop.id}.${ext}`;
-    const url = await uploadToR2(file.buffer, key);
+    const baseKey = `shop-public/avatar/${req.shop.id}.webp`;
+    let optimized;
+    try {
+      optimized = await optimizeAvatar(file.buffer, baseKey);
+    } catch (err) {
+      shopsiteLog.warn("upload.decode-failed", {
+        shopId: req.shop.id,
+        kind: "avatar",
+        bytes_in: file.size,
+        msg: err.message || "decode err",
+      });
+      return res.status(err.status || 400).json({ ok: false, error: err.message || "Ảnh không hợp lệ" });
+    }
+    const url = await uploadToR2(optimized.buffer, optimized.key, optimized.contentType);
     const fresh = await saveAvatar(req.shop.id, url);
+    const inv = invalidateShop(fresh.slug);
+    shopsiteLog.info("upload.ok", {
+      shopId: req.shop.id,
+      slug: fresh.slug,
+      kind: "avatar",
+      bytes_in: optimized.bytesIn,
+      bytes_out: optimized.bytesOut,
+      saved_pct: pctSaved(optimized.bytesIn, optimized.bytesOut),
+      dur_ms: Date.now() - t,
+      invalidated_api_entries: inv.apiEntries,
+    });
     res.json({ ok: true, avatar: fresh.avatar });
   } catch (err) {
-    console.error("[sellerPublicPage] upload-avatar error:", err);
+    shopsiteLog.error("upload.fail", {
+      shopId: req.shop?.id,
+      kind: "avatar",
+      msg: err?.message || "err",
+      dur_ms: Date.now() - t,
+    });
     res.status(500).json({ error: "Internal server error" });
   }
 }
 
 /** POST /api/shop/public-page/upload-cover */
 export async function handleUploadCover(req, res) {
+  const t = Date.now();
   try {
     const file = req.file;
     const v = validateUploadFile(file);
     if (!v.ok) return res.status(v.status).json({ ok: false, error: v.error });
 
-    const ext = extFromMime(file.mimetype);
-    const key = `shop-public/cover/${req.shop.id}.${ext}`;
-    const url = await uploadToR2(file.buffer, key);
+    const baseKey = `shop-public/cover/${req.shop.id}.webp`;
+    let optimized;
+    try {
+      optimized = await optimizeCover(file.buffer, baseKey);
+    } catch (err) {
+      shopsiteLog.warn("upload.decode-failed", {
+        shopId: req.shop.id,
+        kind: "cover",
+        bytes_in: file.size,
+        msg: err.message || "decode err",
+      });
+      return res.status(err.status || 400).json({ ok: false, error: err.message || "Ảnh không hợp lệ" });
+    }
+    const url = await uploadToR2(optimized.buffer, optimized.key, optimized.contentType);
     const fresh = await saveCover(req.shop.id, url);
+    const inv = invalidateShop(fresh.slug);
+    shopsiteLog.info("upload.ok", {
+      shopId: req.shop.id,
+      slug: fresh.slug,
+      kind: "cover",
+      bytes_in: optimized.bytesIn,
+      bytes_out: optimized.bytesOut,
+      saved_pct: pctSaved(optimized.bytesIn, optimized.bytesOut),
+      dur_ms: Date.now() - t,
+      invalidated_api_entries: inv.apiEntries,
+    });
     res.json({ ok: true, coverImage: fresh.coverImage });
   } catch (err) {
-    console.error("[sellerPublicPage] upload-cover error:", err);
+    shopsiteLog.error("upload.fail", {
+      shopId: req.shop?.id,
+      kind: "cover",
+      msg: err?.message || "err",
+      dur_ms: Date.now() - t,
+    });
     res.status(500).json({ error: "Internal server error" });
   }
+}
+
+function pctSaved(bytesIn, bytesOut) {
+  if (!bytesIn || !bytesOut) return 0;
+  return Math.max(0, Math.round((1 - bytesOut / bytesIn) * 100));
 }

@@ -24,6 +24,8 @@ export {
 
 export { publicShopsiteEnabledOrNotFound } from "./middlewares/enabled.middleware.js";
 export { publicPageUploadRateLimit } from "./middlewares/uploadRateLimit.middleware.js";
+export { slugCheckRateLimit } from "./middlewares/slugCheckRateLimit.middleware.js";
+export { responseCache } from "./middlewares/responseCache.middleware.js";
 
 export {
   handleGetShop,
@@ -40,4 +42,17 @@ export {
   handleUploadCover,
 } from "./controllers/sellerPublicPage.controller.js";
 
+export { handleGetCacheDebug } from "./controllers/cacheDebug.controller.js";
+
 export { sanitizeShopHtml } from "./utils/htmlSanitize.util.js";
+
+export {
+  TTL_MS,
+  invalidateShop,
+  shopExistenceCache,
+  publicApiResponseCache,
+  allCacheStats,
+} from "./cache/caches.js";
+
+export { shopsiteLog, anonymizeIp, withTiming } from "./observability/logger.js";
+export { recordSubdomainEvent, getMiddlewareStats } from "./observability/middlewareStats.js";

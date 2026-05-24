@@ -45,7 +45,14 @@ export async function generateMetadata({ params }) {
 export default async function ShopTenantLayout({ children, params }) {
   const { slug } = await params;
   const shop = await fetchPublicShop(slug);
-  if (!shop) notFound();
+  if (!shop) {
+    // Single source of "unknown shop" observability. The backend
+    // logs its own cache hit/miss separately; this line tells us
+    // the user-facing page actually 404'd, which is the more
+    // actionable signal for spotting bad inbound traffic.
+    console.warn(`[shopsite] event=ssr.unknown-shop slug=${slug}`);
+    notFound();
+  }
 
   // When the request arrived via cuahangoto355.otofine.com (subdomain
   // rewrite from middleware) we generate root-relative tab links so

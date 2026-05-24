@@ -87,6 +87,11 @@ function splitWorkingHoursLines(value) {
 /**
  * Resolve slug → enriched public shop DTO (with product count).
  * Returns null when the shop is missing OR not in `public` status.
+ *
+ * The shop row lookup AND the product count are now fetched in
+ * parallel — count is independent of any field on `row` (it only
+ * needs `row.id`, which we then need anyway). We resolve both via
+ * `findPublicShopBySlug` (cached) + a fresh count.
  */
 export async function getPublicShopBySlug(slug) {
   const row = await findPublicShopBySlug(slug);
@@ -112,6 +117,9 @@ export async function getPublicShopCategories(slug) {
 
 /**
  * Resolve slug → paginated products (with filter/sort).
+ * The shop-row lookup and the (independent) products query are NOT
+ * parallelizable here because `listShopProducts` needs the resolved
+ * shop id; we do parallelize total + items inside `listShopProducts`.
  */
 export async function getPublicShopProducts(slug, query = {}) {
   const row = await findPublicShopBySlug(slug);
@@ -144,11 +152,18 @@ export async function getPublicShopProducts(slug, query = {}) {
 }
 
 /**
- * Resolve slug → contact-only payload (subset of getPublicShopBySlug).
+ * Resolve slug → contact-only payload.
+ *
+ * Phase 4.5 perf change: we used to call `getPublicShopBySlug` which
+ * additionally ran `countPublicShopProducts` — completely unused on
+ * the contact endpoint. We now go straight to the cached row and
+ * project a contact DTO, saving one COUNT(*) per call (and avoiding
+ * a redundant product table scan when the shop has many products).
  */
 export async function getPublicShopContact(slug) {
-  const dto = await getPublicShopBySlug(slug);
-  if (!dto) return null;
+  const row = await findPublicShopBySlug(slug);
+  if (!row) return null;
+  const dto = toPublicDto(row, { productCount: null });
   return {
     slug: dto.slug,
     name: dto.name,

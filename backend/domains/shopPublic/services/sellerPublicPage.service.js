@@ -114,10 +114,15 @@ export async function updateMyPublicPage(shopId, body) {
 
 export async function saveAvatar(shopId, url) {
   await updateShopAvatar(shopId, url);
-  return { ok: true, avatar: url };
+  // Re-read the row so callers can grab the slug for cache invalidation
+  // without having to plumb it through `req.shop` (which is set by an
+  // auth-domain middleware we deliberately don't touch).
+  const fresh = await findOwnedShop(shopId);
+  return { ok: true, avatar: url, slug: fresh?.slug || null };
 }
 
 export async function saveCover(shopId, url) {
   await updateShopCover(shopId, url);
-  return { ok: true, coverImage: url };
+  const fresh = await findOwnedShop(shopId);
+  return { ok: true, coverImage: url, slug: fresh?.slug || null };
 }

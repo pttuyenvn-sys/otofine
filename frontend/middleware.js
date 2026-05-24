@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { resolveShopRewrite } from "@/lib/shopHost";
+import {
+  HOST_DECISIONS,
+  classifyHost,
+  resolveShopRewrite,
+} from "@/lib/shopHost";
 
 /**
  * Two responsibilities, both intentionally tiny:
@@ -19,11 +23,21 @@ import { resolveShopRewrite } from "@/lib/shopHost";
  *      detail, _next assets, fetch calls, etc. — pass through
  *      untouched so existing apex behaviour keeps working.
  *
- * Both safety nets:
+ * Phase 4.5 additions (safety / observability, NOT behavioural):
+ *   - Host classification is centralized in `lib/shopHost.classifyHost`.
+ *   - Edge logs every interesting decision with `[shopsite]` prefix:
+ *       event=middleware.rewrite slug=...
+ *       event=middleware.reserved-subdomain sub=...
+ *       event=middleware.invalid-subdomain ...
+ *       event=middleware.unknown-shop slug=...   (later, page-layer)
+ *   - Hard caps on host length / charset reject Host-header poisoning
+ *     probes before we even look up routes.
+ *
+ * Both safety nets remain:
  *   - PUBLIC_SHOPSITE_SUBDOMAIN_ENABLED=false → middleware is a no-op
  *     for subdomain logic (the /product redirect still runs).
  *   - Reserved labels (www, api, admin, rfq, shop, …) → no rewrite.
- *   - Invalid slug shapes → no rewrite.
+ *   - Invalid slug shapes / multi-level subdomains → no rewrite.
  *   - apex / localhost / *.vercel.app → no rewrite.
  *
  * Rollback: flip the env flag to false and restart the Next process.
@@ -42,6 +56,21 @@ const SHOPSITE_SUBDOMAIN_FLAG =
   FLAG_RAW === "yes" ||
   FLAG_RAW === "on";
 
+/**
+ * Lightweight structured logger for the edge. `console.info` is the
+ * only side-effect API guaranteed to work across both Edge and Node
+ * runtimes for Next.js middleware. NEVER includes IPs or headers.
+ */
+function logEdge(event, fields) {
+  const parts = [`event=${event}`];
+  for (const [k, v] of Object.entries(fields || {})) {
+    if (v === undefined || v === null) continue;
+    const s = String(v);
+    parts.push(/[\s="]/.test(s) ? `${k}="${s.replace(/"/g, "")}"` : `${k}=${s}`);
+  }
+  console.info(`[shopsite] ${parts.join(" ")}`);
+}
+
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -54,6 +83,31 @@ export function middleware(request) {
   }
 
   const host = request.headers.get("host") || "";
+
+  // Emit a single classification line for every host we see (sampled
+  // by the LOG-only nature of the decision; no behavioural cost). This
+  // gives us a clear picture of unknown-subdomain hit rate in prod.
+  const cls = classifyHost(host);
+  switch (cls.decision) {
+    case HOST_DECISIONS.RESERVED_SUBDOMAIN:
+      logEdge("middleware.reserved-subdomain", { sub: cls.slug });
+      break;
+    case HOST_DECISIONS.INVALID_SUBDOMAIN:
+      logEdge("middleware.invalid-subdomain", { sub: cls.slug ?? "-" });
+      break;
+    case HOST_DECISIONS.MULTI_LEVEL:
+      logEdge("middleware.multi-level-host", { suffix: cls.suffix });
+      break;
+    case HOST_DECISIONS.HOST_TOO_LONG:
+      logEdge("middleware.host-too-long", {});
+      break;
+    case HOST_DECISIONS.HOST_INVALID_CHARS:
+      logEdge("middleware.host-invalid-chars", {});
+      break;
+    default:
+      break;
+  }
+
   const decision = resolveShopRewrite({
     host,
     pathname,
@@ -63,6 +117,11 @@ export function middleware(request) {
   if (!decision) {
     return NextResponse.next();
   }
+
+  logEdge("middleware.rewrite", {
+    slug: decision.slug,
+    path: pathname,
+  });
 
   const url = request.nextUrl.clone();
   url.pathname = decision.internalPath;
