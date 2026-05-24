@@ -19,7 +19,9 @@ import { apexProductUrl } from "@/lib/apexOrigin";
  *      Format: "Toyota • Vios • 2018-2021"
  *      Skips any missing field so we never render dangling bullets.
  *   4. Price — 16px, brand red, bold
- *   5. Category chip — 11px, gray, self-start so it doesn't stretch
+ *   5. "Loại hàng" chip — 11px, gray, self-start so it doesn't stretch.
+ *      Source priority: product.partType (from part_knowledge.name_vi)
+ *      → product.category (legacy fallback) → nothing.
  *
  * The fitment line uses `line-clamp-1` + `truncate` so it never
  * pushes the price below the fold on narrow mobile widths.
@@ -28,6 +30,12 @@ export default function ShopProductCard({ product }) {
   if (!product) return null;
   const href = product.productId ? apexProductUrl(product.productId) : "#";
   const fitmentLine = formatVehicleLine(product);
+  // "Loại hàng" — prefer the canonical part-knowledge label (e.g.
+  // "Phớt trục số") over the legacy `category` field, which in seed
+  // data is often a Title-Case clone of the product name. Falls back
+  // to `category`, and finally renders nothing if both are absent so
+  // the chip degrades gracefully.
+  const partTypeLabel = (product.partType || product.category || "").trim();
 
   return (
     <a
@@ -94,9 +102,12 @@ export default function ShopProductCard({ product }) {
         <div className="mt-1 text-[#e60012] font-bold text-base tabular-nums">
           {formatPrice(product.price)}
         </div>
-        {product.category && (
-          <div className="mt-1.5 inline-block self-start text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 max-w-full truncate">
-            {product.category}
+        {partTypeLabel && (
+          <div
+            className="mt-1.5 inline-block self-start text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 max-w-full truncate"
+            title={partTypeLabel}
+          >
+            {partTypeLabel}
           </div>
         )}
       </div>

@@ -149,6 +149,11 @@ export async function getPublicShopProducts(slug, query = {}) {
       price: p.price != null ? Number(p.price) : null,
       image: p.image_url || null,
       category: p.categoryLabel || null,
+      // Canonical "loại hàng" sourced from the parts knowledge base
+      // (e.g. "Phớt trục số", "Máy phát điện", "Van không tải"). The
+      // legacy `category_name` is often a Title-Case clone of `partName`
+      // for seed data, so the card prefers `partType` when present.
+      partType: p.partTypeLabel || null,
       brand: p.brandLabel || null,
       // Phase polish: surface model + year range so the card can show
       // "Toyota • Vios • 2018-2021". Nulls are normalised so the

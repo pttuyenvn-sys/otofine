@@ -177,8 +177,10 @@ export async function listShopProducts({
         WHERE pca5.productId = p.id
         ORDER BY pca5.id ASC
         LIMIT 1
-      ) AS yearToFirst
+      ) AS yearToFirst,
+      pk.name_vi AS partTypeLabel
     FROM products p
+    LEFT JOIN part_knowledge pk ON pk.id = p.part_knowledge_id
     ${categoryJoin}
     ${fitmentJoin}
     ${whereSql}
