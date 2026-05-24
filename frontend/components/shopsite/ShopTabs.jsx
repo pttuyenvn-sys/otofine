@@ -3,21 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
-  { href: "/shop-demo", label: "Trang chủ" },
-  { href: "/shop-demo/gioi-thieu", label: "Giới thiệu" },
-  { href: "/shop-demo/san-pham", label: "Sản phẩm" },
-  { href: "/shop-demo/lien-he", label: "Liên hệ" },
+const TAB_SUFFIXES = [
+  { suffix: "", label: "Trang chủ" },
+  { suffix: "/gioi-thieu", label: "Giới thiệu" },
+  { suffix: "/san-pham", label: "Sản phẩm" },
+  { suffix: "/lien-he", label: "Liên hệ" },
 ];
 
 function isActive(pathname, href) {
   if (!pathname) return false;
-  if (href === "/shop-demo") return pathname === "/shop-demo" || pathname === "/shop-demo/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const norm = pathname.replace(/\/$/, "") || "/";
+  const target = href.replace(/\/$/, "") || "/";
+  if (norm === target) return true;
+  return norm.startsWith(`${target}/`);
 }
 
-export default function ShopTabs() {
-  const pathname = usePathname() || "/shop-demo";
+/**
+ * `basePath` is the URL prefix this shop owns (e.g. "/shop-demo" or
+ * "/shops/cuahangoto355"). Hard-coding it removed in Phase 2 so the
+ * same component renders for both the hardcoded demo (Phase 1) and
+ * every DB-backed shop slug (Phase 2).
+ */
+export default function ShopTabs({ basePath = "/shop-demo" }) {
+  const pathname = usePathname() || basePath;
+  const TABS = TAB_SUFFIXES.map((t) => ({
+    href: `${basePath}${t.suffix}`,
+    label: t.label,
+  }));
   return (
     <nav
       aria-label="Điều hướng cửa hàng"

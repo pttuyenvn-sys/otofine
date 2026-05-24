@@ -13,8 +13,15 @@ const CATEGORY_ICONS = {
 /**
  * Right sidebar: category list with subtle icon column and a
  * "See all categories" footer link.
+ *
+ * `basePath` lets the same component drive both the Phase 1 hardcoded
+ * /shop-demo tree and the Phase 2 dynamic /shops/[slug] tree.
  */
-export default function ShopSidebar({ categories = [], activeSlug }) {
+export default function ShopSidebar({
+  categories = [],
+  activeSlug,
+  basePath = "/shop-demo",
+}) {
   return (
     <ShopSection
       title="Danh mục sản phẩm"
@@ -27,7 +34,7 @@ export default function ShopSidebar({ categories = [], activeSlug }) {
           return (
             <li key={cat.id}>
               <a
-                href={`/shop-demo/san-pham?category=${cat.slug}`}
+                href={`${basePath}/san-pham?category=${encodeURIComponent(cat.slug)}`}
                 className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors ${
                   active ? "bg-red-50" : ""
                 }`}
@@ -48,7 +55,7 @@ export default function ShopSidebar({ categories = [], activeSlug }) {
       </ul>
       <div className="px-4 py-3 border-t border-gray-100">
         <a
-          href="/shop-demo/san-pham"
+          href={`${basePath}/san-pham`}
           className="text-sm text-[#e60012] font-medium inline-flex items-center gap-1 hover:underline"
         >
           Xem tất cả danh mục ›

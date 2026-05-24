@@ -40,6 +40,8 @@ import vehicleSeoRoutes from "./routes/vehicleSeo.routes.js";
 import { mountRfqRoutes, rfqFlags } from "./modules/rfq/index.js";
 import rfqAdminRoutes from "./modules/rfq/routes/rfq.admin.routes.js";
 import rfqPushRoutes from "./routes/rfqPush.routes.js";
+import publicShopRoutes from "./routes/publicShop.routes.js";
+import { publicShopConfig } from "./domains/shopPublic/index.js";
 
 const app = express();
 app.use(express.json());
@@ -114,6 +116,20 @@ app.get(
 app.use("/api/auth", authRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/shops", shopRoutes);
+
+/**
+ * Public shopsite read-only API. Mount-time gate:
+ * if PUBLIC_SHOPSITE_ENABLED is falsy the router never registers, so
+ * `/api/public/shops/*` returns Express's default 404. The router also
+ * carries an internal middleware as a runtime safety net.
+ * See: audit/shop-public-pages-overview.md
+ */
+if (publicShopConfig.enabled) {
+  app.use("/api/public/shops", publicShopRoutes);
+  console.info("[publicShop] routes mounted at /api/public/shops");
+} else {
+  console.info("[publicShop] disabled (PUBLIC_SHOPSITE_ENABLED=false)");
+}
 
 app.use("/api/knowledge", knowledgePublicRoutes);
 app.use("/api/part-knowledge", partKnowledgeRoutes);

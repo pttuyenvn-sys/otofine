@@ -1,0 +1,48 @@
+import { normalizeSlugParam, isValidShopSlug } from "../utils/slug.util.js";
+import { publicShopConfig } from "../config/publicShop.config.js";
+
+/**
+ * Validate the :slug URL param. Returns the normalized slug or null.
+ */
+export function validateShopSlugParam(rawSlug) {
+  const slug = normalizeSlugParam(rawSlug);
+  if (!isValidShopSlug(slug)) return null;
+  return slug;
+}
+
+/**
+ * Validate the products list query params. Whitelist-only — anything
+ * else is dropped silently to keep the API surface stable.
+ */
+export function validateProductsQuery(q = {}) {
+  const out = {};
+  if (typeof q.q === "string" && q.q.trim()) out.q = q.q.trim().slice(0, 80);
+  if (typeof q.category === "string" && q.category.trim()) {
+    out.category = q.category.trim().toLowerCase().slice(0, 80);
+  }
+  if (typeof q.brand === "string" && q.brand.trim()) {
+    out.brand = q.brand.trim().slice(0, 80);
+  }
+  if (typeof q.model === "string" && q.model.trim()) {
+    out.model = q.model.trim().slice(0, 80);
+  }
+  if (typeof q.sort === "string") {
+    const s = q.sort.toLowerCase();
+    if (s === "newest" || s === "price_asc" || s === "price_desc") {
+      out.sort = s;
+    }
+  }
+  const page = Number(q.page);
+  if (Number.isFinite(page) && page > 0 && page <= 500) {
+    out.page = Math.floor(page);
+  } else {
+    out.page = 1;
+  }
+  const perPage = Number(q.perPage);
+  if (Number.isFinite(perPage) && perPage > 0 && perPage <= 60) {
+    out.perPage = Math.floor(perPage);
+  } else {
+    out.perPage = publicShopConfig.listPageSize;
+  }
+  return out;
+}
