@@ -3,7 +3,10 @@ import ShopHeader from "@/components/shopsite/ShopHeader";
 import ShopTabs from "@/components/shopsite/ShopTabs";
 import ShopFloatingMobileCTA from "@/components/shopsite/ShopFloatingMobileCTA";
 import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
+import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
+import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
+import { buildShopJsonLd } from "@/lib/shopsite/buildShopJsonLd";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
@@ -21,20 +24,16 @@ export async function generateMetadata({ params }) {
     };
   }
   // Layout metadata is the *fallback* for pages that don't override it.
-  // Each concrete page (homepage/san-pham/gioi-thieu/lien-he) sets its
-  // own canonical via generateMetadata to avoid duplicate canonical
-  // surface. Title + description live here so they cascade.
-  return {
-    title: `${shop.name} — Phụ tùng ô tô | Otofine`,
-    description: shop.shortDescription || `Phụ tùng ô tô — ${shop.name}`,
-    // Phase 4 still keeps subdomain pages out of the index. Indexing
-    // flips on in Phase 5 — until then the self-canonical above is
-    // pre-wired but inert from a crawler perspective.
-    robots: { index: false, follow: false },
-    alternates: {
-      canonical: await getShopCanonicalUrl(slug, ""),
-    },
-  };
+  // Each concrete page (homepage / san-pham / gioi-thieu / lien-he)
+  // sets its own canonical + page-scoped title via generateMetadata
+  // to avoid duplicate canonical surface. We build a complete
+  // OG / Twitter / robots payload here so social previews work even
+  // for pages that haven't overridden it.
+  return buildShopMetadata({
+    shop,
+    page: { subtitle: "Phụ tùng ô tô" },
+    canonical: await getShopCanonicalUrl(slug, ""),
+  });
 }
 
 /**
@@ -64,6 +63,14 @@ export default async function ShopTenantLayout({ children, params }) {
   // /shops/<slug> prefix so the URL remains routable.
   const basePath = await getShopBasePath(shop.slug);
   const badges = deriveShopTrustBadges(shop);
+  // Phase 5.5 — emit the AutoPartsStore / LocalBusiness / Organization
+  // JSON-LD once at the layout level so all 4 tabs share the same
+  // structured-data block. Safe even under noindex: search engines
+  // simply won't read it until indexing flips on.
+  const jsonLd = buildShopJsonLd({
+    shop,
+    canonicalUrl: await getShopCanonicalUrl(shop.slug, ""),
+  });
 
   return (
     <>
@@ -90,6 +97,9 @@ export default async function ShopTenantLayout({ children, params }) {
           no contact data. */}
       <ShopFloatingMobileCTA shop={mapToCtaShape(shop)} />
       <ShopAnalyticsBoot shopSlug={shop.slug} shopName={shop.name} />
+
+      {/* Phase 5.5 — structured data for search engines. */}
+      <ShopJsonLd payload={jsonLd} />
     </>
   );
 }

@@ -7,12 +7,14 @@ import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import {
   fetchPublicShop,
+  fetchPublicShopSafe,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
   fetchPublicShopFitments,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
+import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 const FILTERS_FALLBACK = (
   <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
@@ -23,7 +25,11 @@ const SIDEBAR_FALLBACK = (
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  return { alternates: { canonical: await getShopCanonicalUrl(slug, "") } };
+  const [shop, canonical] = await Promise.all([
+    fetchPublicShopSafe(slug),
+    getShopCanonicalUrl(slug, ""),
+  ]);
+  return buildShopMetadata({ shop, page: { subtitle: "Phụ tùng ô tô" }, canonical });
 }
 
 export default async function ShopTenantHomePage({ params }) {

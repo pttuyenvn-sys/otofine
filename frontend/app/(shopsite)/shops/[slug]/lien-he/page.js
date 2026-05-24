@@ -1,10 +1,19 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
-import { fetchPublicShopContact, getShopCanonicalUrl } from "@/services/shopPublic.service";
+import {
+  fetchPublicShopContact,
+  fetchPublicShopSafe,
+  getShopCanonicalUrl,
+} from "@/services/shopPublic.service";
+import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  return { alternates: { canonical: await getShopCanonicalUrl(slug, "lien-he") } };
+  const [shop, canonical] = await Promise.all([
+    fetchPublicShopSafe(slug),
+    getShopCanonicalUrl(slug, "lien-he"),
+  ]);
+  return buildShopMetadata({ shop, page: { subtitle: "Liên hệ" }, canonical });
 }
 
 export default async function ShopTenantContactPage({ params }) {

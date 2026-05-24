@@ -18,16 +18,22 @@ const SIDEBAR_FALLBACK = (
 );
 import {
   fetchPublicShop,
+  fetchPublicShopSafe,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
   fetchPublicShopFitments,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
+import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  return { alternates: { canonical: await getShopCanonicalUrl(slug, "san-pham") } };
+  const [shop, canonical] = await Promise.all([
+    fetchPublicShopSafe(slug),
+    getShopCanonicalUrl(slug, "san-pham"),
+  ]);
+  return buildShopMetadata({ shop, page: { subtitle: "Sản phẩm" }, canonical });
 }
 
 const PER_PAGE = 20;

@@ -49,6 +49,7 @@ import ShopAddressSelector from "../ShopAddressSelector";
 import ShopRichEditorWithPreview from "../shopsite/ShopRichEditorWithPreview";
 import ShopPolicyEditor from "../shopsite/ShopPolicyEditor";
 import ShopCompletionPanel from "./shop-settings/ShopCompletionPanel";
+import ShopSeoPreviewPanel from "./shop-settings/ShopSeoPreviewPanel";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
 import { normalizeRichHtml } from "@/lib/shopsite/normalizeRichHtml";
@@ -550,6 +551,14 @@ export default function ShopSettings() {
         pub={{ ...pub, avatar: avatarPreview, coverImage: coverPreview }}
       />
 
+      {/* Phase 5.5 — SEO readiness panel.  Same form state, second
+          set of weights tuned for indexing + social-share previews. */}
+      <ShopSeoPreviewPanel
+        basic={basic}
+        pub={pub}
+        extras={{ avatar: avatarPreview, cover: coverPreview }}
+      />
+
       {/* Jump-to nav */}
       <nav className="mb-6 flex flex-wrap gap-2">
         {[
@@ -559,6 +568,7 @@ export default function ShopSettings() {
           ["#intro",       "Giới thiệu"],
           ["#contact",     "Liên hệ & mạng xã hội"],
           ["#policies",    "Chính sách (marketplace)"],
+          ["#seo",         "SEO"],
         ].map(([href, label]) => (
           <a
             key={href}

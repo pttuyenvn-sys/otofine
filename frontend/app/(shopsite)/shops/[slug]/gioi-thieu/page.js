@@ -2,11 +2,16 @@ import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
-import { fetchPublicShop, getShopCanonicalUrl } from "@/services/shopPublic.service";
+import { fetchPublicShop, fetchPublicShopSafe, getShopCanonicalUrl } from "@/services/shopPublic.service";
+import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  return { alternates: { canonical: await getShopCanonicalUrl(slug, "gioi-thieu") } };
+  const [shop, canonical] = await Promise.all([
+    fetchPublicShopSafe(slug),
+    getShopCanonicalUrl(slug, "gioi-thieu"),
+  ]);
+  return buildShopMetadata({ shop, page: { subtitle: "Giới thiệu" }, canonical });
 }
 
 export default async function ShopTenantAboutPage({ params }) {

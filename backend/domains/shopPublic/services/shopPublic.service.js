@@ -78,6 +78,25 @@ function toPublicDto(row, extras = {}) {
       ),
       topBrands: extras.topBrands || [],
     },
+
+    /**
+     * Phase 5.5 — SEO eligibility gate.
+     *
+     * Indexing is NOT enabled by Phase 5.5; this flag prepares the
+     * authority signal for the future rollout. Each storefront page
+     * inspects `seoEligible` AND the `NEXT_PUBLIC_SHOPSITE_INDEX_ENABLED`
+     * env flag before flipping `robots: { index: true, follow: true }`.
+     *
+     * Reasons are returned for two consumers:
+     *   - seller-side settings panel ("Còn 2 việc nữa trước khi shop
+     *     có thể được Google index")
+     *   - server-side debug logs
+     *
+     * Backwards-compatible: the legacy DTO shape is unchanged; older
+     * clients that don't read `seoEligible` keep working.
+     */
+    seoEligible: extras.seoEligible ?? false,
+    seoReasons: extras.seoReasons || [],
   };
 }
 
@@ -138,7 +157,46 @@ export async function getPublicShopBySlug(slug) {
     countPublicShopProducts(row.id),
     listShopTopBrands(row.id, 3),
   ]);
-  return toPublicDto(row, { productCount, topBrands });
+  const { eligible, reasons } = evaluateSeoEligibility(row, productCount);
+  return toPublicDto(row, {
+    productCount,
+    topBrands,
+    seoEligible: eligible,
+    seoReasons: reasons,
+  });
+}
+
+/**
+ * Server-side SEO eligibility gate.
+ *
+ * A shop is eligible for indexing iff all of the following hold:
+ *   1. `public_status` is exactly "public"
+ *   2. `slug` is present and at least 4 characters long
+ *   3. shop has either an avatar OR a cover image (something for OG)
+ *   4. shop has either rich intro html OR a bio (something for the
+ *      meta description)
+ *   5. shop has a phone number (LocalBusiness JSON-LD requires one)
+ *   6. shop has at least 1 product live
+ *
+ * The function NEVER throws; on unexpected input it returns
+ * `{ eligible: false, reasons: ['internal'] }` so the SSR path always
+ * has a defined gate.
+ *
+ * Reasons use stable string IDs so the frontend can render its own
+ * localised explanation without trusting server-side copy.
+ */
+function evaluateSeoEligibility(row, productCount) {
+  if (!row) return { eligible: false, reasons: ["internal"] };
+  const reasons = [];
+  if ((row.public_status || "").toLowerCase() !== "public") reasons.push("not_public");
+  const slug = (row.slug || "").trim();
+  if (!slug || slug.length < 4) reasons.push("bad_slug");
+  if (!row.avatar && !row.cover && !row.cover_image) reasons.push("no_image");
+  const hasIntro = (row.intro_html || row.descriptionHtml || row.bio || "").toString().trim().length > 0;
+  if (!hasIntro) reasons.push("no_description");
+  if (!(row.phone || "").toString().trim()) reasons.push("no_phone");
+  if (!productCount || Number(productCount) < 1) reasons.push("no_products");
+  return { eligible: reasons.length === 0, reasons };
 }
 
 /**
