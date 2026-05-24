@@ -24,6 +24,8 @@ export default function AppShell({ children }) {
     NO_LAYOUT.has(pathname) ||
     pathname.startsWith("/rfq") ||
     pathname.startsWith("/product/") ||
+    pathname === "/shop-demo" ||
+    pathname.startsWith("/shop-demo/") ||
     isMarketingSingle;
 
   if (hideLayout) {
