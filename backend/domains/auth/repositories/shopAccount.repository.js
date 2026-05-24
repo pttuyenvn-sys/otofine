@@ -45,8 +45,9 @@ export async function findByIdentifier({ type, value }) {
 }
 
 export async function updatePasswordHash(accountId, passwordHash) {
-  await pool.query("UPDATE shop_accounts SET passwordHash = ? WHERE id = ?", [
-    passwordHash,
-    accountId,
-  ]);
+  const [result] = await pool.query(
+    "UPDATE shop_accounts SET passwordHash = ? WHERE id = ?",
+    [passwordHash, accountId],
+  );
+  return result;
 }

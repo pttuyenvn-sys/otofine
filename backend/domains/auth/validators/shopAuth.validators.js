@@ -42,7 +42,13 @@ export function validateResetPasswordBody(body) {
   if (pwErr) {
     return { ok: false, status: 400, message: pwErr };
   }
-  return { ok: true, data: { token, password } };
+  return {
+    ok: true,
+    data: {
+      token,
+      newPassword: password,
+    },
+  };
 }
 
 /** Forgot password — email only (production). */

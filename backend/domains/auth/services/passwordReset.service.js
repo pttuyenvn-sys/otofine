@@ -68,7 +68,7 @@ export async function requestShopPasswordResetByEmail(emailRaw, meta = {}) {
   return result;
 }
 
-export async function resetShopPassword({ token, password }, meta = {}) {
+export async function resetShopPassword({ token, newPassword }, meta = {}) {
   const tokenHash = hashToken(String(token ?? "").trim());
   const row = await passwordResetRepo.findValidResetByHash(tokenHash);
   if (!row) {
@@ -79,7 +79,7 @@ export async function resetShopPassword({ token, password }, meta = {}) {
     };
   }
 
-  const passwordHash = await passwordService.hashPassword(password);
+  const passwordHash = await passwordService.hashPassword(newPassword);
   await shopAccountRepo.updatePasswordHash(row.account_id, passwordHash);
   await passwordResetRepo.markResetUsed(row.id);
   await refreshTokenRepo.revokeAllForAccount(row.account_id);

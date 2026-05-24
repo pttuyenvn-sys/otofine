@@ -1,10 +1,12 @@
+// Load .env BEFORE any other module is evaluated. ESM hoists imports
+// to the top of the file, so a separate `dotenv.config()` call would
+// run AFTER every imported module had already read `process.env`.
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import path from "path";
 import axios from "axios";
-
-dotenv.config({ quiet: true });
 
 import authRoutes from "./routes/auth.routes.js";
 import shopRoutes from "./routes/shop.routes.js";
