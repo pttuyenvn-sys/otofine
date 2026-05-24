@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import {
-  fetchPublicShopContact,
+  fetchPublicShopContactSafe,
   fetchPublicShopSafe,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
@@ -18,7 +18,9 @@ export async function generateMetadata({ params }) {
 
 export default async function ShopTenantContactPage({ params }) {
   const { slug } = await params;
-  const contact = await fetchPublicShopContact(slug);
+  // Phase 5.7 — soft fetch; on transient API failure we'd rather
+  // notFound() than throw an SSR error boundary.
+  const contact = await fetchPublicShopContactSafe(slug);
   if (!contact) notFound();
 
   return (

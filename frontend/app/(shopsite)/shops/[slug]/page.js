@@ -8,9 +8,9 @@ import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
-  fetchPublicShopProducts,
-  fetchPublicShopCategories,
-  fetchPublicShopFitments,
+  fetchPublicShopProductsSafe,
+  fetchPublicShopCategoriesSafe,
+  fetchPublicShopFitmentsSafe,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
@@ -35,11 +35,14 @@ export async function generateMetadata({ params }) {
 export default async function ShopTenantHomePage({ params }) {
   const { slug } = await params;
 
+  // Phase 5.7 — Only the shop fetch is mandatory; the other three
+  // degrade gracefully so a transient categories/fitments outage
+  // doesn't break the page.
   const [shop, productsPage, categoriesPayload, fitments] = await Promise.all([
     fetchPublicShop(slug),
-    fetchPublicShopProducts(slug, { perPage: 5, sort: "newest" }),
-    fetchPublicShopCategories(slug),
-    fetchPublicShopFitments(slug),
+    fetchPublicShopProductsSafe(slug, { perPage: 5, sort: "newest" }),
+    fetchPublicShopCategoriesSafe(slug),
+    fetchPublicShopFitmentsSafe(slug),
   ]);
 
   if (!shop) notFound();

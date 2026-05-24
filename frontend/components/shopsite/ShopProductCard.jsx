@@ -4,6 +4,7 @@ import { formatPrice } from "@/data/shop-demo";
 import { apexProductUrl } from "@/lib/apexOrigin";
 import { deriveProductTrustBadge } from "@/lib/shopsite/productTrust";
 import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
+import ShopImage from "./ShopImage";
 
 /**
  * Vertical product card (Shopee-like).
@@ -57,19 +58,12 @@ export default function ShopProductCard({ product, shopSlug }) {
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-md transition-all"
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
-        {product.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image}
-            alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400 text-xs">
-            Không có ảnh
-          </div>
-        )}
+        <ShopImage
+          src={product.image || ""}
+          alt={product.name || "Sản phẩm"}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          fallbackClassName="h-full w-full"
+        />
         {trustBadge && (
           <span
             className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm ring-1 backdrop-blur-sm ${TRUST_TONES[trustBadge.tone] || TRUST_TONES.gray}`}
@@ -80,7 +74,7 @@ export default function ShopProductCard({ product, shopSlug }) {
         )}
         <button
           type="button"
-          aria-label="Yêu thích"
+          aria-label={`Lưu sản phẩm ${product.name || ""}`.trim()}
           className="absolute top-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/90 text-gray-500 hover:text-[#e60012] shadow-sm"
           onClick={(e) => e.preventDefault()}
         >

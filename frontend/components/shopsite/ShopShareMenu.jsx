@@ -115,6 +115,7 @@ export default function ShopShareMenu({ shopName, shopSlug }) {
         type="button"
         onClick={handleOpenClick}
         className="inline-flex items-center gap-1.5 hover:text-[#e60012] whitespace-nowrap text-gray-600"
+        aria-label="Chia sẻ shop"
         aria-haspopup="menu"
         aria-expanded={open}
       >

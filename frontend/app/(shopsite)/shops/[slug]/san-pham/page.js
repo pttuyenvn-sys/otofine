@@ -19,9 +19,9 @@ const SIDEBAR_FALLBACK = (
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
-  fetchPublicShopProducts,
-  fetchPublicShopCategories,
-  fetchPublicShopFitments,
+  fetchPublicShopProductsSafe,
+  fetchPublicShopCategoriesSafe,
+  fetchPublicShopFitmentsSafe,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
@@ -57,11 +57,15 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
   // Parallelise everything that doesn't depend on the shop row. The
   // backend's `findPublicShopBySlug` is cached so the implicit lookup
   // inside each call is essentially free after the first hit.
+  //
+  // Phase 5.7 — only the shop fetch is mandatory; the others use
+  // graceful `*Safe` wrappers so a partial backend outage degrades
+  // to "no filters" instead of breaking the whole page.
   const [shop, productsPage, categoriesPayload, fitments] = await Promise.all([
     fetchPublicShop(slug),
-    fetchPublicShopProducts(slug, filterArgs),
-    fetchPublicShopCategories(slug),
-    fetchPublicShopFitments(slug),
+    fetchPublicShopProductsSafe(slug, filterArgs),
+    fetchPublicShopCategoriesSafe(slug),
+    fetchPublicShopFitmentsSafe(slug),
   ]);
 
   if (!shop) notFound();

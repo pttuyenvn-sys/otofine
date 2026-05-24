@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
+import ShopImage from "@/components/shopsite/ShopImage";
 import { fetchPublicShop, fetchPublicShopSafe, getShopCanonicalUrl } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
@@ -26,12 +27,12 @@ export default async function ShopTenantAboutPage({ params }) {
       <div className="lg:col-span-8 space-y-3">
         <ShopSection title="Giới thiệu" bodyClassName="!p-0">
           {shop.cover && (
-            <div className="relative aspect-[16/6] overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="relative aspect-[16/6] overflow-hidden bg-gray-100">
+              <ShopImage
                 src={shop.cover}
                 alt={`Cửa hàng ${shop.name}`}
                 className="absolute inset-0 w-full h-full object-cover"
+                fallbackClassName="absolute inset-0 w-full h-full"
               />
               <div
                 aria-hidden

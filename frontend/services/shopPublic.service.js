@@ -75,6 +75,59 @@ export async function fetchPublicShopSafe(slug) {
 }
 
 /**
+ * Phase 5.7 — graceful-degradation wrappers.
+ *
+ * The page handlers Promise.all over `shop`, `products`, `categories`,
+ * `fitments`. Before hardening, a single failed fetch in that array
+ * (transient 500, rate-limit 429, transient network blip) would throw
+ * out of the `await` and surface a full Next.js error boundary.
+ *
+ * For non-essential pieces (categories, fitments) we'd much rather
+ * degrade to "no filters available" than break the whole page. These
+ * `*Safe` helpers swallow the error, log a warning to the SSR
+ * console (PM2 logs), and return a sentinel that the page can render
+ * around.
+ *
+ * For the shop fetch itself we intentionally do NOT add a safe
+ * variant — if the shop doesn't load, the page must `notFound()`.
+ */
+export async function fetchPublicShopProductsSafe(slug, query = {}) {
+  try {
+    return await fetchPublicShopProducts(slug, query);
+  } catch (err) {
+    console.warn("[shopPublic.service] products fallback", { slug, err: err?.message });
+    return { items: [], total: 0, page: query?.page || 1, perPage: query?.perPage || 20 };
+  }
+}
+
+export async function fetchPublicShopCategoriesSafe(slug) {
+  try {
+    return await fetchPublicShopCategories(slug);
+  } catch (err) {
+    console.warn("[shopPublic.service] categories fallback", { slug, err: err?.message });
+    return { items: [] };
+  }
+}
+
+export async function fetchPublicShopFitmentsSafe(slug) {
+  try {
+    return await fetchPublicShopFitments(slug);
+  } catch (err) {
+    console.warn("[shopPublic.service] fitments fallback", { slug, err: err?.message });
+    return { brands: [], modelsByBrand: {}, years: [] };
+  }
+}
+
+export async function fetchPublicShopContactSafe(slug) {
+  try {
+    return await fetchPublicShopContact(slug);
+  } catch (err) {
+    console.warn("[shopPublic.service] contact fallback", { slug, err: err?.message });
+    return null;
+  }
+}
+
+/**
  * Compute the basePath for in-shop links given the current request host.
  *
  * - On `cuahangoto355.otofine.com` (and local *.localhost variants):

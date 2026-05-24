@@ -1,5 +1,6 @@
 import ShopTrustBadges from "./ShopTrustBadges";
 import ShopShareMenu from "./ShopShareMenu";
+import ShopImage from "./ShopImage";
 
 /**
  * Top of the shop public site:
@@ -29,43 +30,60 @@ export default function ShopHeader({ shop, badges }) {
     .join("")
     .toUpperCase();
 
+  // Defensive coercion — Phase 5.7 hardening. Real shop rows
+  // sometimes have NULL phone / zalo / shortDescription (newly
+  // signed-up sellers). Strip them once at the top so every leaf
+  // can render `tel:${phone}` without a null guard.
+  const safePhone = (shop.phone || "").replace(/\s/g, "");
+  const safeZalo = (shop.zalo || safePhone || "").replace(/\s/g, "");
+  const safeShort = shop.shortDescription || "";
+
   return (
     <div className="space-y-3">
       {/* A. Utility topbar */}
       <div className="bg-white rounded-2xl shadow-sm px-3 sm:px-5 py-2 flex items-center justify-between gap-4 text-xs sm:text-sm">
         <div className="flex items-center gap-4 sm:gap-6 min-w-0 overflow-x-auto">
-          <span className="inline-flex items-center gap-2 text-gray-700 whitespace-nowrap">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-[#e60012]">
-              <PhoneIcon />
+          {safePhone && (
+            <span className="inline-flex items-center gap-2 text-gray-700 whitespace-nowrap">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-[#e60012]">
+                <PhoneIcon />
+              </span>
+              <span className="font-medium">{shop.phone}</span>
             </span>
-            <span className="font-medium">{shop.phone}</span>
-          </span>
-          <span className="inline-flex items-center gap-2 text-gray-700 whitespace-nowrap">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-[#e60012]">
-              <ClockIcon />
+          )}
+          {shop.workingHoursShort && (
+            <span className="inline-flex items-center gap-2 text-gray-700 whitespace-nowrap">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-[#e60012]">
+                <ClockIcon />
+              </span>
+              {shop.workingHoursShort}
             </span>
-            {shop.workingHoursShort}
-          </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3 sm:gap-5 text-gray-600 shrink-0">
-          <UtilButton icon={<HeartIcon />}>Theo dõi shop</UtilButton>
+          <UtilButton icon={<HeartIcon />} label="Theo dõi shop">Theo dõi shop</UtilButton>
           <ShopShareMenu shopName={shop.name} shopSlug={shop.slug} />
-          <UtilButton icon={<SearchIcon />}>Tìm kiếm</UtilButton>
+          <UtilButton icon={<SearchIcon />} label="Tìm kiếm">Tìm kiếm</UtilButton>
         </div>
       </div>
 
-      {/* B. Cover section */}
+      {/* B. Cover section — Phase 5.7: ShopImage so a broken /
+          missing R2 URL doesn't render a Chrome broken-icon hole;
+          the cover is the LCP, so `priority` flips
+          loading="eager" + fetchpriority="high". */}
       <div className="relative rounded-2xl overflow-hidden shadow-sm">
         <div className="relative aspect-[16/7] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
-          {shop.cover && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+          {shop.cover ? (
+            <ShopImage
               src={shop.cover}
               alt={`Ảnh bìa ${shop.name}`}
               className="absolute inset-0 w-full h-full object-cover"
+              fallbackClassName="absolute inset-0 w-full h-full"
+              fallback={null}
+              priority
             />
-          )}
+          ) : null}
           {/* Phase 4 polish: deeper bottom gradient + radial fade at the
               bottom-left so the avatar+name area always stays readable
               regardless of cover content; subtle top vignette keeps the
@@ -84,13 +102,23 @@ export default function ShopHeader({ shop, badges }) {
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 w-full">
               {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-black/80 ring-2 ring-white/10 border-2 sm:border-[3px] border-white shadow-xl flex items-center justify-center text-white">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-black/80 ring-2 ring-white/10 border-2 sm:border-[3px] border-white shadow-xl flex items-center justify-center text-white overflow-hidden">
                   {shop.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <ShopImage
                       src={shop.avatar}
                       alt={`Logo ${shop.name}`}
                       className="w-full h-full rounded-full object-cover"
+                      fallbackClassName="w-full h-full rounded-full bg-black/80"
+                      fallback={
+                        <div className="text-center leading-tight">
+                          <div className="text-base sm:text-2xl font-extrabold tracking-wide text-[#ff4d4d]">
+                            {initials || "355"}
+                          </div>
+                          <div className="text-[8px] sm:text-[10px] font-semibold text-white/80 tracking-widest">
+                            AUTO PARTS
+                          </div>
+                        </div>
+                      }
                     />
                   ) : (
                     <div className="text-center leading-tight">
@@ -124,44 +152,60 @@ export default function ShopHeader({ shop, badges }) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-white/85 mt-1 line-clamp-2">
-                  {shop.shortDescription}
-                </p>
+                {safeShort && (
+                  <p className="text-xs sm:text-sm text-white/85 mt-1 line-clamp-2">
+                    {safeShort}
+                  </p>
+                )}
 
                 <div className="mt-2 flex items-center flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-white/90">
-                  <span className="inline-flex items-center gap-1">
-                    <PinIcon /> {shop.province}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <StarIcon /> {shop.rating}{" "}
-                    <span className="text-white/70">
-                      ({shop.ratingCount} đánh giá)
+                  {shop.province && (
+                    <span className="inline-flex items-center gap-1">
+                      <PinIcon /> {shop.province}
                     </span>
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <UsersIcon /> {shop.customerCount} khách hàng
-                  </span>
+                  )}
+                  {shop.rating != null && (
+                    <span className="inline-flex items-center gap-1">
+                      <StarIcon /> {shop.rating}{" "}
+                      <span className="text-white/70">
+                        ({shop.ratingCount ?? 0} đánh giá)
+                      </span>
+                    </span>
+                  )}
+                  {shop.customerCount != null && (
+                    <span className="inline-flex items-center gap-1">
+                      <UsersIcon /> {shop.customerCount} khách hàng
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* CTAs — Phase 4 polish: stronger hover, focus ring,
-                  scale microtransition, mobile takes full-row spacing. */}
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
-                <a
-                  href={`https://zalo.me/${shop.zalo.replace(/\s/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
-                >
-                  <ChatIcon /> Nhắn tin
-                </a>
-                <a
-                  href={`tel:${shop.phone.replace(/\s/g, "")}`}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
-                >
-                  <PhoneIcon /> Gọi ngay
-                </a>
-              </div>
+                  scale microtransition, mobile takes full-row spacing.
+                  Phase 5.7: each button hides if its contact field is
+                  empty (no more `shop.phone.replace()` on null). */}
+              {(safePhone || safeZalo) && (
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
+                  {safeZalo && (
+                    <a
+                      href={`https://zalo.me/${safeZalo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
+                    >
+                      <ChatIcon /> Nhắn tin
+                    </a>
+                  )}
+                  {safePhone && (
+                    <a
+                      href={`tel:${safePhone}`}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
+                    >
+                      <PhoneIcon /> Gọi ngay
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -175,10 +219,14 @@ export default function ShopHeader({ shop, badges }) {
   );
 }
 
-function UtilButton({ icon, children }) {
+function UtilButton({ icon, label, children }) {
+  // `label` mirrors the visible text and stays attached as `aria-label`
+  // so screen readers — and Lighthouse `button-name` — can name the
+  // control even when the visible label is hidden at the `sm:` breakpoint.
   return (
     <button
       type="button"
+      aria-label={label || (typeof children === "string" ? children : undefined)}
       className="inline-flex items-center gap-1.5 hover:text-[#e60012] whitespace-nowrap"
     >
       <span aria-hidden>{icon}</span>

@@ -152,6 +152,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-label={placeholder}
         className="flex-1 min-w-0 appearance-none bg-transparent text-sm text-gray-800 focus:outline-none"
       >
         <option value="">{placeholder}</option>
