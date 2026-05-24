@@ -3,6 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 import AuthCard from "../AuthCard";
+import PasswordInput from "../PasswordInput";
 import { API_BASE } from "@/lib/config";
 
 export default function ShopRegister() {
@@ -12,6 +13,7 @@ export default function ShopRegister() {
     phone: "",
     password: "",
   });
+  const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState("");
 
   function handleChange(key, value) {
@@ -20,6 +22,11 @@ export default function ShopRegister() {
 
   async function submit(e) {
     e.preventDefault();
+    setMsg("");
+    if (form.password !== confirm) {
+      setMsg("Mật khẩu xác nhận không khớp");
+      return;
+    }
     try {
       const res = await axios.post(`${API_BASE}/auth/shop-register`, form);
       setMsg("Đăng ký thành công! Vui lòng chờ admin duyệt shop.");
@@ -53,12 +60,18 @@ export default function ShopRegister() {
           onChange={(e) => handleChange("phone", e.target.value)}
         />
 
-        <input
-          className="w-full p-3 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-          type="password"
+        <PasswordInput
           placeholder="Mật khẩu"
+          autoComplete="new-password"
+          value={form.password}
           onChange={(e) => handleChange("password", e.target.value)}
+        />
+
+        <PasswordInput
+          placeholder="Xác nhận mật khẩu"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
         />
 
         <button

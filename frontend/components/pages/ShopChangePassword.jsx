@@ -5,6 +5,7 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthCard from "../AuthCard";
+import PasswordInput from "../PasswordInput";
 import ShopGuard from "../ShopGuard";
 import { API_BASE } from "@/lib/config";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
@@ -47,29 +48,26 @@ function ChangePasswordForm() {
   return (
     <AuthCard title="Đổi mật khẩu">
       <form onSubmit={submit} className="space-y-3">
-        <input
-          type="password"
-          autoComplete="current-password"
+        <PasswordInput
           className="w-full p-3 rounded-xl border border-gray-300 bg-white"
+          autoComplete="current-password"
           placeholder="Mật khẩu hiện tại"
           value={oldPassword}
           onChange={(e) => setOldPassword(e.target.value)}
           required
         />
-        <input
-          type="password"
-          autoComplete="new-password"
+        <PasswordInput
           className="w-full p-3 rounded-xl border border-gray-300 bg-white"
+          autoComplete="new-password"
           placeholder="Mật khẩu mới"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           required
           minLength={8}
         />
-        <input
-          type="password"
-          autoComplete="new-password"
+        <PasswordInput
           className="w-full p-3 rounded-xl border border-gray-300 bg-white"
+          autoComplete="new-password"
           placeholder="Xác nhận mật khẩu mới"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}

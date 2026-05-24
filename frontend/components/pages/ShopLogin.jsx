@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import OneSignal from "react-onesignal";
 
 import AuthCard from "../AuthCard";
+import PasswordInput from "../PasswordInput";
 import { API_BASE } from "@/lib/config";
 import ShopPushPrompt from "@/components/push/ShopPushPrompt";
 import { getShopLoginDestinationFromSearch } from "@/lib/auth/safeShopRedirect";
@@ -135,13 +136,12 @@ export default function ShopLogin() {
             }
           />
 
-          <input
-            type="password"
+          <PasswordInput
             className="w-full p-3 rounded-xl border border-gray-300 bg-white"
             placeholder="Mật khẩu"
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           <button

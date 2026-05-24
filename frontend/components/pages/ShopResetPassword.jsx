@@ -5,6 +5,7 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthCard from "../AuthCard";
+import PasswordInput from "../PasswordInput";
 import { API_BASE } from "@/lib/config";
 
 export default function ShopResetPassword() {
@@ -56,20 +57,18 @@ export default function ShopResetPassword() {
             onChange={(e) => setToken(e.target.value)}
           />
         )}
-        <input
-          type="password"
-          autoComplete="new-password"
+        <PasswordInput
           className="w-full p-3 rounded-xl border border-gray-300 bg-white"
+          autoComplete="new-password"
           placeholder="Mật khẩu mới (tối thiểu 8 ký tự, có chữ và số)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
         />
-        <input
-          type="password"
-          autoComplete="new-password"
+        <PasswordInput
           className="w-full p-3 rounded-xl border border-gray-300 bg-white"
+          autoComplete="new-password"
           placeholder="Xác nhận mật khẩu"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
