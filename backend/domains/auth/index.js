@@ -3,6 +3,7 @@ export {
   shopLogin,
   shopForgotPassword,
   shopResetPassword,
+  changePassword,
   shopRefreshToken,
   shopLogout,
 } from "./controllers/shopAuth.controller.js";

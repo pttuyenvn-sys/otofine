@@ -6,6 +6,7 @@ export {
   shopLogin,
   shopForgotPassword,
   shopResetPassword,
+  changePassword,
   shopRefreshToken,
   shopLogout,
   adminLogin,

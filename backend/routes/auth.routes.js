@@ -6,9 +6,14 @@ import {
   adminForgotPassword,
   shopForgotPassword,
   shopResetPassword,
+  changePassword,
   shopRefreshToken,
   shopLogout,
 } from "../controllers/authController.js";
+import {
+  requireAuth,
+  requireShop,
+} from "../middlewares/auth.js";
 import {
   shopLoginRateLimit,
   shopRegisterRateLimit,
@@ -22,6 +27,13 @@ router.post("/shop-login", shopLoginRateLimit, shopLogin);
 router.post("/shop-register", shopRegisterRateLimit, registerShop);
 router.post("/shop-forgot-password", shopForgotRateLimit, shopForgotPassword);
 router.post("/shop-reset-password", shopForgotRateLimit, shopResetPassword);
+router.post(
+  "/change-password",
+  requireAuth,
+  requireShop,
+  shopLoginRateLimit,
+  changePassword,
+);
 router.post("/shop-refresh", shopRefreshToken);
 router.post("/shop-logout", shopLogout);
 

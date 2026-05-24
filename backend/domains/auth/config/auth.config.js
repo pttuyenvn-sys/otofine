@@ -14,6 +14,12 @@ export const authConfig = {
   exposeResetToken: process.env.AUTH_EXPOSE_RESET_TOKEN === "true",
   loginRateMax: envInt("AUTH_LOGIN_RATE_MAX", 20),
   loginRateWindowMs: envInt("AUTH_LOGIN_RATE_WINDOW_MS", 15 * 60 * 1000),
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  mailFrom: process.env.MAIL_FROM || "",
+  frontendUrl:
+    process.env.FRONTEND_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://otofine.com",
 };
 
 export const SHOP_LOCKED_STATUSES = new Set([

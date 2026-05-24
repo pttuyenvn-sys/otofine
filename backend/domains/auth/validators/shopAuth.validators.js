@@ -34,7 +34,7 @@ export function validateLoginBody(body) {
 
 export function validateResetPasswordBody(body) {
   const token = String(body?.token ?? "").trim();
-  const password = String(body?.password ?? "");
+  const password = String(body?.newPassword ?? body?.password ?? "");
   const pwErr = validatePasswordStrength(password);
   if (!token) {
     return { ok: false, status: 400, message: "Thiếu token" };
@@ -45,19 +45,46 @@ export function validateResetPasswordBody(body) {
   return { ok: true, data: { token, password } };
 }
 
-export function validateForgotBody(body) {
-  const identifier = String(
-    body?.email ?? body?.emailOrPhone ?? "",
-  ).trim();
-  if (!identifier) {
-    return { ok: false, status: 400, message: "Nhập email hoặc số điện thoại" };
+/** Forgot password — email only (production). */
+export function validateForgotEmailBody(body) {
+  const email = String(body?.email ?? "").trim().toLowerCase();
+  if (!email) {
+    return { ok: false, status: 400, message: "Nhập email đăng ký" };
   }
-  return { ok: true, data: { identifier } };
+  if (!EMAIL_RE.test(email)) {
+    return { ok: false, status: 400, message: "Email không hợp lệ" };
+  }
+  return { ok: true, data: { email } };
+}
+
+/** @deprecated alias — accepts email field only */
+export function validateForgotBody(body) {
+  return validateForgotEmailBody(body);
+}
+
+export function validateChangePasswordBody(body) {
+  const oldPassword = String(body?.oldPassword ?? "");
+  const newPassword = String(body?.newPassword ?? "");
+  if (!oldPassword || !newPassword) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Thiếu mật khẩu hiện tại hoặc mật khẩu mới",
+    };
+  }
+  const pwErr = validatePasswordStrength(newPassword);
+  if (pwErr) {
+    return { ok: false, status: 400, message: pwErr };
+  }
+  return { ok: true, data: { oldPassword, newPassword } };
 }
 
 export function validatePasswordStrength(password) {
   if (!password || password.length < 8) {
     return "Mật khẩu tối thiểu 8 ký tự";
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Mật khẩu cần có ít nhất một chữ cái và một chữ số";
   }
   return null;
 }

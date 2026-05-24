@@ -1,11 +1,13 @@
 import * as shopAuthService from "../services/shopAuth.service.js";
 import * as passwordResetService from "../services/passwordReset.service.js";
+import * as changePasswordService from "../services/changePassword.service.js";
 import * as sessionService from "../services/session.service.js";
 import {
   validateRegisterBody,
   validateLoginBody,
-  validateForgotBody,
+  validateForgotEmailBody,
   validateResetPasswordBody,
+  validateChangePasswordBody,
 } from "../validators/shopAuth.validators.js";
 import { normalizeIdentifier } from "../utils/identifier.util.js";
 
@@ -76,18 +78,21 @@ export async function shopLogin(req, res) {
 
 export async function shopForgotPassword(req, res) {
   try {
-    const validated = validateForgotBody(req.body);
+    const validated = validateForgotEmailBody(req.body);
     if (!validated.ok) {
-      return res.status(validated.status).json({ error: validated.message });
+      return res.status(validated.status).json({ message: validated.message });
     }
 
-    const result = await passwordResetService.requestShopPasswordReset(
-      validated.data.identifier,
+    const result = await passwordResetService.requestShopPasswordResetByEmail(
+      validated.data.email,
+      requestMeta(req),
     );
     res.json(result);
   } catch (err) {
     console.error("shopForgotPassword:", err);
-    res.status(500).json({ error: "Không thể xử lý yêu cầu" });
+    res.status(500).json({
+      message: passwordResetService.GENERIC_FORGOT_RESPONSE.message,
+    });
   }
 }
 
@@ -98,13 +103,41 @@ export async function shopResetPassword(req, res) {
       return res.status(validated.status).json({ message: validated.message });
     }
 
-    const result = await passwordResetService.resetShopPassword(validated.data);
+    const result = await passwordResetService.resetShopPassword(
+      validated.data,
+      requestMeta(req),
+    );
     if (!result.ok) {
       return res.status(result.status).json({ message: result.message });
     }
     res.json(result);
   } catch (err) {
     console.error("shopResetPassword:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+}
+
+export async function changePassword(req, res) {
+  try {
+    const validated = validateChangePasswordBody(req.body);
+    if (!validated.ok) {
+      return res.status(validated.status).json({ message: validated.message });
+    }
+
+    const accountId = req.user?.accountId ?? req.user?.id;
+    const result = await changePasswordService.changeShopPassword(
+      accountId,
+      validated.data,
+      requestMeta(req),
+    );
+
+    if (!result.ok) {
+      return res.status(result.status).json({ message: result.message });
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error("changePassword:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 }
