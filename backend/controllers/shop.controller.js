@@ -4,6 +4,32 @@ import path from "path";
 import { uploadToR2 } from "../utils/r2-sdk.js"; // 🔥 THÊM
 import { pool } from "../config/db.js";
 import { syncProductListViewForShop } from "../services/productListViewSync.service.js";
+import { sanitizeShopHtml } from "../domains/shopPublic/utils/htmlSanitize.util.js";
+
+/**
+ * Three legacy rich-text fields (`descriptionHtml`, `salePolicy`,
+ * `warrantyPolicy`) are rendered with `dangerouslySetInnerHTML` on the
+ * marketplace product detail page.  Phase B upgraded the policy
+ * inputs from plain textareas to a Tiptap editor that can emit
+ * `<img>`, `<iframe>`, etc., so we MUST sanitize on the write side.
+ *
+ * Returns `null` for empty / whitespace-only / "<p></p>"-only payloads
+ * so the column stays NULL instead of "<p></p>". `undefined` inputs
+ * (field not present in PATCH) are forwarded as-is so the model's
+ * PATCH semantics still skip the column.
+ */
+function sanitizeRichField(raw) {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  const cleaned = sanitizeShopHtml(String(raw));
+  if (!cleaned) return null;
+  const stripped = cleaned
+    .replace(/<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, "")
+    .replace(/<br\s*\/?>/gi, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+  return stripped ? cleaned : null;
+}
 
 export async function getMyShop(req, res) {
   try {
@@ -38,9 +64,9 @@ export async function createShop(req, res) {
       districtId: req.body.districtId,
       wardId: req.body.wardId,
       addressDetail: req.body.addressDetail,
-      descriptionHtml: req.body.descriptionHtml,
-      salePolicy: req.body.salePolicy,
-      warrantyPolicy: req.body.warrantyPolicy,
+      descriptionHtml: sanitizeRichField(req.body.descriptionHtml),
+      salePolicy:      sanitizeRichField(req.body.salePolicy),
+      warrantyPolicy:  sanitizeRichField(req.body.warrantyPolicy),
     };
 
     // ❗ KHÔNG set avatar/cover ở đây nữa
@@ -87,20 +113,24 @@ export async function updateMyShop(req, res) {
     const shop = await Shop.getByAccountId(accountId);
     if (!shop) return res.status(404).json({ message: "Shop không tồn tại" });
 
-    const data = {
-      name: req.body.name,
-      phone: req.body.phone,
-      email: req.body.email,
-      zalo: req.body.zalo,
-      website: req.body.website,
-      provinceId: req.body.provinceId,
-      districtId: req.body.districtId,
-      wardId: req.body.wardId,
-      addressDetail: req.body.addressDetail,
-      descriptionHtml: req.body.descriptionHtml,
-      salePolicy: req.body.salePolicy,
-      warrantyPolicy: req.body.warrantyPolicy,
-    };
+    // PATCH-style payload: only forward keys that the client actually
+    // sent. The model's `update()` then skips any column not present.
+    // This is critical for two flows:
+    //   1. ShopSettings no longer sends `descriptionHtml` → column
+    //      keeps its existing value (used as fallback by storefront).
+    //   2. A future client could PATCH just `salePolicy` without
+    //      wiping `name`, `phone`, etc.
+    const data = {};
+    const PLAIN_FIELDS = [
+      "name", "phone", "email", "zalo", "website",
+      "provinceId", "districtId", "wardId", "addressDetail",
+    ];
+    for (const k of PLAIN_FIELDS) {
+      if (req.body[k] !== undefined) data[k] = req.body[k];
+    }
+    if (req.body.descriptionHtml !== undefined) data.descriptionHtml = sanitizeRichField(req.body.descriptionHtml);
+    if (req.body.salePolicy      !== undefined) data.salePolicy      = sanitizeRichField(req.body.salePolicy);
+    if (req.body.warrantyPolicy  !== undefined) data.warrantyPolicy  = sanitizeRichField(req.body.warrantyPolicy);
 
     /**
      * =========================

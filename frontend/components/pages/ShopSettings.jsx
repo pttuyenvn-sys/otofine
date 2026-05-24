@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ShopSettings — Phase A merge
+ * ShopSettings — Phase A merge / Phase B+ rich content
  *
  * Single source of truth for all shop configuration.  Replaces both
  * the old `/shop/settings` (basic info via /api/shop/me) and the
@@ -14,9 +14,12 @@
  *   D. Intro content      │
  *   E. Contact & social   ┘
  *
- * Legacy rich-text fields (descriptionHtml, salePolicy, warrantyPolicy)
- * are preserved as plain textareas in Phase A.  Phase B will swap them
- * back to the Quill editor once the unified page is stable.
+ * Legacy rich-text fields:
+ *   - `salePolicy` / `warrantyPolicy` → rich Tiptap (Phase B+ policy mode)
+ *   - `descriptionHtml` → REMOVED from UI in Phase B+ (the storefront
+ *     intro replaced it).  Backend still keeps the column populated as
+ *     a fallback for SSR consumers; this form simply never sends it,
+ *     and the controller's PATCH semantics preserve the existing value.
  *
  * Backward-compatibility guarantees:
  *   - /api/shop/me response shape is NEVER changed here
@@ -44,8 +47,10 @@ import {
 
 import ShopAddressSelector from "../ShopAddressSelector";
 import ShopRichEditorWithPreview from "../shopsite/ShopRichEditorWithPreview";
+import ShopPolicyEditor from "../shopsite/ShopPolicyEditor";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
+import { normalizeRichHtml } from "@/lib/shopsite/normalizeRichHtml";
 
 // ---------------------------------------------------------------------------
 // Tiny helpers
@@ -445,9 +450,11 @@ export default function ShopSettings() {
       fd.append("provinceId",    basic.address.provinceId || "");
       fd.append("wardId",        basic.address.wardId     || "");
       fd.append("addressDetail", basic.address.detail     || "");
-      fd.append("descriptionHtml", basic.descriptionHtml);
-      fd.append("salePolicy",    basic.salePolicy);
-      fd.append("warrantyPolicy",basic.warrantyPolicy);
+      // descriptionHtml is no longer surfaced in the UI (Phase B+ — the
+      // storefront intro replaced it). The controller skips any field
+      // that's not present in the body, so the column is preserved.
+      fd.append("salePolicy",     normalizeRichHtml(basic.salePolicy));
+      fd.append("warrantyPolicy", normalizeRichHtml(basic.warrantyPolicy));
 
       // ── B–E: storefront via /api/shop/public-page  ─────────────────────
       const pubPayload = {
@@ -540,7 +547,7 @@ export default function ShopSettings() {
           ["#branding",    "Branding"],
           ["#intro",       "Giới thiệu"],
           ["#contact",     "Liên hệ & mạng xã hội"],
-          ["#policies",    "Chính sách"],
+          ["#policies",    "Chính sách (marketplace)"],
         ].map(([href, label]) => (
           <a
             key={href}
@@ -685,14 +692,6 @@ export default function ShopSettings() {
                 onChange={(v) => setP("introHtml", v)}
               />
             </div>
-            <FieldTextarea
-              label="Mô tả shop (marketplace — Otofine.com)"
-              value={basic.descriptionHtml}
-              onChange={(v) => setB("descriptionHtml", v)}
-              placeholder="Mô tả shop hiển thị trên trang Otofine marketplace."
-              rows={4}
-              hint="Trường cũ, dùng cho trang shop trên Otofine.com — riêng biệt với trang storefront."
-            />
           </div>
         </SectionCard>
 
@@ -743,27 +742,33 @@ export default function ShopSettings() {
           </div>
         </SectionCard>
 
-        {/* ── Legacy policy fields (preserved, not removed) ────────────── */}
+        {/* ── F. Chính sách (rich) ────────────────────────────────────── */}
         <SectionCard
           id="policies"
-          title="Chính sách"
-          subtitle="Chính sách bán hàng và bảo hành hiển thị trên marketplace Otofine.com."
+          title="F. Chính sách"
+          subtitle="Hiển thị trên trang sản phẩm Otofine.com. Hỗ trợ ảnh, video và định dạng cơ bản."
         >
-          <div className="space-y-4">
-            <FieldTextarea
-              label="Chính sách bán hàng"
-              value={basic.salePolicy}
-              onChange={(v) => setB("salePolicy", v)}
-              placeholder="Chính sách đổi trả, thanh toán…"
-              rows={4}
-            />
-            <FieldTextarea
-              label="Chính sách bảo hành"
-              value={basic.warrantyPolicy}
-              onChange={(v) => setB("warrantyPolicy", v)}
-              placeholder="Thời hạn và điều kiện bảo hành…"
-              rows={4}
-            />
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Chính sách bán hàng
+              </label>
+              <ShopPolicyEditor
+                value={basic.salePolicy}
+                onChange={(v) => setB("salePolicy", v)}
+                placeholder="Nhập chính sách bán hàng — đổi trả, thanh toán, vận chuyển…"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Chính sách bảo hành
+              </label>
+              <ShopPolicyEditor
+                value={basic.warrantyPolicy}
+                onChange={(v) => setB("warrantyPolicy", v)}
+                placeholder="Nhập chính sách bảo hành — thời hạn, điều kiện áp dụng…"
+              />
+            </div>
           </div>
         </SectionCard>
 

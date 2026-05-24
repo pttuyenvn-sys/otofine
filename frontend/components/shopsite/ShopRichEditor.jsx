@@ -21,11 +21,12 @@
  * so this file stays focused on the editing surface.
  */
 
-import { useCallback, useEffect, useImperativeHandle, forwardRef, useState, useRef } from "react";
+import { useCallback, useEffect, useImperativeHandle, forwardRef, useState, useRef, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import Placeholder from "@tiptap/extension-placeholder";
 
 import { uploadContentImage } from "../../api/shopRichContentApi";
 import {
@@ -98,32 +99,48 @@ function Divider() {
 
 // ----- Main editor ------------------------------------------------------
 
+/**
+ * Two modes:
+ *   - "storefront" (default): full toolbar incl. CTA blocks
+ *   - "policy":              compact toolbar, no CTA blocks
+ * Both modes share the same Tiptap extensions, image upload pipeline,
+ * embed parsers, and sanitizer contract.
+ */
 const ShopRichEditor = forwardRef(function ShopRichEditor(
-  { value, onChange, placeholder = "Bắt đầu viết giới thiệu shop của bạn…" },
+  { value, onChange, placeholder = "Bắt đầu viết giới thiệu shop của bạn…", mode = "storefront" },
   ref,
 ) {
   const [uploadingPct, setUploadingPct] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: { levels: [2, 3, 4] },
+      link: false, // dedicated Link extension below for security defaults
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
+      protocols: ["http", "https", "mailto", "tel"],
+      autolink: true,
+    }),
+    Image.configure({
+      inline: false,
+      HTMLAttributes: { class: "shop-content-img", loading: "lazy" },
+    }),
+    Placeholder.configure({
+      placeholder,
+      // Only the *first* empty paragraph gets the placeholder hint —
+      // mid-document empties stay invisible.
+      showOnlyWhenEditable: true,
+      showOnlyCurrent: false,
+    }),
+  ], [placeholder]);
+
   const editor = useEditor({
     immediatelyRender: false, // Critical: avoid SSR hydration mismatch under Next.js
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [2, 3, 4] },
-        link: false, // we use the dedicated extension for security defaults
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
-        protocols: ["http", "https", "mailto", "tel"],
-        autolink: true,
-      }),
-      Image.configure({
-        inline: false,
-        HTMLAttributes: { class: "shop-content-img", loading: "lazy" },
-      }),
-    ],
+    extensions,
     content: value || "",
     editorProps: {
       attributes: {
@@ -272,13 +289,17 @@ const ShopRichEditor = forwardRef(function ShopRichEditor(
         <ToolbarBtn title="Link" active={editor.isActive("link")} onClick={insertLink}>🔗</ToolbarBtn>
         <ToolbarBtn title="Image" onClick={() => fileInputRef.current?.click()}>🖼️</ToolbarBtn>
         <ToolbarBtn title="YouTube / TikTok / Facebook" onClick={insertEmbed}>▶</ToolbarBtn>
-        <Divider />
-        <span className="text-xs text-gray-400 px-1">CTA:</span>
-        {CTA_OPTIONS.map((opt) => (
-          <ToolbarBtn key={opt.kind} title={opt.label} onClick={() => insertCta(opt.kind)}>
-            {opt.label}
-          </ToolbarBtn>
-        ))}
+        {mode === "storefront" && (
+          <>
+            <Divider />
+            <span className="text-xs text-gray-400 px-1">CTA:</span>
+            {CTA_OPTIONS.map((opt) => (
+              <ToolbarBtn key={opt.kind} title={opt.label} onClick={() => insertCta(opt.kind)}>
+                {opt.label}
+              </ToolbarBtn>
+            ))}
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <ToolbarBtn title="Hoàn tác" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>↶</ToolbarBtn>
           <ToolbarBtn title="Làm lại" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>↷</ToolbarBtn>

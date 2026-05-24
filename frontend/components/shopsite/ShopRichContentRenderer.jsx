@@ -1,6 +1,7 @@
 "use client";
 
 import "./ShopRichContent.css";
+import { isRichHtmlEmpty } from "../../lib/shopsite/normalizeRichHtml";
 
 /**
  * Single rendering source of truth for the seller's rich storefront
@@ -23,7 +24,7 @@ import "./ShopRichContent.css";
  * CSS file so the storefront and the seller preview match pixel-for-pixel.
  */
 export default function ShopRichContentRenderer({ html, emptyText = "Shop chưa cập nhật phần giới thiệu chi tiết.", className = "" }) {
-  if (!html || !String(html).trim()) {
+  if (isRichHtmlEmpty(html)) {
     return (
       <div className={`shop-rich-content shop-rich-content--empty ${className}`}>
         {emptyText}
