@@ -102,10 +102,18 @@ export default function ShopLogin() {
     } catch (err) {
       console.error(err);
 
-      if (err.response?.status === 400) {
-        setMsg("Sai tài khoản hoặc mật khẩu");
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message;
+      if (status === 401) {
+        setMsg(serverMsg || "Sai tài khoản hoặc mật khẩu");
+      } else if (status === 403) {
+        setMsg(serverMsg || "Shop chưa được duyệt hoặc đã bị khóa");
+      } else if (status === 429) {
+        setMsg(serverMsg || "Quá nhiều yêu cầu — thử lại sau ít phút");
+      } else if (status === 400) {
+        setMsg(serverMsg || "Sai tài khoản hoặc mật khẩu");
       } else {
-        setMsg("Lỗi hệ thống, thử lại");
+        setMsg(serverMsg || "Lỗi hệ thống, thử lại");
       }
     }
   }
