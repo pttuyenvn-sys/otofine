@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
-import { fetchPublicShop } from "@/services/shopPublic.service";
+import { fetchPublicShop, getShopCanonicalUrl } from "@/services/shopPublic.service";
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  return { alternates: { canonical: await getShopCanonicalUrl(slug, "gioi-thieu") } };
+}
 
 export default async function ShopTenantAboutPage({ params }) {
   const { slug } = await params;

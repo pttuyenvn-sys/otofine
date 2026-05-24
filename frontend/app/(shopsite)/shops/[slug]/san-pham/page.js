@@ -8,7 +8,13 @@ import {
   fetchPublicShopProducts,
   fetchPublicShopCategories,
   getShopBasePath,
+  getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  return { alternates: { canonical: await getShopCanonicalUrl(slug, "san-pham") } };
+}
 
 export default async function ShopTenantProductsPage({ params, searchParams }) {
   const { slug } = await params;

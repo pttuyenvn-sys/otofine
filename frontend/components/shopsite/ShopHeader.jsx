@@ -44,7 +44,7 @@ export default function ShopHeader({ shop }) {
 
       {/* B. Cover section */}
       <div className="relative rounded-2xl overflow-hidden shadow-sm">
-        <div className="relative aspect-[16/6] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
+        <div className="relative aspect-[16/7] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
           {shop.cover && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -53,9 +53,17 @@ export default function ShopHeader({ shop }) {
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
+          {/* Phase 4 polish: deeper bottom gradient + radial fade at the
+              bottom-left so the avatar+name area always stays readable
+              regardless of cover content; subtle top vignette keeps the
+              topbar legibility on bright covers. */}
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"
+            className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.55),transparent_55%)]"
           />
 
           {/* Info overlay */}
@@ -63,7 +71,7 @@ export default function ShopHeader({ shop }) {
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 w-full">
               {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-black/80 border-2 sm:border-4 border-white shadow-lg flex items-center justify-center text-white">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-black/80 ring-2 ring-white/10 border-2 sm:border-[3px] border-white shadow-xl flex items-center justify-center text-white">
                   {shop.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -87,15 +95,19 @@ export default function ShopHeader({ shop }) {
               {/* Name + meta */}
               <div className="flex-1 min-w-0 text-white">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold drop-shadow">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold drop-shadow-md">
                     {shop.name}
                   </h1>
                   {shop.verified && (
                     <span
                       aria-label="Đã xác minh"
-                      className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#e60012] text-white"
+                      title="Shop đã được Otofine xác minh"
+                      className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[10px] sm:text-[11px] font-semibold shadow ring-1 ring-white/30"
                     >
-                      <CheckIcon />
+                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/15">
+                        <CheckIcon />
+                      </span>
+                      Đã xác minh
                     </span>
                   )}
                 </div>
@@ -119,19 +131,20 @@ export default function ShopHeader({ shop }) {
                 </div>
               </div>
 
-              {/* CTAs */}
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* CTAs — Phase 4 polish: stronger hover, focus ring,
+                  scale microtransition, mobile takes full-row spacing. */}
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
                 <a
                   href={`https://zalo.me/${shop.zalo.replace(/\s/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-white text-gray-800 hover:bg-gray-100 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
                 >
                   <ChatIcon /> Nhắn tin
                 </a>
                 <a
                   href={`tel:${shop.phone.replace(/\s/g, "")}`}
-                  className="inline-flex items-center gap-2 bg-[#e60012] hover:bg-[#c1000f] text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
                 >
                   <PhoneIcon /> Gọi ngay
                 </a>

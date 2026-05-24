@@ -35,11 +35,16 @@ export default function ShopTabs({ basePath = "/shop-demo" }) {
     return { href, label: t.label };
   });
   return (
+    // Phase 4 polish: tabs become sticky once the user scrolls past the
+    // cover. `top-0` aligns to the viewport (no separate shop topnav
+    // sits above them). Soft blur + opaque background ensures
+    // readability over varying page bodies. `supports-[backdrop-filter]`
+    // gracefully degrades to plain bg-white on Safari < 14.
     <nav
       aria-label="Điều hướng cửa hàng"
-      className="bg-white rounded-2xl shadow-sm overflow-x-auto"
+      className="bg-white/95 supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:backdrop-blur rounded-2xl shadow-sm overflow-x-auto sticky top-0 z-30 ring-1 ring-black/[0.03]"
     >
-      <ul className="flex items-stretch px-2 sm:px-4 min-w-max">
+      <ul className="flex items-stretch px-1 sm:px-3 min-w-max">
         {TABS.map((tab) => {
           const active = isActive(pathname, tab.href);
           return (
@@ -47,7 +52,7 @@ export default function ShopTabs({ basePath = "/shop-demo" }) {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`block px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium whitespace-nowrap transition-colors ${
+                className={`block px-3.5 sm:px-5 py-3 sm:py-4 text-sm sm:text-[15px] font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e60012]/40 rounded-md ${
                   active
                     ? "text-[#e60012]"
                     : "text-gray-700 hover:text-[#e60012]"
@@ -55,12 +60,12 @@ export default function ShopTabs({ basePath = "/shop-demo" }) {
               >
                 {tab.label}
               </Link>
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute left-3 right-3 bottom-0 h-[3px] bg-[#e60012] rounded-t-full"
-                />
-              )}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute left-3 right-3 bottom-0 h-[3px] rounded-t-full bg-[#e60012] origin-center transition-transform duration-200 ${
+                  active ? "scale-x-100" : "scale-x-0"
+                }`}
+              />
             </li>
           );
         })}

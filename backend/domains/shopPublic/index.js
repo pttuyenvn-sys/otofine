@@ -23,6 +23,7 @@ export {
 } from "./services/shopPublic.service.js";
 
 export { publicShopsiteEnabledOrNotFound } from "./middlewares/enabled.middleware.js";
+export { publicPageUploadRateLimit } from "./middlewares/uploadRateLimit.middleware.js";
 
 export {
   handleGetShop,
@@ -30,3 +31,13 @@ export {
   handleGetShopCategories,
   handleGetShopContact,
 } from "./controllers/shopPublic.controller.js";
+
+export {
+  handleGetMyPublicPage,
+  handleUpdateMyPublicPage,
+  handleCheckSlug,
+  handleUploadAvatar,
+  handleUploadCover,
+} from "./controllers/sellerPublicPage.controller.js";
+
+export { sanitizeShopHtml } from "./utils/htmlSanitize.util.js";

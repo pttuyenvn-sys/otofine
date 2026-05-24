@@ -5,6 +5,7 @@ import {
   fetchPublicShop,
   fetchPublicShopSafe,
   getShopBasePath,
+  getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
 
 export async function generateMetadata({ params }) {
@@ -16,12 +17,20 @@ export async function generateMetadata({ params }) {
       robots: { index: false, follow: false },
     };
   }
+  // Layout metadata is the *fallback* for pages that don't override it.
+  // Each concrete page (homepage/san-pham/gioi-thieu/lien-he) sets its
+  // own canonical via generateMetadata to avoid duplicate canonical
+  // surface. Title + description live here so they cascade.
   return {
     title: `${shop.name} — Phụ tùng ô tô | Otofine`,
     description: shop.shortDescription || `Phụ tùng ô tô — ${shop.name}`,
-    // Phase 3 still keeps subdomain pages out of the index.
-    // Indexable canonicals + sitemap arrive in Phase 4.
+    // Phase 4 still keeps subdomain pages out of the index. Indexing
+    // flips on in Phase 5 — until then the self-canonical above is
+    // pre-wired but inert from a crawler perspective.
     robots: { index: false, follow: false },
+    alternates: {
+      canonical: await getShopCanonicalUrl(slug, ""),
+    },
   };
 }
 

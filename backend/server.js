@@ -41,6 +41,7 @@ import { mountRfqRoutes, rfqFlags } from "./modules/rfq/index.js";
 import rfqAdminRoutes from "./modules/rfq/routes/rfq.admin.routes.js";
 import rfqPushRoutes from "./routes/rfqPush.routes.js";
 import publicShopRoutes from "./routes/publicShop.routes.js";
+import sellerPublicPageRoutes from "./routes/sellerPublicPage.routes.js";
 import { publicShopConfig } from "./domains/shopPublic/index.js";
 
 const app = express();
@@ -114,19 +115,30 @@ app.get(
 );
 
 app.use("/api/auth", authRoutes);
+
+/**
+ * Public shopsite — seller-owner endpoints. Must mount BEFORE the
+ * generic /api/shop router so /api/shop/public-page reliably resolves
+ * here regardless of Express path resolution order.
+ *
+ * Both this block and the read-only block below are gated by
+ * PUBLIC_SHOPSITE_ENABLED at boot. See:
+ *   audit/shop-public-pages-overview.md
+ *   audit/shop-public-phase4-result.md
+ */
+if (publicShopConfig.enabled) {
+  app.use("/api/shop/public-page", sellerPublicPageRoutes);
+}
+
 app.use("/api/shop", shopRoutes);
 app.use("/api/shops", shopRoutes);
 
-/**
- * Public shopsite read-only API. Mount-time gate:
- * if PUBLIC_SHOPSITE_ENABLED is falsy the router never registers, so
- * `/api/public/shops/*` returns Express's default 404. The router also
- * carries an internal middleware as a runtime safety net.
- * See: audit/shop-public-pages-overview.md
- */
+/** Public read-only shopsite API (Phase 2 endpoints). */
 if (publicShopConfig.enabled) {
   app.use("/api/public/shops", publicShopRoutes);
-  console.info("[publicShop] routes mounted at /api/public/shops");
+  console.info(
+    "[publicShop] routes mounted at /api/public/shops + /api/shop/public-page",
+  );
 } else {
   console.info("[publicShop] disabled (PUBLIC_SHOPSITE_ENABLED=false)");
 }

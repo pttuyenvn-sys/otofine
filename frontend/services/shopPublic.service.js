@@ -79,3 +79,32 @@ export async function getShopBasePath(slug) {
   const hostHeader = (await headers()).get("host") || "";
   return isShopSubdomainHost(hostHeader, slug) ? "" : `/shops/${slug}`;
 }
+
+/**
+ * Compute the self-canonical URL for a shop subpage.
+ *
+ * Rules (Phase 4 SEO contract):
+ *   - On a real shop subdomain (`cuahangoto355.otofine.com`) the
+ *     canonical points to the subdomain version of the page.
+ *     `cuahangoto355.otofine.com/san-pham`.
+ *   - When the page is reached via apex `/shops/<slug>/<sub>` the
+ *     canonical points back to the apex URL — we treat that as the
+ *     authoritative version for cross-linked discovery.
+ *   - We still keep robots = noindex,nofollow until Phase 5 flips it
+ *     on. The canonical is harmless under noindex but ensures we have
+ *     ZERO duplicate canonical surface ready for go-live.
+ *
+ * `subPath` is the path BELOW the slug, e.g. "" / "san-pham" / "gioi-thieu" / "lien-he".
+ */
+export async function getShopCanonicalUrl(slug, subPath = "") {
+  const h = await headers();
+  const hostHeader = h.get("host") || "";
+  const proto = h.get("x-forwarded-proto") || "https";
+  const onSubdomain = isShopSubdomainHost(hostHeader, slug);
+  const cleanedHostHeader = hostHeader.replace(/:\d+$/, "");
+  const sub = subPath ? `/${subPath.replace(/^\//, "").replace(/\/$/, "")}` : "";
+  if (onSubdomain) {
+    return `${proto}://${cleanedHostHeader}${sub || "/"}`;
+  }
+  return `https://otofine.com/shops/${slug}${sub}`;
+}

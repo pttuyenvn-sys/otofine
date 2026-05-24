@@ -1,24 +1,25 @@
 "use client";
 
 import { formatPrice } from "@/data/shop-demo";
+import { apexProductUrl } from "@/lib/apexOrigin";
 
 /**
  * Vertical product card (Shopee-like).
  *
- * Click target: existing apex `/product/[id]` page. Phase 1 keeps
- * the link relative; Phase 2 will switch to absolute apex URLs once
- * the subdomain split is live (see audit/shop-public-seo-strategy.md
- * canonical contract).
+ * Click target: existing apex `/product/[id]` page. Phase 4 forces
+ * ABSOLUTE apex URLs so that a click from a shop subdomain
+ * (`cuahangoto355.otofine.com`) always crosses back to apex
+ * (`otofine.com/product/...`) — no host-aware rewrite, no duplicate
+ * canonical surface. See audit/shop-public-seo-strategy.md.
  */
 export default function ShopProductCard({ product }) {
   if (!product) return null;
-  const href = product.productId
-    ? `/product/${product.productId}`
-    : "#";
+  const href = product.productId ? apexProductUrl(product.productId) : "#";
 
   return (
     <a
       href={href}
+      rel="noopener"
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-md transition-all"
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
