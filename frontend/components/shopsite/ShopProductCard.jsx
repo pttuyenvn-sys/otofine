@@ -11,10 +11,23 @@ import { apexProductUrl } from "@/lib/apexOrigin";
  * (`cuahangoto355.otofine.com`) always crosses back to apex
  * (`otofine.com/product/...`) — no host-aware rewrite, no duplicate
  * canonical surface. See audit/shop-public-seo-strategy.md.
+ *
+ * Typography hierarchy (top → bottom):
+ *   1. Product image (1:1, lazy)
+ *   2. Product name — 14px, gray-900, 2-line clamp
+ *   3. Vehicle fitment line — 12px, gray-500, single-line ellipsis
+ *      Format: "Toyota • Vios • 2018-2021"
+ *      Skips any missing field so we never render dangling bullets.
+ *   4. Price — 16px, brand red, bold
+ *   5. Category chip — 11px, gray, self-start so it doesn't stretch
+ *
+ * The fitment line uses `line-clamp-1` + `truncate` so it never
+ * pushes the price below the fold on narrow mobile widths.
  */
 export default function ShopProductCard({ product }) {
   if (!product) return null;
   const href = product.productId ? apexProductUrl(product.productId) : "#";
+  const fitmentLine = formatVehicleLine(product);
 
   return (
     <a
@@ -59,18 +72,63 @@ export default function ShopProductCard({ product }) {
       </div>
 
       <div className="p-3 flex-1 flex flex-col">
-        <h3 className="text-sm text-gray-800 leading-snug line-clamp-2 min-h-[2.5rem]">
+        <h3 className="text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem]">
           {product.name}
         </h3>
-        <div className="mt-2 text-[#e60012] font-bold text-base tabular-nums">
+
+        {fitmentLine ? (
+          <p
+            className="mt-1 text-[12px] text-gray-500 truncate"
+            title={fitmentLine}
+          >
+            {fitmentLine}
+          </p>
+        ) : (
+          // Reserve a constant 1-line gap when the fitment is unknown so
+          // the price stays vertically aligned across the grid.
+          <p className="mt-1 text-[12px] text-transparent select-none" aria-hidden>
+            &nbsp;
+          </p>
+        )}
+
+        <div className="mt-1 text-[#e60012] font-bold text-base tabular-nums">
           {formatPrice(product.price)}
         </div>
         {product.category && (
-          <div className="mt-1 inline-block self-start text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5">
+          <div className="mt-1.5 inline-block self-start text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 max-w-full truncate">
             {product.category}
           </div>
         )}
       </div>
     </a>
   );
+}
+
+/**
+ * Compose the vehicle fitment line "Toyota • Vios • 2018-2021".
+ *
+ * Rules:
+ *   - missing brand   → return null (no model/year is meaningful w/o brand)
+ *   - missing model   → "Toyota • 2018-2021"
+ *   - missing year    → "Toyota • Vios"
+ *   - yearFrom == yearTo → "Toyota • Vios • 2018"
+ *   - missing both    → "Toyota"
+ */
+export function formatVehicleLine(p) {
+  if (!p) return null;
+  const brand = (p.brand || "").trim();
+  const model = (p.model || "").trim();
+  if (!brand && !model) return null;
+
+  const year = formatYearRange(p.yearFrom, p.yearTo);
+  const parts = [brand, model, year].filter((s) => s && s.length > 0);
+  return parts.length > 0 ? parts.join(" • ") : null;
+}
+
+function formatYearRange(yFrom, yTo) {
+  const a = Number.isFinite(Number(yFrom)) ? Number(yFrom) : null;
+  const b = Number.isFinite(Number(yTo)) ? Number(yTo) : null;
+  if (!a && !b) return "";
+  if (a && b) return a === b ? String(a) : `${a}-${b}`;
+  return String(a || b);
 }

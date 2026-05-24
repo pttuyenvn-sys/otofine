@@ -1,28 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useShopFilterParams } from "@/lib/shopsite/useShopFilterParams";
+import { useDebouncedValue } from "@/lib/shopsite/useDebouncedValue";
 
 /**
  * Filter + search row used on the shop home + products page.
  *
- * Phase 1: client-side state only, no API call. Phase 2 will swap
- * the change handlers to push to `/shop-demo/san-pham?brand=...&model=...`
- * and the products page will read from `useSearchParams`.
+ * Phase polish: state now lives in the URL.
+ *
+ *   Brand / Model / Year select change → router.push immediately
+ *   Search input                       → debounced 300ms, then router.push
+ *   Clear (×)                          → strip that single param
+ *   Submit                             → no-op (the URL is already in sync)
+ *
+ * `fitments` is server-fetched from `/api/public/shops/<slug>/fitments`
+ * so the dropdowns only ever offer brands/models the shop actually has
+ * stock for. When `fitments` is absent (shop-demo pages, or a slow
+ * cache miss) we degrade to the static `defaultYears` list and empty
+ * brand/model options.
+ *
+ * Selecting a brand re-narrows the model dropdown to that brand's
+ * models; clearing the brand exposes the full union again.
  */
-export default function ShopFilters({
-  brands = [],
-  models = [],
-  years = [],
-}) {
-  const defaultYears =
-    years.length > 0
-      ? years
-      : Array.from({ length: 16 }, (_, i) => 2026 - i);
+export default function ShopFilters({ fitments, basePath = "" }) {
+  const { params, setParam, setParams } = useShopFilterParams({ basePath });
 
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
-  const [q, setQ] = useState("");
+  const brand = params.brand || "";
+  const model = params.model || "";
+  const year = params.year || "";
+
+  // The server params are the source of truth; local state only exists
+  // for the search input so we can debounce it before pushing.
+  const [searchInput, setSearchInput] = useState(params.q || "");
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  // Sync the input when the URL changes from another source (sidebar
+  // click, browser back/forward). Avoids the stale-input bug.
+  useEffect(() => {
+    setSearchInput(params.q || "");
+    // We intentionally only react to `params.q`; the local edit path
+    // updates `searchInput` directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.q]);
+
+  useEffect(() => {
+    if (debouncedSearch === (params.q || "")) return;
+    setParam("q", debouncedSearch || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  const brands = fitments?.brands || [];
+  const modelsByBrand = fitments?.modelsByBrand || {};
+  const allModels = useMemo(
+    () => Array.from(new Set(Object.values(modelsByBrand).flat())).sort(),
+    [modelsByBrand],
+  );
+  const models = brand ? modelsByBrand[brand] || [] : allModels;
+  const years = fitments?.years && fitments.years.length
+    ? fitments.years
+    : Array.from({ length: 16 }, (_, i) => 2026 - i);
+
+  const handleBrand = (next) => {
+    // Changing brand invalidates the model selection (unless still valid).
+    const nextModels = next ? modelsByBrand[next] || [] : allModels;
+    const keepModel = model && nextModels.includes(model);
+    setParams({ brand: next || null, model: keepModel ? model : null });
+  };
 
   return (
     <form
@@ -34,7 +78,7 @@ export default function ShopFilters({
         <FilterSelect
           icon="🚗"
           value={brand}
-          onChange={setBrand}
+          onChange={handleBrand}
           placeholder="Hãng xe"
           options={brands}
           className="lg:col-span-3"
@@ -42,24 +86,24 @@ export default function ShopFilters({
         <FilterSelect
           icon="🚙"
           value={model}
-          onChange={setModel}
-          placeholder="Tên xe / Dòng xe"
+          onChange={(v) => setParam("model", v || null)}
+          placeholder={brand ? "Dòng xe" : "Tên xe / Dòng xe"}
           options={models}
           className="lg:col-span-3"
         />
         <FilterSelect
           icon="📅"
           value={year}
-          onChange={setYear}
+          onChange={(v) => setParam("year", v || null)}
           placeholder="Năm sản xuất"
-          options={defaultYears.map(String)}
+          options={years.map(String)}
           className="lg:col-span-2"
         />
         <div className="lg:col-span-4 flex">
           <input
             type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm sản phẩm..."
             className="flex-1 min-w-0 rounded-l-xl border border-gray-200 px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#e60012]/30 focus:border-[#e60012]"
             aria-label="Tìm kiếm sản phẩm"
@@ -117,9 +161,23 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <span aria-hidden className="text-gray-400 text-xs">
-        ▾
-      </span>
+      {value ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            onChange("");
+          }}
+          aria-label={`Xóa ${placeholder}`}
+          className="ml-1 text-gray-400 hover:text-[#e60012] text-xs"
+        >
+          ✕
+        </button>
+      ) : (
+        <span aria-hidden className="text-gray-400 text-xs">
+          ▾
+        </span>
+      )}
     </label>
   );
 }

@@ -10,7 +10,7 @@ export const publicShopConfig = {
   },
   get listPageSize() {
     const n = Number(process.env.PUBLIC_SHOPSITE_PAGE_SIZE);
-    return Number.isFinite(n) && n > 0 && n <= 60 ? n : 16;
+    return Number.isFinite(n) && n > 0 && n <= 60 ? n : 20;
   },
 };
 

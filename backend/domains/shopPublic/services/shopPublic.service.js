@@ -3,7 +3,10 @@ import {
   countPublicShopProducts,
   listShopCategories,
 } from "../repositories/shopPublic.repository.js";
-import { listShopProducts } from "../repositories/shopPublicProducts.repository.js";
+import {
+  listShopProducts,
+  listShopFitmentOptions,
+} from "../repositories/shopPublicProducts.repository.js";
 
 /**
  * Project a raw `shops` row into the public-API DTO. Backwards-
@@ -132,6 +135,7 @@ export async function getPublicShopProducts(slug, query = {}) {
     categorySlug: query.category,
     brand: query.brand,
     model: query.model,
+    year: query.year,
     sort: query.sort,
   });
   return {
@@ -146,9 +150,31 @@ export async function getPublicShopProducts(slug, query = {}) {
       image: p.image_url || null,
       category: p.categoryLabel || null,
       brand: p.brandLabel || null,
+      // Phase polish: surface model + year range so the card can show
+      // "Toyota • Vios • 2018-2021". Nulls are normalised so the
+      // frontend can do a single `if (brand || model || year)` check.
+      model: p.modelLabel || null,
+      yearFrom: numOrNull(p.yearFromFirst),
+      yearTo: numOrNull(p.yearToFirst),
       createdAt: p.createdAt || null,
     })),
   };
+}
+
+function numOrNull(v) {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Resolve slug → fitment dropdown options (brands, models per brand,
+ * year range). Returns null for unknown / not-public slugs.
+ */
+export async function getPublicShopFitments(slug) {
+  const row = await findPublicShopBySlug(slug);
+  if (!row) return null;
+  return listShopFitmentOptions(row.id);
 }
 
 /**

@@ -32,6 +32,7 @@ export {
   handleGetShopProducts,
   handleGetShopCategories,
   handleGetShopContact,
+  handleGetShopFitments,
 } from "./controllers/shopPublic.controller.js";
 
 export {

@@ -34,21 +34,23 @@ function buildOrderBy(sort) {
  * @param {object} opts
  * @param {number} opts.shopId            REQUIRED
  * @param {number} [opts.page=1]
- * @param {number} [opts.perPage=16]
+ * @param {number} [opts.perPage=20]
  * @param {string} [opts.q]               keyword (partName/partNumber LIKE)
  * @param {string} [opts.categorySlug]    canonical_name match
  * @param {string} [opts.brand]
  * @param {string} [opts.model]
+ * @param {string|number} [opts.year]     year covered by any fitment row
  * @param {string} [opts.sort]            newest|price_asc|price_desc
  */
 export async function listShopProducts({
   shopId,
   page = 1,
-  perPage = 16,
+  perPage = 20,
   q = "",
   categorySlug = "",
   brand = "",
   model = "",
+  year = "",
   sort = "newest",
 } = {}) {
   if (!shopId) {
@@ -56,7 +58,7 @@ export async function listShopProducts({
   }
 
   const pageN = Math.max(1, Number(page) || 1);
-  const limitN = Math.min(60, Math.max(1, Number(perPage) || 16));
+  const limitN = Math.min(60, Math.max(1, Number(perPage) || 20));
   const offsetN = (pageN - 1) * limitN;
   const orderBy = buildOrderBy(ALLOWED_SORTS.has(sort) ? sort : "newest");
 
@@ -69,18 +71,34 @@ export async function listShopProducts({
   }
 
   // Join policy: join category only when filter is active (avoid duplicates from N-N map).
+  //
+  // Two accepted key shapes:
+  //   - `c-<numeric_id>`   → filter by pc.id (used when canonical_name is NULL)
+  //   - everything else     → filter by lower(canonical_name)
+  // We deliberately accept both so the sidebar can keep emitting the
+  // numeric form for shops whose categories haven't been backfilled.
   let categoryJoin = "";
   if (categorySlug) {
     categoryJoin = `
       JOIN product_category_map pcm ON pcm.product_id = p.id
       JOIN product_categories   pc  ON pc.id = pcm.category_id
     `;
-    whereParts.push("pc.canonical_name = ?");
-    params.push(String(categorySlug).toLowerCase());
+    const raw = String(categorySlug).trim();
+    const idMatch = /^c-(\d+)$/i.exec(raw);
+    if (idMatch) {
+      whereParts.push("pc.id = ?");
+      params.push(Number(idMatch[1]));
+    } else {
+      whereParts.push("pc.canonical_name = ?");
+      params.push(raw.toLowerCase());
+    }
   }
 
+  const yearN = Number(year);
+  const hasYear = Number.isFinite(yearN) && yearN >= 1900 && yearN <= 2100;
+
   let fitmentJoin = "";
-  if (brand || model) {
+  if (brand || model || hasYear) {
     fitmentJoin = `
       JOIN product_car_applications pca ON pca.productId = p.id
       JOIN car_models cm                ON cm.id = pca.carModelId
@@ -93,11 +111,20 @@ export async function listShopProducts({
       whereParts.push("LOWER(TRIM(cm.ten_xe)) = ?");
       params.push(String(model).toLowerCase().trim());
     }
+    if (hasYear) {
+      // Year filter: any fitment row whose [year_from, year_to] covers
+      // the requested year. NULL bounds are treated as open-ended.
+      whereParts.push("(pca.year_from IS NULL OR pca.year_from <= ?) AND (pca.year_to IS NULL OR pca.year_to >= ?)");
+      params.push(yearN, yearN);
+    }
   }
 
   const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
-  const groupBy = categorySlug || brand || model ? "GROUP BY p.id" : "";
+  // Whenever we joined a 1-N table (category map or fitments) we need
+  // to dedup product ids. Without GROUP BY a single product with
+  // multiple fitments would appear N times.
+  const groupBy = categorySlug || brand || model || hasYear ? "GROUP BY p.id" : "";
 
   const itemsSql = `
     SELECT
@@ -128,7 +155,29 @@ export async function listShopProducts({
         WHERE pca2.productId = p.id
         ORDER BY pca2.id ASC
         LIMIT 1
-      ) AS brandLabel
+      ) AS brandLabel,
+      (
+        SELECT cm3.ten_xe
+        FROM product_car_applications pca3
+        JOIN car_models cm3 ON cm3.id = pca3.carModelId
+        WHERE pca3.productId = p.id
+        ORDER BY pca3.id ASC
+        LIMIT 1
+      ) AS modelLabel,
+      (
+        SELECT pca4.year_from
+        FROM product_car_applications pca4
+        WHERE pca4.productId = p.id
+        ORDER BY pca4.id ASC
+        LIMIT 1
+      ) AS yearFromFirst,
+      (
+        SELECT pca5.year_to
+        FROM product_car_applications pca5
+        WHERE pca5.productId = p.id
+        ORDER BY pca5.id ASC
+        LIMIT 1
+      ) AS yearToFirst
     FROM products p
     ${categoryJoin}
     ${fitmentJoin}
@@ -157,5 +206,71 @@ export async function listShopProducts({
     perPage: limitN,
     total: Number(total) || 0,
     totalPages: Math.max(1, Math.ceil((Number(total) || 0) / limitN)),
+  };
+}
+
+/**
+ * Lookup helper for the shop's fitment filter panel.
+ *
+ * Returns the distinct brand → models map (only what THIS shop sells)
+ * plus the global year range. Used to populate the dropdowns so the
+ * UI never offers a brand/model that has zero products for the shop.
+ *
+ * Cached at the response layer (5 min) via TTL_MS.categories — the
+ * payload is small and brand/model rarely change for a shop.
+ */
+export async function listShopFitmentOptions(shopId) {
+  if (!shopId) return { brands: [], modelsByBrand: {}, years: [] };
+
+  const [rows] = await pool.query(
+    `
+      SELECT DISTINCT cm.hang_xe AS brand, cm.ten_xe AS model
+      FROM products p
+      JOIN product_car_applications pca ON pca.productId = p.id
+      JOIN car_models cm                ON cm.id = pca.carModelId
+      WHERE p.shopId = ?
+      ORDER BY cm.hang_xe ASC, cm.ten_xe ASC
+    `,
+    [shopId],
+  );
+
+  const modelsByBrand = {};
+  const brandSet = new Set();
+  for (const r of rows) {
+    const b = (r.brand || "").trim();
+    const m = (r.model || "").trim();
+    if (!b) continue;
+    brandSet.add(b);
+    if (!modelsByBrand[b]) modelsByBrand[b] = [];
+    if (m && !modelsByBrand[b].includes(m)) modelsByBrand[b].push(m);
+  }
+
+  const [yearRows] = await pool.query(
+    `
+      SELECT
+        MIN(pca.year_from) AS yMin,
+        MAX(pca.year_to)   AS yMax
+      FROM products p
+      JOIN product_car_applications pca ON pca.productId = p.id
+      WHERE p.shopId = ?
+        AND pca.year_from IS NOT NULL
+        AND pca.year_to   IS NOT NULL
+    `,
+    [shopId],
+  );
+  const yMin = Number(yearRows[0]?.yMin) || null;
+  const yMax = Number(yearRows[0]?.yMax) || null;
+  const years = [];
+  if (yMin && yMax) {
+    // Build a descending list capped to a sensible range so the
+    // dropdown stays scannable (current_year .. yMin).
+    const cap = Math.min(yMax, new Date().getFullYear() + 1);
+    for (let y = cap; y >= yMin; y -= 1) years.push(y);
+  }
+
+  return {
+    brands: Array.from(brandSet),
+    modelsByBrand,
+    years,
   };
 }

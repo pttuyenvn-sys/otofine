@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
@@ -5,10 +6,23 @@ import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import { shopDemo } from "@/data/shop-demo";
 
+// The new Client filter row + sidebar both call `useSearchParams()` so
+// Next.js 15 requires a Suspense boundary when the parent page is
+// statically prerendered (shop-demo is). We keep static rendering for
+// the rest of the layout and just isolate the dynamic widgets.
+const FILTERS_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
+);
+const SIDEBAR_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[320px] animate-pulse" />
+);
+
 export default function ShopDemoHomePage() {
   return (
     <div className="space-y-3">
-      <ShopFilters brands={shopDemo.carBrands} years={[]} />
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopFilters basePath="/shop-demo" />
+      </Suspense>
 
       {/* About + Promo + Contact */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -39,7 +53,9 @@ export default function ShopDemoHomePage() {
           </ShopSection>
         </div>
         <div className="lg:col-span-3">
-          <ShopSidebar categories={shopDemo.categories} />
+          <Suspense fallback={SIDEBAR_FALLBACK}>
+            <ShopSidebar categories={shopDemo.categories} />
+          </Suspense>
         </div>
       </div>
 

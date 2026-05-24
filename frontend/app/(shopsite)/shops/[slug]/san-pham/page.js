@@ -1,12 +1,26 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import {
+  ShopActiveFilterChips,
+  ShopProductsEmpty,
+} from "@/components/shopsite/ShopProductGridState";
+import ShopProductsPagination from "@/components/shopsite/ShopProductsPagination";
+
+const FILTERS_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
+);
+const SIDEBAR_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[320px] animate-pulse" />
+);
+import {
   fetchPublicShop,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
+  fetchPublicShopFitments,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
@@ -16,6 +30,8 @@ export async function generateMetadata({ params }) {
   return { alternates: { canonical: await getShopCanonicalUrl(slug, "san-pham") } };
 }
 
+const PER_PAGE = 20;
+
 export default async function ShopTenantProductsPage({ params, searchParams }) {
   const { slug } = await params;
   const search = (await searchParams) || {};
@@ -23,18 +39,23 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
   const page = Number(search.page) > 0 ? Number(search.page) : 1;
   const filterArgs = {
     page,
-    perPage: 16,
+    perPage: PER_PAGE,
     category: search.category || undefined,
     brand: search.brand || undefined,
     model: search.model || undefined,
+    year: search.year || undefined,
     q: search.q || undefined,
     sort: search.sort || "newest",
   };
 
-  const [shop, productsPage, categoriesPayload] = await Promise.all([
+  // Parallelise everything that doesn't depend on the shop row. The
+  // backend's `findPublicShopBySlug` is cached so the implicit lookup
+  // inside each call is essentially free after the first hit.
+  const [shop, productsPage, categoriesPayload, fitments] = await Promise.all([
     fetchPublicShop(slug),
     fetchPublicShopProducts(slug, filterArgs),
     fetchPublicShopCategories(slug),
+    fetchPublicShopFitments(slug),
   ]);
 
   if (!shop) notFound();
@@ -43,26 +64,28 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
   const items = productsPage?.items || [];
   const total = productsPage?.total || 0;
   const totalPages = productsPage?.totalPages || 1;
-  const categories = (categoriesPayload?.items || []).slice(0, 12).map((c) => ({
+
+  const categories = (categoriesPayload?.items || []).map((c) => ({
     id: c.id,
     name: c.name,
     slug: c.slug || String(c.id),
   }));
-
-  const hasNext = page < totalPages;
-  const nextHref = `${basePath}/san-pham?page=${page + 1}`;
+  const categoriesBySlug = Object.fromEntries(categories.map((c) => [c.slug, c]));
 
   return (
     <div className="space-y-3">
-      <ShopFilters />
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopFilters fitments={fitments} basePath={basePath} />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <aside className="lg:col-span-3">
-          <ShopSidebar
-            categories={categories}
-            activeSlug={search.category}
-            basePath={basePath}
-          />
+          <Suspense fallback={SIDEBAR_FALLBACK}>
+            <ShopSidebar
+              categories={categories.slice(0, 12)}
+              basePath={basePath}
+            />
+          </Suspense>
         </aside>
 
         <div className="lg:col-span-9">
@@ -70,10 +93,18 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
             title={`Tất cả sản phẩm (${total.toLocaleString("vi-VN")})`}
             bodyClassName="!p-3"
           >
+            <div className="mb-3">
+              <Suspense fallback={null}>
+                <ShopActiveFilterChips
+                  basePath={basePath}
+                  categoriesBySlug={categoriesBySlug}
+                />
+              </Suspense>
+            </div>
             {items.length === 0 ? (
-              <div className="py-12 text-center text-sm text-gray-500">
-                Không có sản phẩm phù hợp với bộ lọc.
-              </div>
+              <Suspense fallback={null}>
+                <ShopProductsEmpty basePath={basePath} />
+              </Suspense>
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -81,16 +112,13 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
                     <ShopProductCard key={product.id} product={product} />
                   ))}
                 </div>
-                {hasNext && (
-                  <div className="mt-4 flex justify-center">
-                    <a
-                      href={nextHref}
-                      className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-[#e60012] hover:text-[#e60012] text-sm text-gray-700 font-medium px-5 py-2 rounded-xl"
-                    >
-                      Xem thêm sản phẩm ›
-                    </a>
-                  </div>
-                )}
+                <Suspense fallback={null}>
+                  <ShopProductsPagination
+                    page={page}
+                    totalPages={totalPages}
+                    basePath={basePath}
+                  />
+                </Suspense>
               </>
             )}
           </ShopSection>

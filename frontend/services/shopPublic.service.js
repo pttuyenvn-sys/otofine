@@ -55,6 +55,16 @@ export async function fetchPublicShopContact(slug) {
   return publicFetch(`/public/shops/${encodeURIComponent(slug)}/contact`);
 }
 
+/**
+ * Fitment dropdown options (brands, models per brand, year list)
+ * scoped to a single shop's product catalogue. Backend cache TTL =
+ * 5 min (same as categories) — change rarely, large savings.
+ */
+export async function fetchPublicShopFitments(slug) {
+  if (!slug) return null;
+  return publicFetch(`/public/shops/${encodeURIComponent(slug)}/fitments`);
+}
+
 /** Helper used by metadata generators. Same as fetchPublicShop but quiet on errors. */
 export async function fetchPublicShopSafe(slug) {
   try {

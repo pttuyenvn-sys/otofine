@@ -18,13 +18,21 @@ export function validateProductsQuery(q = {}) {
   const out = {};
   if (typeof q.q === "string" && q.q.trim()) out.q = q.q.trim().slice(0, 80);
   if (typeof q.category === "string" && q.category.trim()) {
-    out.category = q.category.trim().toLowerCase().slice(0, 80);
+    // `c-123` keeps its case for the repo regex; canonical_name slugs
+    // are matched case-insensitively SQL-side. Slice prevents abuse.
+    out.category = q.category.trim().slice(0, 80);
   }
   if (typeof q.brand === "string" && q.brand.trim()) {
     out.brand = q.brand.trim().slice(0, 80);
   }
   if (typeof q.model === "string" && q.model.trim()) {
     out.model = q.model.trim().slice(0, 80);
+  }
+  if (q.year !== undefined && q.year !== null && String(q.year).trim() !== "") {
+    const yN = Number(q.year);
+    if (Number.isFinite(yN) && yN >= 1900 && yN <= 2100) {
+      out.year = Math.floor(yN);
+    }
   }
   if (typeof q.sort === "string") {
     const s = q.sort.toLowerCase();

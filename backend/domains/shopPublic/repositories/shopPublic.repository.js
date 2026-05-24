@@ -107,6 +107,16 @@ export async function countPublicShopProducts(shopId) {
 /**
  * Distinct categories that this shop has products in.
  * Joins via the existing `product_category_map` ↔ `product_categories`.
+ *
+ * `slug` is preferred from `canonical_name` when present, otherwise we
+ * synthesize `c-<id>` so the products filter has a deterministic,
+ * reversible key — see the matching `pc.id = ?` branch in
+ * `shopPublicProducts.repository.listShopProducts`.
+ *
+ * This fallback exists because production data has many categories
+ * with NULL `canonical_name`; without it, every sidebar click on
+ * those categories used to filter by a non-matching string and
+ * return zero results.
  */
 export async function listShopCategories(shopId) {
   if (!shopId) return [];
@@ -127,5 +137,8 @@ export async function listShopCategories(shopId) {
     `,
     [shopId],
   );
-  return rows;
+  return rows.map((r) => ({
+    ...r,
+    slug: r.slug && String(r.slug).trim() ? String(r.slug).trim() : `c-${r.id}`,
+  }));
 }

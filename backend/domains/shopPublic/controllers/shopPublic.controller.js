@@ -2,6 +2,7 @@ import {
   getPublicShopBySlug,
   getPublicShopCategories,
   getPublicShopContact,
+  getPublicShopFitments,
   getPublicShopProducts,
 } from "../services/shopPublic.service.js";
 import {
@@ -75,6 +76,32 @@ export async function handleGetShopCategories(req, res) {
   } catch (err) {
     shopsiteLog.error("public-api.error", {
       route: "categories",
+      slug,
+      msg: err?.message || "err",
+    });
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/** GET /api/public/shops/:slug/fitments */
+export async function handleGetShopFitments(req, res) {
+  const t = Date.now();
+  const slug = validateShopSlugParam(req.params.slug);
+  if (!slug) return notFound(res, { slug: req.params.slug });
+  try {
+    const data = await getPublicShopFitments(slug);
+    if (!data) return notFound(res, { slug });
+    res.set("Cache-Control", CACHE_HEADER);
+    res.json(data);
+    shopsiteLog.info("public-api.ok", {
+      route: "fitments",
+      slug,
+      brands: data.brands?.length || 0,
+      dur_ms: Date.now() - t,
+    });
+  } catch (err) {
+    shopsiteLog.error("public-api.error", {
+      route: "fitments",
       slug,
       msg: err?.message || "err",
     });

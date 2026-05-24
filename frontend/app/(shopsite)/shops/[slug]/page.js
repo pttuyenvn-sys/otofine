@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopSection from "@/components/shopsite/ShopSection";
@@ -8,9 +9,17 @@ import {
   fetchPublicShop,
   fetchPublicShopProducts,
   fetchPublicShopCategories,
+  fetchPublicShopFitments,
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
+
+const FILTERS_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
+);
+const SIDEBAR_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[320px] animate-pulse" />
+);
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -20,10 +29,11 @@ export async function generateMetadata({ params }) {
 export default async function ShopTenantHomePage({ params }) {
   const { slug } = await params;
 
-  const [shop, productsPage, categoriesPayload] = await Promise.all([
+  const [shop, productsPage, categoriesPayload, fitments] = await Promise.all([
     fetchPublicShop(slug),
     fetchPublicShopProducts(slug, { perPage: 5, sort: "newest" }),
     fetchPublicShopCategories(slug),
+    fetchPublicShopFitments(slug),
   ]);
 
   if (!shop) notFound();
@@ -38,19 +48,9 @@ export default async function ShopTenantHomePage({ params }) {
 
   return (
     <div className="space-y-3">
-      <ShopFilters
-        brands={[
-          "Toyota",
-          "Honda",
-          "Mazda",
-          "Ford",
-          "Hyundai",
-          "Kia",
-          "Peugeot",
-          "Mitsubishi",
-          "Nissan",
-        ]}
-      />
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopFilters fitments={fitments} basePath={basePath} />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <div className="lg:col-span-4">
@@ -83,7 +83,9 @@ export default async function ShopTenantHomePage({ params }) {
           </ShopSection>
         </div>
         <div className="lg:col-span-3">
-          <ShopSidebar categories={categories} basePath={basePath} />
+          <Suspense fallback={SIDEBAR_FALLBACK}>
+            <ShopSidebar categories={categories} basePath={basePath} />
+          </Suspense>
         </div>
       </div>
 

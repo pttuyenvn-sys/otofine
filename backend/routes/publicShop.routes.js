@@ -5,6 +5,7 @@ import {
   handleGetShopProducts,
   handleGetShopCategories,
   handleGetShopContact,
+  handleGetShopFitments,
   handleGetCacheDebug,
   responseCache,
   TTL_MS,
@@ -34,6 +35,7 @@ router.get("/debug/cache", handleGetCacheDebug);
 router.get("/:slug",            responseCache(TTL_MS.shopInfo),     handleGetShop);
 router.get("/:slug/products",   responseCache(TTL_MS.productsList), handleGetShopProducts);
 router.get("/:slug/categories", responseCache(TTL_MS.categories),   handleGetShopCategories);
+router.get("/:slug/fitments",   responseCache(TTL_MS.categories),   handleGetShopFitments);
 router.get("/:slug/contact",    responseCache(TTL_MS.contact),      handleGetShopContact);
 
 export default router;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
@@ -8,14 +9,25 @@ export const metadata = {
   title: `Sản phẩm — ${shopDemo.name} | Otofine`,
 };
 
+const FILTERS_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
+);
+const SIDEBAR_FALLBACK = (
+  <div className="bg-white rounded-2xl shadow-sm h-[320px] animate-pulse" />
+);
+
 export default function ShopDemoProductsPage() {
   return (
     <div className="space-y-3">
-      <ShopFilters brands={shopDemo.carBrands} />
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopFilters basePath="/shop-demo" />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <aside className="lg:col-span-3">
-          <ShopSidebar categories={shopDemo.categories} />
+          <Suspense fallback={SIDEBAR_FALLBACK}>
+            <ShopSidebar categories={shopDemo.categories} basePath="/shop-demo" />
+          </Suspense>
         </aside>
 
         <div className="lg:col-span-9">
