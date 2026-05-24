@@ -44,6 +44,7 @@ import {
 
 import ShopAddressSelector from "../ShopAddressSelector";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
+import { slugifyVi } from "@/lib/seo/slugify";
 
 // ---------------------------------------------------------------------------
 // Tiny helpers
@@ -157,23 +158,52 @@ function SlugHint({ status, value }) {
   return null;
 }
 
-function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1", helperText }) {
+function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1", helperText, maxWidth = 260 }) {
   const inputRef = useRef(null);
+  const openPicker = () => { if (!uploading) inputRef.current?.click(); };
   return (
     <div>
       <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
-      <div
-        className="relative w-full max-w-[260px] bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl overflow-hidden"
-        style={{ aspectRatio: aspect }}
+      <button
+        type="button"
+        onClick={openPicker}
+        disabled={uploading}
+        className={
+          "group relative w-full bg-gray-50 border-2 border-dashed rounded-xl overflow-hidden text-left transition-colors " +
+          (uploading
+            ? "border-gray-200 cursor-wait"
+            : "border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/30 cursor-pointer")
+        }
+        style={{ aspectRatio: aspect, maxWidth }}
+        aria-label={previewUrl ? `Đổi ${label.toLowerCase()}` : `Tải ${label.toLowerCase()} lên`}
       >
         {previewUrl
-          ? <img src={previewUrl} alt={label} className="w-full h-full object-cover" />
-          : <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">Chưa có ảnh</div>
+          ? <img src={previewUrl} alt={label} className="w-full h-full object-cover pointer-events-none" />
+          : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-1.5 pointer-events-none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span className="text-xs">Bấm để chọn ảnh</span>
+            </div>
+          )
         }
-        {uploading && (
-          <div className="absolute inset-0 bg-white/75 flex items-center justify-center text-sm text-gray-600 font-medium">Đang upload…</div>
+        {!uploading && previewUrl && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+            <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">Bấm để đổi ảnh</span>
+          </div>
         )}
-      </div>
+        {uploading && (
+          <div className="absolute inset-0 bg-white/85 flex flex-col items-center justify-center gap-2 text-sm text-gray-700 font-medium pointer-events-none">
+            <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            Đang upload…
+          </div>
+        )}
+      </button>
       <input
         ref={inputRef}
         type="file"
@@ -181,15 +211,7 @@ function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickFile(f); e.target.value = ""; }}
       />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
-      >
-        {previewUrl ? "Đổi ảnh" : "Tải ảnh lên"}
-      </button>
-      {helperText && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+      {helperText && <p className="text-xs text-gray-500 mt-2">{helperText}</p>}
     </div>
   );
 }
@@ -278,12 +300,39 @@ export default function ShopSettings() {
   const [feedback, setFeedback] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
 
+  // Tracks whether the seller has manually edited the slug. Once true,
+  // typing in "Tên shop" stops auto-overwriting the slug.
+  const [slugDirty, setSlugDirty] = useState(false);
+
   const slugStatus = useSlugStatus(pub.slug, originalSlug);
   const slugBad = pub.slug && slugStatus.state === "bad";
   const canSave = !loading && !saving && !slugBad;
 
-  function setB(name, value) { setBasic((p) => ({ ...p, [name]: value })); }
-  function setP(name, value) { setPub((p) => ({ ...p, [name]: value })); setFieldErrors((p) => p[name] ? { ...p, [name]: undefined } : p); }
+  // Auto-fill slug from shop name as long as:
+  //   1. The seller hasn't manually edited the slug in this session
+  //      (`slugDirty` stays false until they type into the slug field), AND
+  //   2. The shop has no saved slug yet (`originalSlug` empty → brand-new
+  //      shop or shop that has never published).
+  //
+  // Deliberately NOT auto-overwriting an existing saved slug — that would
+  // silently rename the public subdomain URL and break inbound links.
+  function setShopName(value) {
+    setBasic((p) => ({ ...p, name: value }));
+    if (!slugDirty && !originalSlug) {
+      const auto = slugifyVi(value, { compact: true }).slice(0, 40);
+      setPub((p) => ({ ...p, slug: auto }));
+    }
+  }
+
+  function setB(name, value) {
+    if (name === "name") return setShopName(value);
+    setBasic((p) => ({ ...p, [name]: value }));
+  }
+  function setP(name, value) {
+    if (name === "slug") setSlugDirty(true);
+    setPub((p) => ({ ...p, [name]: value }));
+    setFieldErrors((p) => p[name] ? { ...p, [name]: undefined } : p);
+  }
 
   // Auto-dismiss feedback toast
   useEffect(() => {
@@ -304,6 +353,8 @@ export default function ShopSettings() {
     ]).then(([shopRes, pubRes]) => {
       if (!mounted) return;
       const s = shopRes?.data || {};
+      const d = pubRes?.data || {};
+
       if (s.id) {
         setShopId(s.id);
         try { localStorage.setItem("shopId", String(s.id)); } catch (_) {}
@@ -318,30 +369,32 @@ export default function ShopSettings() {
           salePolicy: s.salePolicy || "",
           warrantyPolicy: s.warrantyPolicy || "",
         });
-        // Prefer R2 public-page images if available; fall back to legacy avatar/cover
-        // (populated below from pubRes if present)
-        if (s.avatar) setAvatarPreview(s.avatar.startsWith("http") ? s.avatar : s.avatar);
-        if (s.cover)  setCoverPreview(s.cover.startsWith("http")  ? s.cover  : s.cover);
       }
-      const d = pubRes?.data || {};
-      if (d.slug) {
-        setPub({
-          slug:         d.slug         || "",
-          publicStatus: d.publicStatus || "draft",
-          bio:          d.bio          || "",
-          introHtml:    d.introHtml    || "",
-          facebookUrl:  d.facebookUrl  || "",
-          zaloPhone:    d.zaloPhone    || "",
-          workingHours: d.workingHours || "",
-          mapEmbedUrl:  d.mapEmbedUrl  || "",
-          addressDetail:d.addressDetail|| "",
-        });
-        setOriginalSlug(d.slug || "");
-        setPreview(d.preview || null);
-        // R2 images take priority over legacy URLs
-        if (d.avatar)     setAvatarPreview(d.avatar);
-        if (d.coverImage) setCoverPreview(d.coverImage);
-      }
+
+      // Public-page DTO is loaded whenever the shop record exists (slug
+      // can be empty for a brand-new shop). Always hydrate so the form
+      // surfaces publicStatus/bio/etc even before a slug is set.
+      setPub({
+        slug:          d.slug          || "",
+        publicStatus:  d.publicStatus  || "draft",
+        bio:           d.bio           || "",
+        introHtml:     d.introHtml     || "",
+        facebookUrl:   d.facebookUrl   || "",
+        zaloPhone:     d.zaloPhone     || "",
+        workingHours:  d.workingHours  || "",
+        mapEmbedUrl:   d.mapEmbedUrl   || "",
+        addressDetail: d.addressDetail || "",
+      });
+      setOriginalSlug(d.slug || "");
+      setPreview(d.preview || null);
+
+      // Avatar/cover live in `shops.avatar` / `shops.cover` and are
+      // surfaced by both APIs. Prefer the public-page DTO (canonical)
+      // and fall back to legacy `/api/shop/me` shape.
+      const avatar = d.avatar     || s.avatar || null;
+      const cover  = d.coverImage || s.cover  || null;
+      if (avatar) setAvatarPreview(avatar);
+      if (cover)  setCoverPreview(cover);
     }).finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps

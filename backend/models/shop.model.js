@@ -44,31 +44,35 @@ export default {
     return { id: result.insertId };
   },
 
+  /**
+   * PATCH-style update: only columns whose key is *present* in `data`
+   * are touched.  Critical for the Phase A `/shop/settings` merge so
+   * that calling `Shop.update(id, { descriptionHtml: '...' })` does
+   * NOT silently NULL-out `avatar` / `cover` that were written via
+   * the public-page upload endpoints in a separate request.
+   *
+   * Also fixes the latent bug in `createShop` where
+   * `Shop.update(newShop.id, { avatar: url })` would wipe every other
+   * field with NULL.
+   */
   async update(id, data) {
-    const sql = `UPDATE shops SET
-      name=?, avatar=?, cover=?, phone=?, email=?, zalo=?, website=?,
-      provinceId=?, districtId=?, wardId=?, addressDetail=?,
-      descriptionHtml=?, salePolicy=?, warrantyPolicy=?,
-      updatedAt = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const params = [
-      data.name || null,
-      data.avatar || null,
-      data.cover || null,
-      data.phone || null,
-      data.email || null,
-      data.zalo || null,
-      data.website || null,
-      data.provinceId || null,
-      data.districtId || null,
-      data.wardId || null,
-      data.addressDetail || null,
-      data.descriptionHtml || null,
-      data.salePolicy || null,
-      data.warrantyPolicy || null,
-      id,
+    const ALLOWED = [
+      "name", "avatar", "cover", "phone", "email", "zalo", "website",
+      "provinceId", "districtId", "wardId", "addressDetail",
+      "descriptionHtml", "salePolicy", "warrantyPolicy",
     ];
+    const sets = [];
+    const params = [];
+    for (const col of ALLOWED) {
+      if (Object.prototype.hasOwnProperty.call(data, col)) {
+        sets.push(`${col} = ?`);
+        params.push(data[col] ?? null);
+      }
+    }
+    if (sets.length === 0) return { affectedRows: 0 };
+    sets.push("updatedAt = CURRENT_TIMESTAMP");
+    params.push(id);
+    const sql = `UPDATE shops SET ${sets.join(", ")} WHERE id = ?`;
     const [res] = await pool.query(sql, params);
     return res;
   },
