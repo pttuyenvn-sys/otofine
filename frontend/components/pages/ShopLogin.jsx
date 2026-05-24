@@ -3,13 +3,16 @@
 import { useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import OneSignal from "react-onesignal";
 
 import AuthCard from "../AuthCard";
 import { API_BASE } from "@/lib/config";
 import ShopPushPrompt from "@/components/push/ShopPushPrompt";
+import { getShopLoginDestinationFromSearch } from "@/lib/auth/safeShopRedirect";
 
 export default function ShopLogin() {
+  const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
@@ -31,8 +34,10 @@ export default function ShopLogin() {
 
       console.log("LOGIN RESPONSE:", res.data);
 
-      // SAVE TOKEN
       localStorage.setItem("token", res.data.token);
+      if (res.data.refreshToken) {
+        localStorage.setItem("refreshToken", res.data.refreshToken);
+      }
 
       const sellerShopPk = res.data.shop?.id;
 
@@ -92,7 +97,8 @@ export default function ShopLogin() {
 
       setMsg("Đăng nhập thành công!");
 
-      window.location.href = "/shop/settings";
+      const destination = getShopLoginDestinationFromSearch(window.location.search);
+      router.replace(destination);
     } catch (err) {
       console.error(err);
 
