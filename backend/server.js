@@ -43,6 +43,8 @@ import rfqPushRoutes from "./routes/rfqPush.routes.js";
 import publicShopRoutes from "./routes/publicShop.routes.js";
 import sellerPublicPageRoutes from "./routes/sellerPublicPage.routes.js";
 import { publicShopConfig } from "./domains/shopPublic/index.js";
+import storefrontEventsRoutes from "./domains/storefrontEvents/storefrontEvents.routes.js";
+import shopMetricsRoutes from "./routes/shopMetrics.routes.js";
 
 const app = express();
 app.use(express.json());
@@ -132,6 +134,22 @@ if (publicShopConfig.enabled) {
 
 app.use("/api/shop", shopRoutes);
 app.use("/api/shops", shopRoutes);
+
+/**
+ * Seller-side dashboard metrics. Lightweight, additive, additive-only;
+ * see `routes/shopMetrics.routes.js` for the single GET endpoint.
+ * Mounted before the `/api/shop` catchall above only matters when the
+ * sub-paths collide — these do not (`/shop/metrics/*` is new ground).
+ */
+app.use("/api/shop/metrics", shopMetricsRoutes);
+
+/**
+ * Public storefront analytics ingest (Phase: seller dashboard metrics).
+ * One POST endpoint that buyers' browsers fire via a non-blocking
+ * beacon. No auth, per-IP rate-limited inside the controller, never
+ * surfaces an error to the buyer (always 204).
+ */
+app.use("/api/storefront-events", storefrontEventsRoutes);
 
 /** Public read-only shopsite API (Phase 2 endpoints). */
 if (publicShopConfig.enabled) {

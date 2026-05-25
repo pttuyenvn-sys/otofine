@@ -50,6 +50,7 @@ import ShopRichEditorWithPreview from "../shopsite/ShopRichEditorWithPreview";
 import ShopPolicyEditor from "../shopsite/ShopPolicyEditor";
 import ShopCompletionPanel from "./shop-settings/ShopCompletionPanel";
 import ShopSeoPreviewPanel from "./shop-settings/ShopSeoPreviewPanel";
+import ShopMetricsOverview from "./shop-settings/ShopMetricsOverview";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
 import { normalizeRichHtml } from "@/lib/shopsite/normalizeRichHtml";
@@ -565,6 +566,11 @@ export default function ShopSettings() {
           Quản lý toàn bộ thông tin, storefront và liên hệ của shop.
         </p>
       </header>
+
+      {/* Seller nav + metrics overview pass — lightweight, additive,
+          read-only dashboard. Reads from /api/shop/metrics/overview
+          (aggregate-only queries). Never blocks the settings form. */}
+      <ShopMetricsOverview />
 
       {/* Phase 5.1 — friendly completion nudge.  Computed live from
           the current form state; never blocks saving.  Avatar / cover

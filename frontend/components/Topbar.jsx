@@ -169,6 +169,13 @@ export default function Topbar() {
                 <Link href="/shop/products" style={menuStyle} prefetch={false}>
                   Products
                 </Link>
+                {/* Sidebar parity — the seller sidebar is hidden under
+                    900px, so the topbar dropdown must surface every
+                    primary destination on mobile (including the new
+                    inbox entry added in the nav refinement pass). */}
+                <Link href="/rfq/shop/inbox" style={menuStyle} prefetch={false}>
+                  Tin nhắn khách hàng
+                </Link>
                 <div style={menuStyle} onClick={handleLogout} role="presentation">
                   Logout
                 </div>

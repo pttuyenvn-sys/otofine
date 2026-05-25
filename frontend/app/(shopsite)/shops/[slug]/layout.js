@@ -3,6 +3,7 @@ import ShopHeader from "@/components/shopsite/ShopHeader";
 import ShopTabs from "@/components/shopsite/ShopTabs";
 import ShopFloatingMobileCTA from "@/components/shopsite/ShopFloatingMobileCTA";
 import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
+import StorefrontAnalyticsForwarder from "@/components/shopsite/StorefrontAnalyticsForwarder";
 import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
@@ -102,6 +103,10 @@ export default async function ShopTenantLayout({ children, params }) {
           no contact data. */}
       <ShopFloatingMobileCTA shop={mapToCtaShape(shop)} />
       <ShopAnalyticsBoot shopSlug={shop.slug} shopName={shop.name} />
+      {/* Forwards every `shopsite:event` CustomEvent to the seller-side
+          metrics ingest endpoint. Pure client island — SSR sees null,
+          adblockers / CSP errors are silently absorbed. */}
+      <StorefrontAnalyticsForwarder shopSlug={shop.slug} />
 
       {/* Phase 5.5 — structured data for search engines. */}
       <ShopJsonLd payload={jsonLd} />
