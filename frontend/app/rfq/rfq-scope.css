@@ -1957,3 +1957,258 @@
   color: #fff;
   vertical-align: middle;
 }
+
+/* ============================================================
+   Phase 8.2 — RFQ Assist suggestion panel
+   ============================================================
+   Mounted on /rfq/t/[token] above the chat. Restrained B2B styling.
+   Component renders nothing when rollout is OFF or zero suggestions,
+   so these styles only apply when the panel is actually visible.
+   ============================================================ */
+
+.rfq-scope .rfq-assist-panel {
+  margin: 0 auto 16px;
+  padding: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  max-width: 920px;
+}
+
+.rfq-scope .rfq-assist-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rfq-scope .rfq-assist-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.rfq-scope .rfq-assist-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.rfq-scope .rfq-assist-dismiss {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.rfq-scope .rfq-assist-dismiss:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.rfq-scope .rfq-assist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.rfq-scope .rfq-assist-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.rfq-scope .rfq-assist-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.rfq-scope .rfq-assist-card--selected {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1);
+}
+
+.rfq-scope .rfq-assist-card--hot  { border-top: 3px solid #16a34a; }
+.rfq-scope .rfq-assist-card--warm { border-top: 3px solid #f59e0b; }
+.rfq-scope .rfq-assist-card--cold { border-top: 3px solid #94a3b8; }
+
+.rfq-scope .rfq-assist-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rfq-scope .rfq-assist-card__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rfq-scope .rfq-assist-card__name:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rfq-scope .rfq-assist-card__score {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rfq-scope .rfq-assist-card--hot  .rfq-assist-card__score { background: #dcfce7; color: #166534; }
+.rfq-scope .rfq-assist-card--warm .rfq-assist-card__score { background: #fef3c7; color: #92400e; }
+.rfq-scope .rfq-assist-card--cold .rfq-assist-card__score { background: #f1f5f9; color: #475569; }
+
+.rfq-scope .rfq-assist-card__score-num {
+  font-size: 14px;
+  font-weight: 700;
+}
+.rfq-scope .rfq-assist-card__score-max {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.rfq-scope .rfq-assist-card__tier {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+.rfq-scope .rfq-assist-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rfq-scope .rfq-assist-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rfq-scope .rfq-assist-chip--verified {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.rfq-scope .rfq-assist-chip--brand {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.rfq-scope .rfq-assist-card__reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rfq-scope .rfq-assist-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.35;
+}
+.rfq-scope .rfq-assist-reason__bullet {
+  color: #94a3b8;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.35;
+}
+
+.rfq-scope .rfq-assist-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.rfq-scope .rfq-assist-toggle {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.rfq-scope .rfq-assist-toggle:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+.rfq-scope .rfq-assist-toggle--on {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+.rfq-scope .rfq-assist-toggle--on:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.rfq-scope .rfq-assist-storefront {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.rfq-scope .rfq-assist-storefront:hover {
+  text-decoration: underline;
+}
+
+.rfq-scope .rfq-assist-foot {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .rfq-scope .rfq-assist-panel {
+    margin: 0 0 12px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .rfq-scope .rfq-assist-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .rfq-scope .rfq-assist-title {
+    font-size: 15px;
+  }
+}

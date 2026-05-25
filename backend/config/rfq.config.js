@@ -51,6 +51,10 @@ export const rfqLimits = {
   conversationUnreadSummaryPerBuyerMinute: Number(
     process.env.RFQ_RL_CONV_UNREAD_SUM_MIN || 60,
   ),
+  // Phase 8.2 — RFQ Assist (soft rollout). Generous defaults; the panel
+  // only renders for a small slice of RFQs while RFQ_ASSIST_ROLLOUT_PCT is low.
+  assistSuggestionsPerMinute: Number(process.env.RFQ_RL_ASSIST_SUGGEST_MIN || 60),
+  assistEventsPerMinute: Number(process.env.RFQ_RL_ASSIST_EVENT_MIN || 120),
 };
 
 /** Dedup window for phone+vehicle+keyword fingerprint (hours) */

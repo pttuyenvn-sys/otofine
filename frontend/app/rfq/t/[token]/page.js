@@ -7,6 +7,10 @@ import { useParams } from "next/navigation";
 import { API_BASE, API_ORIGIN, ZALO_OA_URL } from "@/lib/config";
 import { ZaloOaBuyerInlineHint, ZaloOaBuyerMobileStickyBar } from "@/components/rfq/ZaloOaCtas";
 import RfqConversationTimeline from "@/components/rfq/RfqConversationTimeline";
+// Phase 8.2 — assistive supplier-suggestion panel. Self-hides when soft
+// rollout is OFF for this buyer or the matcher returns nothing. Additive,
+// never blocks the existing viewer flow below.
+import RfqAssistSuggestions from "@/components/rfq/RfqAssistSuggestions";
 import RfqMessageComposer from "@/components/rfq/RfqMessageComposer";
 import { useBuyerConversationMessages } from "@/hooks/useRfqConversationMessages";
 
@@ -327,6 +331,16 @@ export default function RfqTokenPage() {
       {!loading && data && ux && (
         <>
           <div className={`rfq-buyer-inner${showOaComfort ? " rfq-buyer-inner--oa-pad-mobile" : ""}`}>
+          {/* Phase 8.2 — assistive shop suggestions, soft-rollout gated.
+              Renders nothing when rollout is OFF, when there are no
+              matches, or when the API call fails. Never blocks the
+              hero/timeline/quotes below. */}
+          {data?.rfqRequestId && (
+            <RfqAssistSuggestions
+              rfqId={data.rfqRequestId}
+              viewerToken={token}
+            />
+          )}
           <header className={`rfq-buyer-hero rfq-buyer-hero--${ux.tone}`}>
             <p className="rfq-buyer-kicker">RFQ · #{data.publicId?.slice(0, 8) || "········"}</p>
             <h1 className="rfq-buyer-title">{ux.headline}</h1>
