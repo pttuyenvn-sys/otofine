@@ -105,14 +105,21 @@ export default function ShopProductCard({ product, shopSlug }) {
         </button>
       </div>
 
-      <div className="p-3 flex-1 flex flex-col">
-        <h3 className="text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem]">
+      {/*
+        Mobile compression: card body padding drops from p-3 to p-2
+        on phones, with smaller text + tighter gaps. Title still
+        clamps at 2 lines; vehicle line still single-line truncated;
+        part-type pill uses smaller padding/font. Desktop (sm+)
+        keeps the original sizing — verified by sm:p-3 + sm:text-sm.
+      */}
+      <div className="p-2 sm:p-3 flex-1 flex flex-col">
+        <h3 className="text-[13px] sm:text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
           {product.name}
         </h3>
 
         {fitmentLine ? (
           <p
-            className="mt-1 text-[12px] text-gray-500 truncate"
+            className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-gray-500 truncate"
             title={fitmentLine}
           >
             {fitmentLine}
@@ -120,17 +127,20 @@ export default function ShopProductCard({ product, shopSlug }) {
         ) : (
           // Reserve a constant 1-line gap when the fitment is unknown so
           // the price stays vertically aligned across the grid.
-          <p className="mt-1 text-[12px] text-transparent select-none" aria-hidden>
+          <p
+            className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-transparent select-none"
+            aria-hidden
+          >
             &nbsp;
           </p>
         )}
 
-        <div className="mt-1 text-[#e60012] font-bold text-base tabular-nums">
+        <div className="mt-0.5 sm:mt-1 text-[#e60012] font-bold text-[14px] sm:text-base tabular-nums">
           {formatPrice(product.price)}
         </div>
         {partTypeLabel && (
           <div
-            className="mt-1.5 inline-block self-start text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 max-w-full truncate"
+            className="mt-1 sm:mt-1.5 inline-block self-start text-[10px] sm:text-[11px] text-gray-600 bg-gray-100 rounded px-1.5 sm:px-2 py-0.5 max-w-full truncate"
             title={partTypeLabel}
           >
             {partTypeLabel}

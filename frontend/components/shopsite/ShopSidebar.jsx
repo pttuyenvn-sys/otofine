@@ -38,10 +38,15 @@ export default function ShopSidebar({
   const { params, setParam, clearAll } = useShopFilterParams({ basePath });
   const activeSlug = params.category || "";
 
+  // Mobile compression: the always-visible sidebar is hidden below
+  // `lg:` — phones get the bottom-sheet drawer mounted by
+  // <ShopMobileCategories /> instead. The desktop layout is left
+  // completely untouched (still `block` so the title row and body
+  // stack as before — only the visibility toggles).
   return (
     <ShopSection
       title="Danh mục sản phẩm"
-      className="h-full"
+      className="hidden lg:block h-full"
       bodyClassName="!p-0"
     >
       <ul className="divide-y divide-gray-100">

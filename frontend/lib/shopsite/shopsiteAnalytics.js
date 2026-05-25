@@ -28,6 +28,11 @@ export const ShopsiteEvents = Object.freeze({
   ZALO_CLICK:             "zalo_click",
   FACEBOOK_CLICK:         "facebook_click",
   SHARE_CLICK:            "share_click",
+  // Mobile compression pass — the floating bottom CTA's third slot
+  // now points at the universal RFQ flow (/rfq/new). Tracking it
+  // separately lets us measure the value of "give every visitor a
+  // pivot path" without conflating it with on-storefront conversions.
+  RFQ_CTA_CLICK:          "rfq_cta_click",
   SHARE_COMPLETE:         "share_complete",
   SHARE_COPY:             "share_copy",
 

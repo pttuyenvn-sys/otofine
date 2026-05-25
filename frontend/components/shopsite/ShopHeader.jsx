@@ -39,9 +39,15 @@ export default function ShopHeader({ shop, badges }) {
   const safeShort = shop.shortDescription || "";
 
   return (
-    <div className="space-y-3">
-      {/* A. Utility topbar */}
-      <div className="bg-white rounded-2xl shadow-sm px-3 sm:px-5 py-2 flex items-center justify-between gap-4 text-xs sm:text-sm">
+    <div className="space-y-2 sm:space-y-3">
+      {/*
+        A. Utility topbar — Mobile compression pass:
+           - hidden on <sm so the hero is the first paint on phones
+             (the phone + working hours are surfaced via the floating
+             mobile CTA + sticky contact card)
+           - on sm+ stays the original compact bar
+      */}
+      <div className="hidden sm:flex bg-white rounded-2xl shadow-sm px-3 sm:px-5 py-2 items-center justify-between gap-4 text-xs sm:text-sm">
         <div className="flex items-center gap-4 sm:gap-6 min-w-0 overflow-x-auto">
           {safePhone && (
             <span className="inline-flex items-center gap-2 text-gray-700 whitespace-nowrap">
@@ -71,9 +77,16 @@ export default function ShopHeader({ shop, badges }) {
       {/* B. Cover section — Phase 5.7: ShopImage so a broken /
           missing R2 URL doesn't render a Chrome broken-icon hole;
           the cover is the LCP, so `priority` flips
-          loading="eager" + fetchpriority="high". */}
+          loading="eager" + fetchpriority="high".
+
+          Mobile compression: the hero on phones used to consume
+          ~225px of viewport (16:7 of a 390px-wide column). Halved
+          to 16:11 on mobile (~245px → ~155px after avatar/CTA
+          row fits inside it) so the user reaches actionable
+          content above the fold. Desktop stays at the wider
+          cinematic 16:5 ratio. */}
       <div className="relative rounded-2xl overflow-hidden shadow-sm">
-        <div className="relative aspect-[16/7] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
+        <div className="relative aspect-[16/11] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
           {shop.cover ? (
             <ShopImage
               src={shop.cover}
@@ -97,12 +110,16 @@ export default function ShopHeader({ shop, badges }) {
             className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.55),transparent_55%)]"
           />
 
-          {/* Info overlay */}
-          <div className="absolute inset-0 px-4 sm:px-6 lg:px-8 flex items-end pb-4 sm:pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 w-full">
+          {/* Info overlay
+              Mobile compression: avatar 56px (vs the old 80px) and
+              flex-row at every breakpoint so the avatar+name row
+              compacts into a single line — saves another ~70px of
+              vertical real estate before the CTA buttons. */}
+          <div className="absolute inset-0 px-3 sm:px-6 lg:px-8 flex items-end pb-3 sm:pb-6">
+            <div className="flex flex-row items-end sm:items-end gap-3 sm:gap-5 w-full">
               {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-black/80 ring-2 ring-white/10 border-2 sm:border-[3px] border-white shadow-xl flex items-center justify-center text-white overflow-hidden">
+                <div className="w-14 h-14 sm:w-28 sm:h-28 rounded-full bg-black/80 ring-2 ring-white/10 border-2 sm:border-[3px] border-white shadow-xl flex items-center justify-center text-white overflow-hidden">
                   {shop.avatar ? (
                     <ShopImage
                       src={shop.avatar}
@@ -133,32 +150,39 @@ export default function ShopHeader({ shop, badges }) {
                 </div>
               </div>
 
-              {/* Name + meta */}
+              {/* Name + meta
+                  Mobile compression: drop the meta line (province /
+                  rating / customer count) on <sm — those signals
+                  are still surfaced via the trust badges strip
+                  rendered just below the cover. Keep name + verified
+                  badge + short description as the only mobile hero
+                  text. Desktop renders everything as before. */}
               <div className="flex-1 min-w-0 text-white">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold drop-shadow-md">
+                  <h1 className="text-base sm:text-2xl lg:text-3xl font-bold drop-shadow-md leading-tight line-clamp-2">
                     {shop.name}
                   </h1>
                   {shop.verified && (
                     <span
                       aria-label="Đã xác minh"
                       title="Shop đã được Otofine xác minh"
-                      className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[10px] sm:text-[11px] font-semibold shadow ring-1 ring-white/30"
+                      className="inline-flex items-center gap-1 pl-1 pr-1.5 sm:pl-1.5 sm:pr-2 py-0.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[9px] sm:text-[11px] font-semibold shadow ring-1 ring-white/30"
                     >
-                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/15">
+                      <span className="inline-flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/15">
                         <CheckIcon />
                       </span>
-                      Đã xác minh
+                      <span className="hidden xs:inline sm:inline">Đã xác minh</span>
+                      <span className="xs:hidden sm:hidden">Verified</span>
                     </span>
                   )}
                 </div>
                 {safeShort && (
-                  <p className="text-xs sm:text-sm text-white/85 mt-1 line-clamp-2">
+                  <p className="hidden sm:block text-xs sm:text-sm text-white/85 mt-1 line-clamp-2">
                     {safeShort}
                   </p>
                 )}
 
-                <div className="mt-2 flex items-center flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-white/90">
+                <div className="hidden sm:flex mt-2 items-center flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-white/90">
                   {shop.province && (
                     <span className="inline-flex items-center gap-1">
                       <PinIcon /> {shop.province}
@@ -180,18 +204,20 @@ export default function ShopHeader({ shop, badges }) {
                 </div>
               </div>
 
-              {/* CTAs — Phase 4 polish: stronger hover, focus ring,
-                  scale microtransition, mobile takes full-row spacing.
-                  Phase 5.7: each button hides if its contact field is
-                  empty (no more `shop.phone.replace()` on null). */}
+              {/* CTAs — Phase 4 polish + mobile compression. On
+                  mobile the CTAs are HIDDEN inside the hero because
+                  they're already provided by the floating bottom CTA
+                  bar (call / zalo / RFQ). Desktop keeps them in the
+                  hero so users on wide screens have an immediate
+                  click target without scrolling. */}
               {(safePhone || safeZalo) && (
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
+                <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0 sm:w-auto">
                   {safeZalo && (
                     <a
                       href={`https://zalo.me/${safeZalo}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
+                      className="inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
                     >
                       <ChatIcon /> Nhắn tin
                     </a>
@@ -199,7 +225,7 @@ export default function ShopHeader({ shop, badges }) {
                   {safePhone && (
                     <a
                       href={`tel:${safePhone}`}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
+                      className="inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
                     >
                       <PhoneIcon /> Gọi ngay
                     </a>
@@ -211,7 +237,37 @@ export default function ShopHeader({ shop, badges }) {
         </div>
       </div>
 
-      {/* C. Trust badges (Phase 5.1) — graceful no-op when empty. */}
+      {/* C. Mobile-only quick-search + short description.
+          The hero on mobile is intentionally minimal (name +
+          verified badge + cover). The search box that used to live
+          in the utility topbar is surfaced here so phone users
+          still get a one-tap entry into the products page. */}
+      <div className="sm:hidden bg-white rounded-2xl shadow-sm px-3 py-2.5 space-y-2">
+        {safeShort && (
+          <p className="text-xs text-gray-600 leading-snug line-clamp-2">
+            {safeShort}
+          </p>
+        )}
+        <form
+          action={`/shops/${shop.slug}/san-pham`}
+          method="get"
+          className="flex items-center bg-gray-50 rounded-xl px-2.5 py-1.5 ring-1 ring-gray-200 focus-within:ring-[#e60012]/40 focus-within:bg-white"
+          role="search"
+        >
+          <span aria-hidden className="text-gray-400 shrink-0 mr-1.5">
+            <SearchIcon />
+          </span>
+          <input
+            type="text"
+            name="q"
+            placeholder="Tìm trong shop…"
+            aria-label="Tìm sản phẩm trong shop"
+            className="flex-1 min-w-0 bg-transparent text-sm placeholder-gray-400 outline-none"
+          />
+        </form>
+      </div>
+
+      {/* D. Trust badges (Phase 5.1) — graceful no-op when empty. */}
       {Array.isArray(badges) && badges.length > 0 && (
         <ShopTrustBadges badges={badges} className="px-1" />
       )}

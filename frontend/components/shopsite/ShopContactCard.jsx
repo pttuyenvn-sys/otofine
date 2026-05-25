@@ -1,71 +1,177 @@
+"use client";
+
+import { useState } from "react";
 import ShopSection from "./ShopSection";
 
 /**
  * Compact contact information card — phone, zalo, facebook,
- * address, working hours + a placeholder map block.
+ * address, working hours + map.
+ *
+ * Mobile compression pass:
+ *   - On `<lg:` the card collapses to a "Tóm tắt liên hệ" view that
+ *     shows just phone + zalo + address (the three highest-intent
+ *     fields). A "Xem thêm" toggle reveals facebook + email +
+ *     working hours.
+ *   - The map placeholder is mounted ONLY when the user expands
+ *     the section on mobile (lazy reveal — saves an aspect-ratio
+ *     reserved 16:8 block from the initial paint). Desktop renders
+ *     the full card as before.
+ *
+ * Desktop (`lg:` and up) behaves exactly as the previous version —
+ * single column, every field visible, map placeholder visible by
+ * default. The two regimes share the same `<ContactRow>` building
+ * block so spacing/style stays consistent across breakpoints.
+ *
+ * The component is `"use client"` because `useState` powers the
+ * expand/collapse. The SSR snapshot ships the closed-state markup
+ * (just the compact rows), so server-rendered HTML is hydration-
+ * stable: on first render React sees `expanded=false`, matching
+ * the SSR tree exactly. Map iframe = none today; this design also
+ * keeps any future iframe (Google Maps embed) deferred until the
+ * user opts in on mobile.
  */
 export default function ShopContactCard({ shop, variant = "compact" }) {
   if (!shop) return null;
   const dense = variant === "compact";
+  const [expanded, setExpanded] = useState(false);
+
+  const phone = (shop.phone || "").trim();
+  const zalo = (shop.zalo || "").trim();
+  const address = (shop.address || "").trim();
+  const facebook = shop.facebook || null;
+  const email = (shop.email || "").trim();
+  const hours = Array.isArray(shop.workingHoursLines)
+    ? shop.workingHoursLines.filter(Boolean)
+    : [];
+
+  const phoneHref = phone ? `tel:${phone.replace(/\s/g, "")}` : null;
+  const zaloHref = zalo ? `https://zalo.me/${zalo.replace(/\s/g, "")}` : null;
+
+  // The map block is opt-in on mobile (renders only when expanded)
+  // but stays always-on for desktop. `showMap` encodes that rule
+  // without per-call media-query JS — desktop simply ignores the
+  // `expanded` gate via the `lg:!block` override.
+  const mapAddress = address || "";
 
   return (
     <ShopSection title="Thông tin liên hệ" className="h-full">
-      <ul className={`space-y-${dense ? 2 : 3} text-sm text-gray-800`}>
-        <ContactRow icon={<PhoneIcon />} label="Điện thoại">
-          <a href={`tel:${shop.phone.replace(/\s/g, "")}`} className="hover:text-[#e60012]">
-            {shop.phone}
-          </a>
-        </ContactRow>
-        <ContactRow icon={<ChatIcon />} label="Zalo">
-          <a
-            href={`https://zalo.me/${shop.zalo.replace(/\s/g, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#e60012]"
-          >
-            Zalo: {shop.zalo}
-          </a>
-        </ContactRow>
-        <ContactRow icon={<FacebookIcon />} label="Facebook">
-          <a
-            href={shop.facebook.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#e60012]"
-          >
-            {shop.facebook.label}
-          </a>
-        </ContactRow>
-        <ContactRow icon={<PinIcon />} label="Địa chỉ">
-          <span>{shop.address}</span>
-        </ContactRow>
-        <ContactRow icon={<ClockIcon />} label="Giờ làm việc">
-          <div className="space-y-0.5">
-            {shop.workingHoursLines.map((line) => (
-              <div key={line}>{line}</div>
-            ))}
-          </div>
-        </ContactRow>
+      <ul
+        className={`space-y-${dense ? 2 : 3} text-sm text-gray-800`}
+        aria-label="Liên hệ chính"
+      >
+        {phone && (
+          <ContactRow icon={<PhoneIcon />} label="Điện thoại">
+            {phoneHref ? (
+              <a href={phoneHref} className="hover:text-[#e60012]">
+                {phone}
+              </a>
+            ) : (
+              <span>{phone}</span>
+            )}
+          </ContactRow>
+        )}
+        {zalo && (
+          <ContactRow icon={<ChatIcon />} label="Zalo">
+            {zaloHref ? (
+              <a
+                href={zaloHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#e60012]"
+              >
+                Zalo: {zalo}
+              </a>
+            ) : (
+              <span>Zalo: {zalo}</span>
+            )}
+          </ContactRow>
+        )}
+        {address && (
+          <ContactRow icon={<PinIcon />} label="Địa chỉ">
+            <span>{address}</span>
+          </ContactRow>
+        )}
+
+        {/*
+          Secondary contact rows — hidden on mobile until the user
+          taps "Xem thêm". `lg:!block` forces them visible on desktop
+          regardless of the `expanded` state, so desktop reads as one
+          continuous card with no toggle.
+        */}
+        <div
+          className={`${expanded ? "block" : "hidden"} lg:!block space-y-${dense ? 2 : 3}`}
+        >
+          {facebook && (
+            <ContactRow icon={<FacebookIcon />} label="Facebook">
+              <a
+                href={facebook.url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#e60012]"
+              >
+                {facebook.label || "Facebook"}
+              </a>
+            </ContactRow>
+          )}
+          {email && (
+            <ContactRow icon={<MailIcon />} label="Email">
+              <a href={`mailto:${email}`} className="hover:text-[#e60012]">
+                {email}
+              </a>
+            </ContactRow>
+          )}
+          {hours.length > 0 && (
+            <ContactRow icon={<ClockIcon />} label="Giờ làm việc">
+              <div className="space-y-0.5">
+                {hours.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+            </ContactRow>
+          )}
+        </div>
       </ul>
 
-      <div className="mt-3 rounded-xl overflow-hidden border border-gray-100 bg-gradient-to-br from-gray-100 via-gray-50 to-white relative aspect-[16/8]">
-        {/* Phase 1 placeholder for the Google Maps embed. */}
+      {/*
+        Map block — desktop renders unconditionally; mobile renders
+        only after expand. Wrapped in the same `expanded ? "block" :
+        "hidden"` + `lg:!block` pattern so the DOM cost on a closed
+        mobile card is zero (no `aspect-[16/8]` placeholder competing
+        for layout reservation on first paint).
+      */}
+      {mapAddress && (
         <div
-          aria-hidden
-          className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><rect width=%22120%22 height=%22120%22 fill=%22%23f3f4f6%22/><path d=%22M0 60 L120 60 M60 0 L60 120%22 stroke=%22%23e5e7eb%22 stroke-width=%221%22/></svg>')] opacity-50"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <a
-            href={`https://www.google.com/maps?q=${encodeURIComponent(shop.address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#e60012] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow"
-          >
-            <PinIcon />
-            Chỉ đường
-          </a>
+          className={`${expanded ? "block" : "hidden"} lg:!block mt-3 rounded-xl overflow-hidden border border-gray-100 bg-gradient-to-br from-gray-100 via-gray-50 to-white relative aspect-[16/8]`}
+        >
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><rect width=%22120%22 height=%22120%22 fill=%22%23f3f4f6%22/><path d=%22M0 60 L120 60 M60 0 L60 120%22 stroke=%22%23e5e7eb%22 stroke-width=%221%22/></svg>')] opacity-50"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <a
+              href={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#e60012] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow"
+            >
+              <PinIcon />
+              Chỉ đường
+            </a>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Mobile-only expand/collapse toggle. Hidden on desktop. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="lg:hidden mt-3 w-full inline-flex items-center justify-center gap-1 text-xs font-medium text-[#e60012] hover:underline py-1.5"
+        aria-expanded={expanded}
+        aria-label={expanded ? "Thu gọn" : "Xem thêm thông tin liên hệ"}
+      >
+        {expanded ? "Thu gọn" : "Xem thêm"}
+        <ChevronIcon flipped={expanded} />
+      </button>
     </ShopSection>
   );
 }
@@ -108,6 +214,14 @@ function FacebookIcon() {
     </svg>
   );
 }
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+      <polyline points="22,6 12,13 2,6" />
+    </svg>
+  );
+}
 function PinIcon() {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -121,6 +235,24 @@ function ClockIcon() {
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+function ChevronIcon({ flipped }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={`transition-transform ${flipped ? "rotate-180" : ""}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }

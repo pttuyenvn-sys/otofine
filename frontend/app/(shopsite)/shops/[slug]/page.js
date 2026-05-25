@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import ShopFilters from "@/components/shopsite/ShopFilters";
+import ShopMobileFilters from "@/components/shopsite/ShopMobileFilters";
+import ShopMobileCategories from "@/components/shopsite/ShopMobileCategories";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
@@ -62,18 +64,30 @@ export default async function ShopTenantHomePage({ params }) {
 
   return (
     <div className="space-y-3">
+      {/* Mobile filter row (search + Lọc drawer) lives ABOVE the
+          desktop filter row in the DOM, but only one is visible at
+          a time thanks to `lg:hidden` / `hidden lg:block`. */}
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopMobileFilters fitments={fitments} basePath={basePath} />
+      </Suspense>
       <Suspense fallback={FILTERS_FALLBACK}>
         <ShopFilters fitments={fitments} basePath={basePath} />
       </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <div className="lg:col-span-4">
+        {/* Mobile compression: hide the bulky "Về chúng tôi" 4-chip
+            block and the duplicated promo banner on phones (they
+            push the product grid + categories far below the fold,
+            and the chips/banner add no decision value the user
+            doesn't already get from the hero + floating CTAs).
+            Desktop keeps both as-is. */}
+        <div className="hidden lg:block lg:col-span-4">
           <AboutCard shop={shop} />
         </div>
-        <div className="lg:col-span-5">
+        <div className="hidden lg:block lg:col-span-5">
           <PromoBanner basePath={basePath} cover={shop.cover} />
         </div>
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           {/* Phase 5.1 — sticky on desktop so the buyer can always
               reach the phone/zalo/facebook actions while browsing the
               product grid below. Mobile stays unaffected because the
@@ -84,17 +98,22 @@ export default async function ShopTenantHomePage({ params }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      {/* Mobile categories trigger (drawer) — surfaced ABOVE the
+          product grid so phone users can scope their browsing
+          without first scrolling through the entire catalogue. */}
+      <ShopMobileCategories categories={categories} basePath={basePath} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3">
         <div className="lg:col-span-9">
           <ShopSection
             title="Sản phẩm nổi bật"
             rightHref={`${basePath}/san-pham`}
-            bodyClassName="!p-3"
+            bodyClassName="!p-2 sm:!p-3"
           >
             {featured.length === 0 ? (
               <EmptyState message="Shop chưa có sản phẩm nào." />
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                 {featured.map((product) => (
                   <ShopProductCard key={product.id} product={product} shopSlug={shop.slug} />
                 ))}
@@ -198,8 +217,12 @@ function ServiceFooter() {
     { key: "ship", title: "GIAO HÀNG TOÀN QUỐC", desc: "Giao nhanh - đúng hẹn" },
     { key: "advice", title: "TƯ VẤN MIỄN PHÍ", desc: "Hỗ trợ 24/7" },
   ];
+  // Mobile compression: this 4-tile commitments strip is hidden on
+  // phones — the same "chính hãng / đổi trả / giao toàn quốc" signals
+  // already surface in the trust-badge strip directly under the
+  // hero. Keeping it on desktop where there's slack vertical space.
   return (
-    <section className="bg-white rounded-2xl shadow-sm p-4">
+    <section className="hidden lg:block bg-white rounded-2xl shadow-sm p-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {items.map((item) => (
           <div key={item.key} className="flex items-center gap-3">

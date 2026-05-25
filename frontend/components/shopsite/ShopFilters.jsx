@@ -69,10 +69,14 @@ export default function ShopFilters({ fitments, basePath = "" }) {
   };
 
   return (
+    // Mobile compression: this inline filter row is hidden on
+    // phones — the lightweight <ShopMobileFilters /> drawer covers
+    // the same surface in a single ~44px control row above the
+    // products. Desktop continues to render this full row inline.
     <form
       role="search"
       onSubmit={(e) => e.preventDefault()}
-      className="bg-white rounded-2xl shadow-sm p-3 sm:p-4"
+      className="hidden lg:block bg-white rounded-2xl shadow-sm p-3 sm:p-4"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-3 items-stretch">
         <FilterSelect

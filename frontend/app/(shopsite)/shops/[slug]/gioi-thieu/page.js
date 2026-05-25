@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
+import ShopIntroClamp from "@/components/shopsite/ShopIntroClamp";
 import ShopImage from "@/components/shopsite/ShopImage";
 import { fetchPublicShop, fetchPublicShopSafe, getShopCanonicalUrl } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
@@ -27,7 +28,11 @@ export default async function ShopTenantAboutPage({ params }) {
       <div className="lg:col-span-8 space-y-3">
         <ShopSection title="Giới thiệu" bodyClassName="!p-0">
           {shop.cover && (
-            <div className="relative aspect-[16/6] overflow-hidden bg-gray-100">
+            // Mobile compression: gioi-thieu's cover repeated the
+            // hero. Halve the aspect ratio on phones (16:9 vs 16:6
+            // desktop) so the user reaches the actual intro text
+            // sooner.
+            <div className="relative aspect-[16/9] sm:aspect-[16/6] overflow-hidden bg-gray-100">
               <ShopImage
                 src={shop.cover}
                 alt={`Cửa hàng ${shop.name}`}
@@ -41,13 +46,15 @@ export default async function ShopTenantAboutPage({ params }) {
             </div>
           )}
 
-          <div className="px-4 sm:px-6 py-5">
-            <ShopRichContentRenderer html={intro} />
+          {/* Mobile-clamped intro with "Xem thêm" toggle — desktop
+              renders full-height untouched. */}
+          <div className="px-3 sm:px-6 py-4 sm:py-5">
+            <ShopIntroClamp html={intro} />
           </div>
         </ShopSection>
 
         <ShopSection title="Thống kê shop">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <StatBox
               value={
                 shop.productCount != null
@@ -71,12 +78,16 @@ export default async function ShopTenantAboutPage({ params }) {
 }
 
 function StatBox({ value, label }) {
+  // Mobile compression: tighter padding + value font on phones so
+  // the 4-box grid stops eating ~280px of vertical scroll.
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-4 text-center">
-      <div className="text-xl sm:text-2xl font-extrabold text-[#e60012]">
+    <div className="rounded-xl border border-gray-100 bg-gray-50 px-2.5 sm:px-3 py-2.5 sm:py-4 text-center">
+      <div className="text-lg sm:text-2xl font-extrabold text-[#e60012] leading-tight">
         {value}
       </div>
-      <div className="text-xs text-gray-600 mt-1">{label}</div>
+      <div className="text-[11px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">
+        {label}
+      </div>
     </div>
   );
 }

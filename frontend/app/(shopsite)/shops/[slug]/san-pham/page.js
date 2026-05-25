@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import ShopFilters from "@/components/shopsite/ShopFilters";
+import ShopMobileFilters from "@/components/shopsite/ShopMobileFilters";
+import ShopMobileCategories from "@/components/shopsite/ShopMobileCategories";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
@@ -83,10 +85,27 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
   const categoriesBySlug = Object.fromEntries(categories.map((c) => [c.slug, c]));
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
+      {/*
+        Filter surface — mobile gets the compact drawer trigger,
+        desktop keeps the full inline filter row. Only one is
+        visible at a time thanks to lg: visibility toggles inside
+        each component.
+      */}
+      <Suspense fallback={FILTERS_FALLBACK}>
+        <ShopMobileFilters fitments={fitments} basePath={basePath} />
+      </Suspense>
       <Suspense fallback={FILTERS_FALLBACK}>
         <ShopFilters fitments={fitments} basePath={basePath} />
       </Suspense>
+
+      {/* Mobile-only categories trigger above the grid (replaces
+          the desktop sidebar that used to push the grid below the
+          fold on phones). */}
+      <ShopMobileCategories
+        categories={categories.slice(0, 24)}
+        basePath={basePath}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <aside className="lg:col-span-3">
@@ -101,9 +120,9 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
         <div className="lg:col-span-9">
           <ShopSection
             title={`Tất cả sản phẩm (${total.toLocaleString("vi-VN")})`}
-            bodyClassName="!p-3"
+            bodyClassName="!p-2 sm:!p-3"
           >
-            <div className="mb-3">
+            <div className="mb-2 sm:mb-3">
               <Suspense fallback={null}>
                 <ShopActiveFilterChips
                   basePath={basePath}
@@ -117,7 +136,7 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
               </Suspense>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                   {items.map((product) => (
                     <ShopProductCard key={product.id} product={product} shopSlug={shop?.slug || slug} />
                   ))}
