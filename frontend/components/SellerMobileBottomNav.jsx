@@ -43,6 +43,7 @@ const SHOWN_PREFIXES = [
   "/shop/account",
   "/shop/change-password",
   "/shop/add-product",
+  "/shop/insights",
   "/rfq/shop/inbox",
   "/rfq/shop/", // legacy /rfq/shop/[dispatchId]
 ];

@@ -105,11 +105,16 @@ function joinYears(shop) {
 
 function toContactShape(shop) {
   return {
+    name: shop.name || "",
     phone: shop.phone || "Liên hệ",
     zalo: shop.zalo || shop.phone || "Liên hệ",
     facebook: shop.facebook || { label: "Facebook", url: "#" },
     email: shop.email || "",
     address: shop.address || "Đang cập nhật",
+    province: shop.province || "",
+    lat: typeof shop.lat === "number" ? shop.lat : null,
+    lng: typeof shop.lng === "number" ? shop.lng : null,
+    mapEmbedUrl: shop.mapEmbedUrl || null,
     workingHoursLines:
       Array.isArray(shop.workingHoursLines) && shop.workingHoursLines.length > 0
         ? shop.workingHoursLines

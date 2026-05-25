@@ -4,6 +4,7 @@ import ShopTabs from "@/components/shopsite/ShopTabs";
 import ShopFloatingMobileCTA from "@/components/shopsite/ShopFloatingMobileCTA";
 import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
 import StorefrontAnalyticsForwarder from "@/components/shopsite/StorefrontAnalyticsForwarder";
+import StorefrontSellerShortcut from "@/components/shopsite/StorefrontSellerShortcut";
 import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
@@ -107,6 +108,13 @@ export default async function ShopTenantLayout({ children, params }) {
           metrics ingest endpoint. Pure client island — SSR sees null,
           adblockers / CSP errors are silently absorbed. */}
       <StorefrontAnalyticsForwarder shopSlug={shop.slug} />
+
+      {/* Seller ↔ storefront connectivity: an ownership-gated floating
+          chip that lets the shop owner jump back into the seller
+          workspace without leaving the public page. Renders null for
+          unauthenticated visitors and for any seller who isn't the
+          owner of THIS shop, so customer-facing UX stays untouched. */}
+      <StorefrontSellerShortcut shopId={shop.id} />
 
       {/* Phase 5.5 — structured data for search engines. */}
       <ShopJsonLd payload={jsonLd} />

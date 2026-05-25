@@ -572,13 +572,28 @@ export default function ShopSettings() {
       */}
       <Toast feedback={feedback} />
 
-      <header className="mb-2 sm:mb-6">
-        <h1 className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">
-          Cài đặt Shop
-        </h1>
-        <p className="text-[12px] sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-          Quản lý thông tin, storefront và liên hệ shop.
-        </p>
+      <header className="mb-2 sm:mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">
+            Cài đặt Shop
+          </h1>
+          <p className="text-[12px] sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
+            Quản lý thông tin, storefront và liên hệ shop.
+          </p>
+        </div>
+        {preview?.subdomain && (
+          <a
+            href={preview.subdomain}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-2 self-start px-3.5 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 text-sm font-semibold whitespace-nowrap transition-colors"
+            title={`Mở ${preview.subdomain}`}
+          >
+            <span aria-hidden>🌐</span>
+            <span>Xem storefront</span>
+            <span aria-hidden className="opacity-70">↗</span>
+          </a>
+        )}
       </header>
 
       {/* Seller nav + metrics overview pass — lightweight, additive,

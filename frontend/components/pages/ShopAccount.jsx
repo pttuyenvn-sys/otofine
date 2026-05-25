@@ -17,8 +17,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import useSellerStorefrontUrl from "@/hooks/useSellerStorefrontUrl";
 
-function Row({ href, icon, title, subtitle, danger = false, onClick }) {
+function Row({ href, icon, title, subtitle, danger = false, onClick, external = false }) {
   const content = (
     <span
       className={
@@ -37,7 +38,9 @@ function Row({ href, icon, title, subtitle, danger = false, onClick }) {
           </span>
         )}
       </span>
-      <span className="text-gray-300 text-lg leading-none" aria-hidden>›</span>
+      <span className="text-gray-300 text-lg leading-none" aria-hidden>
+        {external ? "↗" : "›"}
+      </span>
     </span>
   );
 
@@ -52,6 +55,13 @@ function Row({ href, icon, title, subtitle, danger = false, onClick }) {
       </button>
     );
   }
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+        {content}
+      </a>
+    );
+  }
   return (
     <Link href={href} prefetch={false} className="block">
       {content}
@@ -62,6 +72,7 @@ function Row({ href, icon, title, subtitle, danger = false, onClick }) {
 export default function ShopAccount() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const { url: storefrontUrl, slug: storefrontSlug } = useSellerStorefrontUrl();
 
   useEffect(() => {
     try {
@@ -97,8 +108,8 @@ export default function ShopAccount() {
         <div className="space-y-2.5">
           <Row
             href="/shop/settings"
-            icon="🏬"
-            title="Cài đặt shop"
+            icon="🏪"
+            title="Shop"
             subtitle="Thông tin, storefront, liên hệ"
           />
           <Row
@@ -110,9 +121,26 @@ export default function ShopAccount() {
           <Row
             href="/rfq/shop/inbox"
             icon="💬"
-            title="Tin nhắn khách hàng"
+            title="Khách hàng"
             subtitle="RFQ & hội thoại"
           />
+          <Row
+            href="/shop/insights"
+            icon="📊"
+            title="Hiệu quả"
+            subtitle="Số liệu vận hành 30 ngày"
+          />
+
+          {storefrontUrl ? (
+            <Row
+              href={storefrontUrl}
+              icon="🌐"
+              title="Xem storefront"
+              subtitle={storefrontSlug ? `${storefrontSlug}.otofine.com` : "Mở trang công khai"}
+              external
+            />
+          ) : null}
+
           <Row
             href="/shop/change-password"
             icon="🔒"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ShopSection from "./ShopSection";
 
 /**
@@ -52,6 +52,19 @@ export default function ShopContactCard({ shop, variant = "compact" }) {
   // without per-call media-query JS — desktop simply ignores the
   // `expanded` gate via the `lg:!block` override.
   const mapAddress = address || "";
+  const mapName = (shop.name || "").trim();
+  const mapProvince = (shop.province || "").trim();
+  const lat = typeof shop.lat === "number" ? shop.lat : null;
+  const lng = typeof shop.lng === "number" ? shop.lng : null;
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+  // Lat/Lng anchors the iframe pin precisely; fall back to address
+  // when only a free-text address is on file.
+  const mapQuery = hasCoords
+    ? `${lat},${lng}`
+    : (mapAddress || `${mapName}${mapProvince ? `, ${mapProvince}` : ""}`).trim();
+  const directionsHref = mapQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}`
+    : null;
 
   return (
     <ShopSection title="Thông tin liên hệ" className="h-full">
@@ -133,31 +146,29 @@ export default function ShopContactCard({ shop, variant = "compact" }) {
       </ul>
 
       {/*
-        Map block — desktop renders unconditionally; mobile renders
-        only after expand. Wrapped in the same `expanded ? "block" :
-        "hidden"` + `lg:!block` pattern so the DOM cost on a closed
-        mobile card is zero (no `aspect-[16/8]` placeholder competing
-        for layout reservation on first paint).
+        Map visual block — reinforces "địa chỉ thật / hoạt động thật"
+        with a real Google Maps embed instead of a grid placeholder.
+        The iframe is lazy-mounted via IntersectionObserver so a closed
+        mobile card pays zero network cost. Falls back gracefully to a
+        styled preview card when the iframe can't load.
+
+        Desktop renders unconditionally; mobile renders only after
+        expand (same `expanded ? "block" : "hidden"` + `lg:!block`
+        pattern as before — no first-paint layout reservation for
+        collapsed mobile cards).
       */}
-      {mapAddress && (
+      {(mapQuery || directionsHref) && (
         <div
-          className={`${expanded ? "block" : "hidden"} lg:!block mt-3 rounded-xl overflow-hidden border border-gray-100 bg-gradient-to-br from-gray-100 via-gray-50 to-white relative aspect-[16/8]`}
+          className={`${expanded ? "block" : "hidden"} lg:!block mt-3`}
+          data-testid="shop-contact-map"
         >
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><rect width=%22120%22 height=%22120%22 fill=%22%23f3f4f6%22/><path d=%22M0 60 L120 60 M60 0 L60 120%22 stroke=%22%23e5e7eb%22 stroke-width=%221%22/></svg>')] opacity-50"
+          <MapVisualBlock
+            mapQuery={mapQuery}
+            directionsHref={directionsHref}
+            address={mapAddress}
+            province={mapProvince}
+            shopName={mapName}
           />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <a
-              href={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#e60012] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow"
-            >
-              <PinIcon />
-              Chỉ đường
-            </a>
-          </div>
         </div>
       )}
 
@@ -173,6 +184,122 @@ export default function ShopContactCard({ shop, variant = "compact" }) {
         <ChevronIcon flipped={expanded} />
       </button>
     </ShopSection>
+  );
+}
+
+/**
+ * Visual map preview block.
+ *
+ * Renders a rounded card with:
+ *   - a lazy-loaded Google Maps embed iframe (mounted only after the
+ *     block scrolls into view, so closed mobile cards never fetch it)
+ *   - a subtle bottom gradient overlay for legibility
+ *   - a marker pin badge anchored over the embed
+ *   - a business-name + district overlay below the embed
+ *   - a centered "Mở Google Maps" CTA
+ *
+ * Fallback path: if the iframe fails (CSP / blocked region) we keep the
+ * decorative grid background so the CTA still has visual weight. The
+ * "Mở Google Maps" link works regardless of iframe state.
+ */
+function MapVisualBlock({ mapQuery, directionsHref, address, province, shopName }) {
+  const ref = useRef(null);
+  const [shouldMount, setShouldMount] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setShouldMount(true);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShouldMount(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const embedSrc = mapQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&hl=vi&output=embed`
+    : null;
+
+  return (
+    <div
+      ref={ref}
+      className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gradient-to-br from-gray-100 via-gray-50 to-white shadow-sm"
+    >
+      <div className="relative aspect-[16/9]">
+        {shouldMount && embedSrc ? (
+          <iframe
+            title={shopName ? `Vị trí ${shopName}` : "Vị trí cửa hàng"}
+            src={embedSrc}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="absolute inset-0 w-full h-full border-0 grayscale-[0.05]"
+            allowFullScreen
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><rect width=%22120%22 height=%22120%22 fill=%22%23f3f4f6%22/><path d=%22M0 60 L120 60 M60 0 L60 120%22 stroke=%22%23e5e7eb%22 stroke-width=%221%22/></svg>')] opacity-60"
+          />
+        )}
+
+        {/* Top-left marker pin badge — communicates "real physical
+            location" even before the iframe finishes hydrating. */}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow ring-1 ring-black/5">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#e60012] text-white">
+            <PinIcon />
+          </span>
+          <span className="text-[11px] font-semibold text-gray-800 max-w-[180px] truncate">
+            {shopName || "Cửa hàng"}
+          </span>
+        </div>
+
+        {/* Centered floating CTA — the iframe captures pointer events,
+            so we render the CTA as a separate clickable layer with
+            `pointer-events-auto` to override. */}
+        {directionsHref && (
+          <div className="absolute inset-x-0 bottom-2.5 flex items-center justify-center pointer-events-none">
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto inline-flex items-center gap-1.5 bg-[#e60012] hover:bg-[#c1000f] text-white text-[12px] font-semibold px-3.5 py-2 rounded-full shadow-lg ring-1 ring-black/5 transition-colors"
+            >
+              <PinIcon />
+              Mở Google Maps
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Footer strip — district / city / address line. Reinforces
+          "địa chỉ thật" without taking up vertical real estate inside
+          the map itself. */}
+      {(address || province) && (
+        <div className="px-3 py-2 bg-white border-t border-gray-100 flex items-center gap-2">
+          <span aria-hidden className="text-[#e60012] shrink-0">
+            <PinIcon />
+          </span>
+          <p className="text-[12px] text-gray-700 leading-snug min-w-0">
+            <span className="line-clamp-2">{address || province}</span>
+            {province && address && (
+              <span className="text-gray-500"> · {province}</span>
+            )}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
