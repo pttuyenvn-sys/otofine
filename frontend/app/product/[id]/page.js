@@ -5,12 +5,12 @@ import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 /**
  * Legacy product detail URL.
  *
- *   /product/<id>     →  308 → /phu-tung/<slug>-<id>
- *   /product/sp-<id>  →  308 → /phu-tung/<slug>-<id>
+ *   /product/<id>     →  308 → /<slug>-<id>          (root canonical)
+ *   /product/sp-<id>  →  308 → /<slug>-<id>          (root canonical)
  *
- * After the Phase migration to SEO-friendly URLs, every product
- * detail lives canonically at `/phu-tung/<slug>-<id>`. This route is
- * kept ALIVE for two reasons:
+ * After the SEO URL refinement, every product detail lives canonically
+ * at the apex `/<slug>-<id>` URL (no `/phu-tung/` namespace). This
+ * route is kept ALIVE for two reasons:
  *
  *   1. **Backlinks**: every external link / share / Google cache / RFQ
  *      receipt etc. still points at `/product/<id>`. Returning 410 or

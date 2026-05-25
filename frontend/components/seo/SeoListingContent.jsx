@@ -10,8 +10,10 @@ import { absoluteUrl } from "@/lib/seo/siteUrl";
 import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 
 function productHref(item) {
-  // Migrated to /phu-tung/<slug>-<id>; canonical-enforce route
-  // repairs any slug drift, internal APIs remain id-based.
+  // Root-level canonical /<slug>-<id>; apex `[slug]/page.js` canonical-
+  // enforce branch repairs any slug drift, internal APIs remain
+  // id-based. Falls back to short `/p/<id>` when item has no slug
+  // fields — that route 308s to canonical in a single hop.
   return buildProductSeoUrl(item);
 }
 

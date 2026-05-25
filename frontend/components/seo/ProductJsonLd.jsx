@@ -10,16 +10,18 @@ function strip(html = "") {
 }
 
 /**
- * Product JSON-LD for `/phu-tung/[slug]`.
+ * Product JSON-LD — shared by the apex `[slug]/page.js` product branch
+ * and the legacy `/phu-tung/[slug]` (now redirect-only, but exported
+ * here so any future route can reuse the same schema shape).
  *
- * Uses the canonical URL (computed via the same `buildProductSeoUrl`
- * helper the page-level canonical meta uses) so that the schema.org
- * Product / BreadcrumbList entities, the `og:url`, and the Next.js
- * `<link rel="canonical">` all line up to one URL. Search engines
- * receive zero conflicting signals about which URL to index.
+ * Always emits the CANONICAL root-level URL via `buildProductSeoUrl`
+ * so the schema.org Product / BreadcrumbList entities, the `og:url`,
+ * and the Next.js `<link rel="canonical">` all line up to one URL.
+ * Search engines receive zero conflicting signals about which URL
+ * to index.
  *
- * Identical schema shape to the previous legacy `/product/[id]`
- * implementation — only the URL changed.
+ * Schema shape kept stable across the migration — only the URL field
+ * changed, which is exactly what Google needs to update its index.
  */
 export default function ProductJsonLd({ data }) {
   const p = data?.product;

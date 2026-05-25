@@ -46,20 +46,25 @@ export default async function sitemap() {
   for (const p of remote.products || []) {
     // The legacy sitemap-data endpoint emits a synthetic `slug` field
     // shaped like "sp-<id>" — there is no real slug column on the
-    // products table. We strip the prefix to recover the canonical
-    // numeric id, then emit the MINIMAL `/phu-tung/<id>` URL.
+    // products table. We strip the prefix to recover the numeric id
+    // and emit the SHORT `/p/<id>` URL.
     //
-    // Crawlers that hit that URL get a single 308 redirect from the
-    // canonical-enforce route to the rich `/phu-tung/<slug>-<id>`
-    // form (slug computed from product fields + cars[] at request
-    // time). That keeps the sitemap migration zero-touch on the
-    // backend (no extra columns, no new fields in the SEO data
-    // endpoint) while still giving search engines a way to discover
-    // every product.
+    // /p/<id> is a stable redirect-only namespace (see app/p/[id]/
+    // page.js) that 308-redirects in a SINGLE hop to the root-level
+    // canonical `/<slug>-<id>`. Crawlers (Google, Bing, GPTBot)
+    // follow the 308 and index ONLY the canonical destination —
+    // zero duplicate-content risk.
+    //
+    // We deliberately do NOT emit the canonical URL directly here:
+    // building it would require enriching the sitemap-data endpoint
+    // with partName / brand / model / partNumber fields, which is
+    // explicitly out-of-scope for this migration (no backend touch).
+    // The redirect mechanism keeps the sitemap migration backend-
+    // free while still giving search engines a complete catalog.
     const m = String(p?.slug || "").match(/(\d+)$/);
     const id = m ? Number(m[1]) : null;
     if (!Number.isFinite(id) || id <= 0) continue;
-    add(`${base}/phu-tung/${id}`, {
+    add(`${base}/p/${id}`, {
       lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
       priority: 0.75,
     });

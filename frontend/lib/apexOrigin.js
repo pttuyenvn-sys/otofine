@@ -9,8 +9,8 @@
  *
  * Why this exists:
  *   When a visitor is on `cuahangoto355.otofine.com`, a relative
- *   `/phu-tung/...` link would resolve to
- *   `cuahangoto355.otofine.com/phu-tung/...`, which (1) currently
+ *   `/<slug>-<id>` link would resolve to
+ *   `cuahangoto355.otofine.com/<slug>-<id>`, which (1) currently
  *   rewrites through the shop layout (per Phase 3 middleware) and
  *   (2) would create a duplicate canonical surface for crawlers when
  *   we eventually enable indexing. Product pages live ONLY on the
@@ -45,10 +45,10 @@ export function apexUrl(pathOrUrl) {
  * Accepts either a bare numeric id (legacy callers) OR a full product
  * shape with descriptive fields (`name` / `brand` / `model` / `cars`
  * / `partNumber`). When a full shape is provided we emit the canonical
- * SEO URL directly — saves the visitor one redirect hop when they
- * cross from a shop subdomain back to apex. When only the id is
- * available we emit the minimal `/phu-tung/<id>` form and rely on the
- * canonical-enforcement route to repair the slug.
+ * root-level SEO URL `/<slug>-<id>` directly — saves the visitor one
+ * redirect hop when they cross from a shop subdomain back to apex.
+ * When only the id is available we emit the short `/p/<id>` fallback
+ * which 308-redirects to the canonical in a single hop.
  */
 export function apexProductUrl(productOrId) {
   if (productOrId == null || productOrId === "") return APEX_ORIGIN + "/";
@@ -56,5 +56,5 @@ export function apexProductUrl(productOrId) {
     const path = buildProductSeoUrl(productOrId);
     return path === "/" ? APEX_ORIGIN + "/" : `${APEX_ORIGIN}${path}`;
   }
-  return `${APEX_ORIGIN}/phu-tung/${productOrId}`;
+  return `${APEX_ORIGIN}/p/${productOrId}`;
 }

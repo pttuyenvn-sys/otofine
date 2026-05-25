@@ -1,14 +1,29 @@
 /**
  * Product detail SEO-URL builder + parser.
  *
- * URL contract:
+ * URL contract (root-level SEO slugs):
  *
- *   /phu-tung/<slug>-<productId>
+ *   /<slug>-<productId>
  *
  * The trailing numeric segment is the CANONICAL lookup key — the slug
  * prefix is purely cosmetic for SEO + share-card readability. Storage,
  * API lookups, and analytics all use the numeric id; the slug never
  * leaves the URL string.
+ *
+ * Why root-level (no `/phu-tung/` namespace):
+ *   - Shorter URLs → higher SERP CTR.
+ *   - Standard ecommerce convention (Amazon /<asin>, Shopee /<slug>-<id>
+ *     style, Lazada /products/<slug>-<id> being the exception, etc.).
+ *   - The trailing numeric id already guarantees collision-free lookup
+ *     so the prefix segment carries no routing weight.
+ *
+ * Collision safety with apex SEO routes (vehicle, category, CMS):
+ *   The `[slug]` apex route owns many non-product slugs. The
+ *   `looksLikeProductSlug` helper below is the discriminator — it is
+ *   a pure-string check that the apex router applies BEFORE attempting
+ *   a product fetch. Slugs that look like SEO landings (`phu-tung-o-to`
+ *   prefix, `-o-to` suffix, year-only-trailing such as `toyota-vios-2025`)
+ *   are rejected so they fall through to the existing landing logic.
  *
  * Design constraints (Phase: SEO-friendly product URLs):
  *
@@ -161,14 +176,17 @@ export function buildProductSeoSlug(input) {
 }
 
 /**
- * Build the full public product URL.
+ * Build the full public product URL (root-level canonical).
  *
  *   buildProductSeoUrl({ id: 2913, partName: "Lọc xăng", … })
- *   → "/phu-tung/loc-xang-toyota-vios-2013-2330021010-2913"
+ *   → "/loc-xang-toyota-vios-2013-2330021010-2913"
  *
- * Falls back to "/phu-tung/<id>" when no slug fields are available —
- * the canonical-enforcing route handles the redirect to the full slug
- * on first request, so callers never need to defensively pad data.
+ * Falls back to "/p/<id>" when no slug fields are available — a
+ * stable, never-collidable namespace handled by the apex router's
+ * product-id detection so we never risk hitting an unrelated slug
+ * (e.g. a `[id]`-only URL like "/2913" could in theory shadow a
+ * non-product slug). The fallback resolves in a single 308 hop to
+ * the canonical full-slug URL.
  *
  * Returns "/" if no id was provided — defensive guard against
  * undefined products (rare, but cheaper than a 404 from a half-built
@@ -179,7 +197,7 @@ export function buildProductSeoUrl(input) {
   const id = input.id ?? input.productId ?? input.product_id ?? null;
   if (id == null || id === "") return "/";
   const slug = buildProductSeoSlug(input);
-  return slug ? `/phu-tung/${slug}-${id}` : `/phu-tung/${id}`;
+  return slug ? `/${slug}-${id}` : `/p/${id}`;
 }
 
 /**
@@ -213,4 +231,76 @@ function stripHtml(html) {
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/\s+/g, " ");
+}
+
+/**
+ * SEO landing slugs that own apex routes. A slug equal to / starting
+ * with these is NEVER treated as a product, regardless of trailing
+ * digits. Keep in sync with `lib/seo/slugify.js#SEO_BASE_SLUG` (the
+ * literal duplicated here to keep this module dependency-free —
+ * critical since it runs inside the apex `[slug]` route discriminator
+ * on every apex request).
+ */
+const SEO_BASE_SLUG_LITERAL = "phu-tung-o-to";
+
+/**
+ * Hard discriminator: is this apex slug a product detail URL?
+ *
+ * Apex `[slug]` routes share namespace with category SEO pages, vehicle
+ * SEO landings, CMS slugs, and future content URLs. We can only treat
+ * a slug as a product detail URL when ALL of:
+ *
+ *   1. Slug ends in `-<positive-integer>` with a non-empty descriptive
+ *      prefix (rejects bare-id URLs like "/2913" — those route via the
+ *      explicit `/p/<id>` fallback path of `buildProductSeoUrl`).
+ *   2. Slug is not a known SEO landing pattern:
+ *        - "phu-tung-o-to"           (root vehicle hub)
+ *        - "phu-tung-o-to-<anything>" (vehicle landing branch)
+ *        - "<anything>-o-to"         (category landing)
+ *   3. The trailing digit run does NOT look like ONLY a year (1900-2099)
+ *      when the rest of the slug has no other digits. This protects
+ *      slugs like "toyota-vios-2025" (vehicle landing) from being
+ *      mis-classified — a real product slug almost always carries a
+ *      partNumber token (alphanumeric, contains digits) somewhere
+ *      between the year and the trailing id, so the prefix containing
+ *      `[0-9]` is a strong signal.
+ *
+ * IMPORTANT: this is a fast filter, NOT a definitive answer. The apex
+ * router uses this to decide whether to attempt a product fetch; if
+ * the fetch returns 404 the router falls through to the existing
+ * SEO/landing logic. False positives self-heal (one failed fetch,
+ * then SEO render). False negatives mean a product can be reached
+ * via /product/<id> or /p/<id> but not via the heuristic — which is
+ * fine because the canonical URL is built by buildProductSeoUrl
+ * itself and passes this discriminator by construction.
+ *
+ * Pure string — no DB, no allocations beyond the regex match.
+ */
+export function looksLikeProductSlug(slug) {
+  if (slug == null) return false;
+  const s = String(slug).trim();
+  if (!s) return false;
+
+  if (s === SEO_BASE_SLUG_LITERAL) return false;
+  if (s.startsWith(`${SEO_BASE_SLUG_LITERAL}-`)) return false;
+  if (s.endsWith("-o-to")) return false;
+
+  const m = s.match(/^(.+)-(\d+)$/);
+  if (!m) return false;
+  const prefix = m[1];
+  const idStr = m[2];
+
+  if (idStr.startsWith("0")) return false;
+  const n = Number(idStr);
+  if (!Number.isFinite(n) || n <= 0) return false;
+
+  // Year-trailing guard: "toyota-vios-2025" → trailing 2025 matches
+  // year pattern AND prefix has no digits anywhere → reject. Real
+  // product slugs reaching this state would carry a digit-bearing
+  // partNumber or year fitment in the prefix.
+  if (/^(19|20)\d{2}$/.test(idStr) && !/[0-9]/.test(prefix)) {
+    return false;
+  }
+
+  return true;
 }

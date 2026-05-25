@@ -9,14 +9,14 @@ import ShopImage from "./ShopImage";
 /**
  * Vertical product card (Shopee-like).
  *
- * Click target: apex `/phu-tung/<slug>-<id>` (canonical SEO URL).
+ * Click target: apex `/<slug>-<id>` (root-level canonical SEO URL).
  * Phase 4 forces ABSOLUTE apex URLs so that a click from a shop
  * subdomain (`cuahangoto355.otofine.com`) always crosses back to apex
- * (`otofine.com/phu-tung/...`) — no host-aware rewrite, no duplicate
+ * (`otofine.com/<slug>-<id>`) — no host-aware rewrite, no duplicate
  * canonical surface. After the SEO URL migration the legacy
- * `/product/<id>` form 308-redirects to this canonical, so any older
- * cards / link archives keep working with a single hop. See
- * audit/shop-public-seo-strategy.md.
+ * `/product/<id>` AND `/phu-tung/<slug>-<id>` forms 308-redirect to
+ * this canonical, so any older cards / link archives keep working
+ * with a single hop. See audit/shop-public-seo-strategy.md.
  *
  * Typography hierarchy (top → bottom):
  *   1. Product image (1:1, lazy)
@@ -36,9 +36,10 @@ export default function ShopProductCard({ product, shopSlug }) {
   if (!product) return null;
   // Pass the full product shape (name + brand + model + year + part
   // number) so the apex URL the visitor crosses to is already the
-  // canonical SEO URL — no redirect hop on click. Falls back to id-
-  // only `/phu-tung/<id>` when the card has minimal data, and the
-  // canonical-enforce route handles slug repair on first GET.
+  // root canonical `/<slug>-<id>` — no redirect hop on click. Falls
+  // back to short `/p/<id>` form when the card has minimal data,
+  // and the dedicated redirect route handles canonical repair in
+  // a single 308 hop.
   const href = product.productId
     ? apexProductUrl({ id: product.productId, ...product })
     : "#";

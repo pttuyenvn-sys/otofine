@@ -30,8 +30,10 @@ npm run dev
 | Đường dẫn | Mô tả |
 |-----------|--------|
 | `/` | Trang chủ / tìm phụ tùng |
-| `/phu-tung/[slug]-[id]` | Chi tiết sản phẩm (canonical SEO URL) |
-| `/product/[id]` | Legacy URL → 308 permanent redirect tới `/phu-tung/...` |
+| `/[slug]-[id]` | Chi tiết sản phẩm (root-level canonical SEO URL) — hosted bởi apex `[slug]/page.js` qua product-slug discriminator |
+| `/p/[id]` | Short fallback → 308 permanent redirect tới `/[slug]-[id]` |
+| `/phu-tung/[slug]` | Legacy URL → 308 permanent redirect tới `/[slug]-[id]` |
+| `/product/[id]` | Legacy URL → 308 permanent redirect tới `/[slug]-[id]` |
 | `/shop/login`, `/shop/register`, `/shop/forgot-password` | Auth shop |
 | `/shop/settings`, `/shop/products`, `/shop/add-product` | Khu seller (cần đăng nhập) |
 | `/admin/login`, `/admin/forgot-password` | Auth admin |

@@ -25,6 +25,7 @@ export default function AppShell({ children }) {
     pathname.startsWith("/rfq") ||
     pathname.startsWith("/product/") ||
     pathname.startsWith("/phu-tung/") ||
+    pathname.startsWith("/p/") ||
     pathname === "/shop-demo" ||
     pathname.startsWith("/shop-demo/") ||
     pathname.startsWith("/shops/") ||

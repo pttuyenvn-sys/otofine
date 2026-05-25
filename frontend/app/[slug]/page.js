@@ -1,7 +1,19 @@
 ﻿import { Suspense } from "react";
 import nextDynamic from "next/dynamic";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { getVehicleSeoPage } from "@/lib/seo/getVehicleSeoPage";
+import { getProductDetailCached } from "@/lib/product/getProductDetailCached";
+import { absoluteUrl } from "@/lib/seo/siteUrl";
+import {
+  buildProductSeoSlug,
+  buildProductSeoUrl,
+  extractProductIdFromSeoSlug,
+  looksLikeProductSlug,
+} from "@/lib/seo/productSeoUrl";
+
+import ProductDetail from "@/components/pages/ProductDetail";
+import ProductJsonLd from "@/components/seo/ProductJsonLd";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
@@ -35,14 +47,69 @@ const Home = nextDynamic(
   }
 );
 
-export async function generateMetadata({
-  params,
-}) {
+/* ─────────────────────────────────────────────────────────────────
+ * Product-detail branch
+ *
+ * The apex `[slug]` route is shared with category SEO pages, vehicle
+ * SEO landings, CMS slugs, etc. Product detail URLs (root-level
+ * canonical /<slug>-<productId>) get a deterministic two-step
+ * detection here:
+ *
+ *   1. Fast pure-string discriminator (`looksLikeProductSlug`)
+ *      rejects obvious SEO landings BEFORE any DB call so existing
+ *      vehicle / category pages stay zero-overhead.
+ *
+ *   2. If the discriminator passes, attempt a product fetch by the
+ *      trailing numeric id. If the product exists, render it (with
+ *      canonical-enforcement redirect). If it doesn't, fall through
+ *      to the existing SEO landing logic — false positives self-heal
+ *      with a single failed cached fetch, then normal SEO render.
+ *
+ * No backend / API contract change. The fetch is the same cached
+ * `/api/product/:id` call the previous `/phu-tung/[slug]` page used.
+ * ───────────────────────────────────────────────────────────────── */
+
+async function tryRenderProduct(slug) {
+  if (!looksLikeProductSlug(slug)) return null;
+  const id = extractProductIdFromSeoSlug(slug);
+  if (id == null) return null;
+  const data = await getProductDetailCached(id);
+  if (!data?.product) return null;
+  return { id, data };
+}
+
+export async function generateMetadata({ params }) {
   const { slug } = await params;
 
-  const vehicleSeo =
-    await getVehicleSeoPage(slug);
+  // Product first — only when the discriminator + DB lookup confirm
+  // the slug is a real product. Otherwise fall through to the
+  // existing vehicle-SEO metadata path.
+  const productMatch = await tryRenderProduct(slug);
+  if (productMatch) {
+    const p = productMatch.data.product;
+    const cars = productMatch.data.cars;
+    const titleBase = stripHtml(p.shortDescription || p.partName) || "Sản phẩm";
+    const title = `${titleBase} | Otofine`;
+    const desc = `Mua ${titleBase} — mã ${p.partNumber || ""}. Xem giá và liên hệ cửa hàng trên Otofine.`;
+    const canonical = absoluteUrl(buildProductSeoUrl({ ...p, cars }));
+    return {
+      title,
+      description: desc.slice(0, 320),
+      alternates: { canonical },
+      robots: { index: true, follow: true },
+      openGraph: {
+        title,
+        description: desc.slice(0, 200),
+        url: canonical,
+        siteName: "Otofine",
+        locale: "vi_VN",
+        type: "website",
+        images: p.image ? [{ url: p.image }] : [{ url: "/logo.png" }],
+      },
+    };
+  }
 
+  const vehicleSeo = await getVehicleSeoPage(slug);
   if (!vehicleSeo) {
     return {};
   }
@@ -73,13 +140,46 @@ export async function generateMetadata({
   };
 }
 
+function stripHtml(html = "") {
+  return String(html || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default async function SlugHomePage({
   params,
 }) {
   const { slug } = await params;
 
-  const vehicleSeo =
-    await getVehicleSeoPage(slug);
+  // ─── Product-detail branch ──────────────────────────────────────
+  const productMatch = await tryRenderProduct(slug);
+  if (productMatch) {
+    // Canonical enforcement: any drift between the URL's slug and the
+    // freshly-computed canonical slug → single 308 hop. Same single-
+    // hop chain the legacy `/phu-tung/[slug]` page provided.
+    const canonicalSlug = buildProductSeoSlug({
+      ...productMatch.data.product,
+      cars: productMatch.data.cars,
+    });
+    const canonicalPath = canonicalSlug
+      ? `/${canonicalSlug}-${productMatch.data.product.id}`
+      : `/p/${productMatch.data.product.id}`;
+    const requestedPath = `/${slug}`;
+    if (requestedPath !== canonicalPath) {
+      permanentRedirect(canonicalPath);
+    }
+    return (
+      <>
+        <ProductJsonLd data={productMatch.data} />
+        <ProductDetail productId={productMatch.data.product.id} />
+      </>
+    );
+  }
+
+  // ─── Existing SEO / vehicle landing branch (unchanged) ──────────
+  const vehicleSeo = await getVehicleSeoPage(slug);
 
   return (
     <Suspense fallback={homeLoading}>

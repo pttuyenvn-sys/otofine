@@ -53,17 +53,18 @@ const formatPrice = (value) => {
 const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
 
 function productHref(slug, id, item) {
-  // The new SEO URL is always `/phu-tung/<slug>-<id>`. When we have
-  // the full item shape (related-product card, recent-viewed entry)
-  // we delegate to the canonical builder so the slug we emit matches
-  // what the canonical-enforce page would compute — no redirect on
-  // click. With only an id available we fall back to the minimal
-  // form `/phu-tung/<id>` and let the canonical handler enrich it.
+  // Root-level canonical: `/<slug>-<id>`. With the full item shape
+  // (related-product card, recent-viewed entry) we delegate to the
+  // canonical builder so the URL we emit matches what the apex
+  // `[slug]/page.js` canonical-enforce branch would compute — no
+  // redirect on click. With only an id available we hand off to the
+  // short `/p/<id>` redirect namespace which 308s to canonical in
+  // a single hop.
   if (item && typeof item === "object") {
     const url = buildProductSeoUrl(item);
     if (url && url !== "/") return url;
   }
-  if (id != null && id !== "") return `/phu-tung/${id}`;
+  if (id != null && id !== "") return `/p/${id}`;
   return "/";
 }
 
@@ -230,11 +231,14 @@ function normalizeShopAvatar(url) {
 
 export default function ProductDetail({ productId: productIdProp } = {}) {
   // Two route shapes feed this component:
-  //   1. Legacy `/product/[id]` → useParams() returns { id }.
-  //   2. New SEO `/phu-tung/[slug]` → useParams() returns { slug }, and
-  //      the parent server page (`app/phu-tung/[slug]/page.js`) passes
-  //      the resolved numeric id down via the `productId` prop after
-  //      doing its canonical-enforcement redirect.
+  //   1. Legacy `/product/[id]` → useParams() returns { id } (this
+  //      route now redirects on the server, but the param shape is
+  //      preserved for any leftover client-side soft-pushes).
+  //   2. Root canonical `/[slug]` (e.g. /<slug>-<id>) →
+  //      useParams() returns { slug }, and the parent server page
+  //      (`app/[slug]/page.js`) passes the resolved numeric id down
+  //      via the `productId` prop after doing its canonical-enforce
+  //      redirect.
   //
   // We accept either: an explicit prop wins (server already resolved
   // and validated the id), otherwise we peel the id out of the slug
