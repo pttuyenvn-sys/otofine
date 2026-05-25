@@ -1,42 +1,36 @@
+/* --------------------------------------------------------------------
+   AddProductPopup styles.
+
+   Desktop (>= 1024px): legacy 2-column layout (LeftCol fields/cars/
+   descriptions, RightCol save + image gallery) — kept intact so the
+   seller's desktop workflow is unchanged.
+
+   Mobile (< 1024px):  single column flow, image picker appears
+   between basic info and vehicle compatibility, secondary vehicle
+   selects collapse behind a per-row toggle, and a fixed save bar
+   pins the primary action above the seller bottom nav.
+   ------------------------------------------------------------------- */
+
 .AddProductOverlay {
   position: fixed;
   top: 0;
-  left: 0; /* 🔥 QUAN TRỌNG */
+  left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.3); /* làm mờ nền */
-  z-index: 9999999; /* cao hơn sidebar */
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 9999999;
   overflow: hidden;
-}
-
-body {
-  margin: 0;
-  overflow: hidden;
-}
-
-html,
-body {
-  width: 100%;
-  height: 100%;
-}
-
-#root {
-  width: 100%;
 }
 
 .AddProductForm {
   width: 100%;
   height: 100%;
-
   background: #fff;
-
   padding: 20px 40px;
   box-sizing: border-box;
-
   display: flex;
   flex-direction: column;
-
-  overflow: hidden; /* giữ */
+  overflow: hidden;
 }
 
 .AddProductForm h2 {
@@ -71,19 +65,34 @@ body {
   resize: vertical;
 }
 
-.textarea1 {
-  height: 40px;
+/* ---------- Sections (used to group fields on mobile) ---------- */
+.ProductFormSection {
+  margin-bottom: 4px;
 }
 
-.textarea2 {
-  height: 150px;
+.ProductFormSection__title {
+  margin: 20px 0 8px;
+  color: #333;
+  font-size: 15px;
 }
 
-.CarRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
+/* ---------- Header ---------- */
+.PopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.PopupHeader H2 {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.PopupHeaderActions {
+  margin-top: 10px;
 }
 
 .btnAddCar {
@@ -100,24 +109,18 @@ body {
   opacity: 0.85;
 }
 
-.Row3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 30px;
-}
-
-.ActionRow {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
 .btnSubmit {
   background: #0d6efd;
   color: white;
   padding: 10px 20px;
   border-radius: 5px;
   border: none;
+  cursor: pointer;
+}
+
+.btnSubmit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btnClose {
@@ -126,6 +129,7 @@ body {
   padding: 10px 20px;
   border-radius: 5px;
   border: none;
+  cursor: pointer;
 }
 
 .btnSubmit:hover,
@@ -133,58 +137,11 @@ body {
   opacity: 0.85;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.PopupHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-}
-
-.PopupHeader H2 {
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.btnCloseTop {
-  font-size: 20px;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-/* ảnh preview */
-.ImagePreview {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.ImagePreview img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
+/* ---------- Form grid ---------- */
 .FormGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: 4fr 1fr; /* LEFT to, RIGHT nhỏ */
+  grid-template-columns: 4fr 1fr;
   gap: 30px;
   align-items: start;
   min-height: 0;
@@ -205,12 +162,83 @@ body {
   height: 100%;
 }
 
-/* CHỈ editor chi tiết */
+.RightCol__submit {
+  margin-bottom: 20px;
+}
+
+.LeftCol label {
+  margin-top: 15px;
+}
+
+.LeftCol input {
+  width: 100%;
+}
+
+/* ---------- Row layouts (desktop) ---------- */
+.Row2 {
+  display: grid;
+  grid-template-columns: 1fr 5fr;
+  gap: 20px;
+}
+
+.Row3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 20px;
+}
+
+/* ---------- Car card ----------
+   Desktop layout matches the legacy single flex row: 9 selects + a
+   delete button. We use `display: contents` on the inner wrappers so
+   every select bubbles up as a direct flex child of `.CarCard` — the
+   visual result is identical to the pre-pass JSX that had
+   `style={{display: "flex", gap: 8}}` inline.
+
+   Mobile (in the media query block far below) re-introduces the
+   wrappers as real grid containers and re-skins `.CarCard` into a
+   bordered card.
+*/
+.CarCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.CarCard__header,
+.CarCard__detailsToggle,
+.CarCard__index {
+  display: none;
+}
+
+.CarCard__main,
+.CarCard__details {
+  display: contents;
+}
+
+.CarCard > select,
+.CarCard__main > select,
+.CarCard__details > select {
+  flex: 1 1 0;
+  min-width: 110px;
+}
+
+.CarCard__remove {
+  background: red;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+/* ---------- Quill editors ---------- */
 .DescriptionEditor .ql-editor {
   min-height: 600px;
 }
 
-/* TIÊU ĐỀ */
 .ShortEditor .ql-editor {
   height: 40px !important;
   min-height: 40px !important;
@@ -236,30 +264,332 @@ body {
   padding: 6px 10px;
 }
 
-.LeftCol label {
-  margin-top: 15px;
+/* ---------- Image picker / preview ---------- */
+.ImagePicker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.LeftCol input {
+.ImagePicker__input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.ImagePicker__input input {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
-/* chia 2 input đầu */
-.Row2 {
-  display: grid;
-  grid-template-columns: 1fr 5fr;
-  gap: 20px;
+.ImagePreview {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  flex-wrap: wrap;
 }
 
-.Row3 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px;
+.ImagePreview__item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+  background: #f3f4f6;
 }
 
+.ImagePreview__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ImagePreview__remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.95);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+}
+
+/* Hidden by default; the mobile media-query below makes it visible. */
+.MobileSaveBar {
+  display: none;
+}
+
+/* ---------- Truncate helper (used elsewhere) ---------- */
 .truncate-1-line {
   max-width: 300px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ====================================================================
+   MOBILE OVERRIDES — phones, small tablets.
+
+   Triggered under 1024px (Tailwind `lg` breakpoint) so the popup
+   layout matches the rest of the seller mobile UX pass.
+   =================================================================== */
+
+@media (max-width: 1023.98px) {
+  .AddProductForm {
+    /* Edge-to-edge full-screen sheet — no negative space wasted on
+       large gutters. The bottom inset reserves room for the fixed
+       MobileSaveBar plus iOS / Android safe-area.
+
+       Override the desktop `overflow: hidden` so the form is the
+       natural mobile scroll container (LeftCol below is set to
+       `overflow: visible` so its content participates in this
+       single scrolling context). */
+    padding: 12px 12px calc(72px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .AddProductForm h2 {
+    text-align: left;
+    margin-bottom: 0;
+    font-size: 17px;
+  }
+
+  .PopupHeader {
+    /* Sticky header keeps the title + close action visible while the
+       form scrolls underneath. The negative inline margins extend
+       the header background to the full sheet width even though
+       the AddProductForm has 12px side padding. */
+    position: sticky;
+    top: -12px;
+    margin: -12px -12px 12px;
+    padding: 12px 12px 10px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    z-index: 5;
+    align-items: center;
+  }
+
+  .PopupHeaderActions {
+    margin-top: 0;
+  }
+
+  .PopupHeaderActions .btnClose {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: transparent;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Collapse the 2-col grid; LeftCol carries the form, RightCol is
+     hidden because the mobile image section already lives inside
+     LeftCol. */
+  .FormGrid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .LeftCol {
+    overflow: visible;
+    padding-right: 0;
+    height: auto;
+  }
+
+  .RightCol {
+    display: none;
+  }
+
+  .ProductFormSection__title {
+    margin: 14px 0 6px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    font-weight: 700;
+  }
+
+  /* Tighten field rows */
+  .AddProductForm label {
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .AddProductForm input,
+  .AddProductForm select,
+  .AddProductForm textarea {
+    font-size: 14px;
+    padding: 9px 10px;
+    margin-top: 4px;
+  }
+
+  /* Row2 stacks vertically — partNumber/partName are too important
+     to share a line on a phone. */
+  .Row2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Row3 becomes a 2-col grid (price+stock first, then origin,
+     dim+weight pair up). */
+  .Row3,
+  .Row3--money,
+  .Row3--dim {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* --------- CarCard mobile reflow --------- */
+  .CarCard {
+    display: block;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 10px 6px;
+    background: #fff;
+    margin-bottom: 10px;
+  }
+
+  .CarCard__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .CarCard__index {
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+    background: #f3f4f6;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+
+  .CarCard__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+  }
+
+  .CarCard__main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .CarCard__detailsToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    margin: 4px 0 4px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    color: #374151;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .CarCard__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  .CarCard__details.is-collapsed {
+    display: none;
+  }
+
+  .CarCard__details.is-open {
+    display: grid;
+  }
+
+  /* --------- Quill editor heights --------- */
+  .DescriptionEditor .ql-editor {
+    min-height: 220px;
+  }
+
+  /* --------- Mobile image picker --------- */
+  .ImagePicker__input {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .ImagePreview {
+    gap: 8px;
+  }
+
+  .ImagePreview__item {
+    width: 78px;
+    height: 78px;
+  }
+
+  /* --------- Mobile fixed save bar --------- */
+  .MobileSaveBar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid #e5e7eb;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 10000000;
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .MobileSaveBar .btnSubmit {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    background: #059669;
+  }
+
+  .btnAddCar {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
 }

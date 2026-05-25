@@ -173,6 +173,43 @@ html {
   padding-bottom: 40px;
 }
 
+/* --------------------------------------------------------------------
+   Mobile fixed save bar — used by /shop/settings.
+
+   The previous sticky-bottom save bar inside `.main-content` floated
+   on top of form content mid-scroll because sticky positioning lets
+   content scroll under it. On phones we promote it to `position:
+   fixed`, anchored above the seller mobile bottom nav, with backdrop
+   blur so it reads as a separate surface.
+
+   Desktop keeps the sticky-inside-form behaviour (controlled by a
+   `lg:sticky` Tailwind variant in the JSX), so this rule only fires
+   under 900px.
+   ------------------------------------------------------------------- */
+
+.shop-settings-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 899.98px) {
+  .shop-settings-save-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 12px;
+    z-index: 55;
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+    margin: 0;
+  }
+}
+
 .card {
   background: white;
   border-radius: 10px;
@@ -263,10 +300,210 @@ html {
 
   .main-content,
   .main-content.shop-settings-page {
-    padding: 12px;
-    /* Reserve room for the fixed seller mobile bottom nav (height + safe-area).
-       Desktop ignores this; the sidebar is the canonical nav there. */
+    padding: 10px 10px;
+    /* Reserve room for BOTH the fixed mobile save bar (~48px) when
+       it's active AND the fixed seller mobile bottom nav (64px +
+       safe-area). When no save bar is present the inner extra is
+       harmless (just bottom whitespace). */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 60px);
+  }
+
+  /* Pages that don't host a fixed save bar can use a smaller reserve.
+     `/shop/products`, `/rfq/shop/*`, and `/shop/account` only need
+     room for the 64px bottom nav. */
+  .main-content:not(.shop-settings-page) {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* -------------------------------------------------------------------- */
+/* Seller-center topbar — desktop 64px / mobile 56px compact app-bar.    */
+/* -------------------------------------------------------------------- */
+
+.seller-topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #eef2f6;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.seller-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.seller-topbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #e6edf3;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seller-topbar__back-icon {
+  display: none;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.seller-topbar__title {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Title halves: desktop shows BOTH ("Otofine" + " Seller Center");
+   the mobile media query below hides the " Seller Center" suffix so
+   the compact app-bar only reads "Otofine". */
+.seller-topbar__title-short { display: inline; }
+.seller-topbar__title-full  { display: inline; }
+
+.seller-topbar__account {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.seller-topbar__chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #eef2f6;
+  background: #fff;
+  cursor: pointer;
+}
+
+.seller-topbar__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0ea5a1;
+  color: #fff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.seller-topbar__chip-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.seller-topbar__chip-email {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.seller-topbar__chip-role {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.seller-topbar__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 220px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 100;
+}
+
+.seller-topbar__menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  text-decoration: none;
+  color: #0f172a;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  margin-top: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.seller-topbar__menu-item:first-child {
+  margin-top: 0;
+}
+
+.seller-topbar__menu-item:hover,
+.seller-topbar__menu-item:focus-visible {
+  background: #f3f4f6;
+}
+
+@media (max-width: 899.98px) {
+  .seller-topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .seller-topbar__back {
+    /* On phones the "Back" word still helps confirm direction (vs
+       a bare arrow which can be ambiguous), but we drop the border
+       weight and tighten the padding so it doesn't dominate. */
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .seller-topbar__back-label {
+    display: none;
+  }
+
+  .seller-topbar__back-icon {
+    display: inline-block;
+    font-size: 18px;
+  }
+
+  .seller-topbar__title-short { font-size: 15px; }
+  .seller-topbar__title-full  { display: none; }
+
+  .seller-topbar__chip {
+    padding: 4px;
+    border: none;
+    border-radius: 999px;
+  }
+
+  .seller-topbar__avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  /* The email + role copy stays in the DOM for screen readers
+     (the chip's aria-label still reads the email) but is hidden
+     visually so the topbar collapses to a single 56px row. */
+  .seller-topbar__chip-meta {
+    display: none;
   }
 }
 

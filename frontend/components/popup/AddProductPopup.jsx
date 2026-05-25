@@ -7,6 +7,45 @@ import axiosClient from "../../api/axiosClient";
 import { createPortal } from "react-dom";
 import "./ProductPopup.css";
 
+/**
+ * AddProductPopup
+ *
+ * Used as both the "Thêm mới" and "Sửa / Xem ảnh" entry point. Same
+ * upload pipeline, same API endpoints, same FormData payload — the
+ * mobile UX pass only rebalances layout and adds an explicit mobile
+ * single-column flow with a sticky save bar.
+ *
+ * Layout strategy:
+ *   - Desktop (>= lg): the legacy 2-column grid is preserved via
+ *     `.FormGrid` in ProductPopup.css (LeftCol fields/cars/descriptions,
+ *     RightCol save + image gallery). No change.
+ *   - Mobile (< lg): `.FormGrid` collapses to a single column via the
+ *     media-query block at the bottom of ProductPopup.css. Inside the
+ *     single column we use Tailwind `order-*` and `hidden lg:flex`
+ *     utilities to:
+ *       1. Show "Ảnh sản phẩm" FIRST (before fields), because the
+ *          image picker is the highest-priority action on mobile.
+ *       2. Collapse the per-vehicle "Chi tiết kỹ thuật" (dong_co /
+ *          hop_so / so_cau / kieu_dang / cc) into an expandable panel
+ *          per CarRow so the row stays tappable.
+ *       3. Hide the desktop "Cập nhật" button inside RightCol (the
+ *          new mobile sticky save bar replaces it).
+ *       4. Move the description field group below the rest so the
+ *          rich editor doesn't dominate above-the-fold space.
+ */
+
+const initialCarRow = () => ({
+  brand: "",
+  carModelId: "",
+  year_from: "",
+  year_to: "",
+  dong_co: "",
+  hop_so: "",
+  so_cau: "",
+  kieu_dang: "",
+  cc: "",
+});
+
 export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [partNumber, setPartNumber] = useState("");
   const [partName, setPartName] = useState("");
@@ -22,7 +61,6 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
 
-  // ✅ NEW
   const [images, setImages] = useState([]);
   const [cars, setCars] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -30,6 +68,12 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [deletedImages, setDeletedImages] = useState([]);
 
   const [attrOptions, setAttrOptions] = useState([]);
+
+  const [submitting, setSubmitting] = useState(false);
+
+  // Per-row "Chi tiết kỹ thuật" expand state. Only used on mobile —
+  // desktop renders all selects inline thanks to the grid layout.
+  const [openDetails, setOpenDetails] = useState({});
 
   const modules = {
     toolbar: [
@@ -45,19 +89,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [brands, setBrands] = useState([]);
   const [modelsByRow, setModelsByRow] = useState([]);
 
-  const [carRows, setCarRows] = useState([
-    {
-      brand: "",
-      carModelId: "",
-      year_from: "",
-      year_to: "",
-      dong_co: "",
-      hop_so: "",
-      so_cau: "",
-      kieu_dang: "",
-      cc: "",
-    },
-  ]);
+  const [carRows, setCarRows] = useState([initialCarRow()]);
 
   useEffect(() => {
     axiosClient.get("/car/brands").then((res) => {
@@ -92,7 +124,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
       cc: c.cc || "",
     }));
 
-    setCarRows(rows);
+    setCarRows(rows.length ? rows : [initialCarRow()]);
 
     const loadAttributes = async () => {
       const results = await Promise.all(
@@ -110,7 +142,6 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
     loadAttributes();
 
-    // 🔥 FIX QUAN TRỌNG: load model theo từng dòng
     rows.forEach((row, idx) => {
       if (row.brand) {
         loadModels(idx, row.brand);
@@ -124,6 +155,17 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     setImages([]);
     setDeletedImages([]);
   }, [product]);
+
+  // Lock body scroll while the full-screen sheet is open so the
+  // background page doesn't move around under it on iOS Safari.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   const loadModels = async (idx, brand) => {
     const res = await axiosClient.get("/car/models", {
@@ -141,13 +183,11 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   for (let y = new Date().getFullYear(); y >= 1995; y--) years.push(y);
 
   const addCarRow = () => {
-    setCarRows([
-      ...carRows,
-      { brand: "", carModelId: "", year_from: "", year_to: "" },
-    ]);
+    setCarRows([...carRows, initialCarRow()]);
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!partNumber || !partName) {
       alert("Vui lòng nhập Mã & Tên phụ tùng");
       return;
@@ -157,7 +197,6 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     try {
       cars = carRows
         .map((r) => {
-          // bỏ qua dòng rỗng
           if (!r.carModelId && !r.year_from && !r.year_to) {
             return null;
           }
@@ -187,22 +226,8 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
       return;
     }
 
-    const payload = {
-      partNumber,
-      partName,
-      origin,
-      stock: Number(stock || 0),
-      price: Number(price || 0),
-      weight: Number(weight || 0),
-      length: Number(length || 0),
-      width: Number(width || 0),
-      height: Number(height || 0),
-      shortDescription,
-      description,
-      cars,
-    };
-
     try {
+      setSubmitting(true);
       const formData = new FormData();
 
       formData.append("partNumber", partNumber);
@@ -240,405 +265,535 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
           alert("Thêm sản phẩm thành công");
         }
 
-        onClose(); // đóng popup
+        onClose();
       }
     } catch (err) {
       console.log("ERROR:", err.response?.data);
       alert(err.response?.data?.message || "Lỗi khi thêm sản phẩm");
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  function toggleDetails(idx) {
+    setOpenDetails((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  }
 
   return createPortal(
     <div className="AddProductOverlay">
       <div className="AddProductForm">
         <div className="PopupHeader">
-          <h2>Thêm sản phẩm</h2>
-          <div style={{ marginTop: 10 }}>
-            <button className="btnClose" onClick={onClose}>
+          <h2>{product ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
+          <div className="PopupHeaderActions">
+            <button type="button" className="btnClose" onClick={onClose}>
               Đóng
             </button>
           </div>
         </div>
 
         <div className="FormGrid">
-          {/* LEFT */}
+          {/* ----------------------------------------------------------
+              LEFT column — order on desktop:
+                1. Basic info (Row2 + Row3)
+                2. Vehicle compatibility
+                3. Short + full descriptions
+              On mobile this column flows linearly; the RightCol
+              (images) is reordered to appear AFTER the basic info via
+              `lg:order-*` utilities below.
+              ---------------------------------------------------------- */}
           <div className="LeftCol">
-            <div className="Row2">
-              <div>
-                <label>Mã phụ tùng</label>
-                <input
-                  value={partNumber}
-                  onChange={(e) => setPartNumber(e.target.value)}
-                />
+            <section className="ProductFormSection">
+              <h3 className="ProductFormSection__title">Thông tin cơ bản</h3>
+              <div className="Row2">
+                <div>
+                  <label>Mã phụ tùng *</label>
+                  <input
+                    value={partNumber}
+                    onChange={(e) => setPartNumber(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Tên phụ tùng *</label>
+                  <input
+                    value={partName}
+                    onChange={(e) => setPartName(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label>Tên phụ tùng</label>
-                <input
-                  value={partName}
-                  onChange={(e) => setPartName(e.target.value)}
-                />
+              <div className="Row3 Row3--money">
+                <div>
+                  <label>Giá bán</label>
+                  <input
+                    inputMode="numeric"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Tồn kho</label>
+                  <input
+                    inputMode="numeric"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Xuất xứ</label>
+                  <input
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div className="Row3">
-              <div>
-                <label>Giá bán</label>
-                <input
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                />
-              </div>
+            {/* ------------------------------------------------------
+                IMAGES — mobile renders this section here (high
+                priority). Desktop hides it because the legacy
+                RightCol still owns the gallery.
+                ------------------------------------------------------ */}
+            <section className="ProductFormSection ProductFormSection--mobileImages lg:hidden">
+              <h3 className="ProductFormSection__title">Ảnh sản phẩm</h3>
+              <ImagePicker
+                images={images}
+                existingImages={existingImages}
+                onAddImages={(files) => setImages([...images, ...files])}
+                onRemoveNewImage={(i) => {
+                  const clone = [...images];
+                  clone.splice(i, 1);
+                  setImages(clone);
+                }}
+                onRemoveExistingImage={(img, i) => {
+                  const clone = [...existingImages];
+                  setDeletedImages((prev) => [...prev, img.id]);
+                  clone.splice(i, 1);
+                  setExistingImages(clone);
+                }}
+              />
+            </section>
 
-              <div>
-                <label>Tồn kho</label>
-                <input
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                />
-              </div>
+            <section className="ProductFormSection">
+              <h3 className="ProductFormSection__title">Áp dụng cho xe</h3>
 
-              <div>
-                <label>Xuất xứ</label>
-                <input
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                />
-              </div>
+              {carRows.map((r, idx) => (
+                <div className="CarCard" key={idx}>
+                  <div className="CarCard__header">
+                    <span className="CarCard__index">Xe {idx + 1}</span>
+                    {carRows.length > 1 && (
+                      <button
+                        type="button"
+                        className="CarCard__remove"
+                        aria-label="Xóa xe"
+                        onClick={() => {
+                          const clone = [...carRows];
+                          clone.splice(idx, 1);
+                          setCarRows(clone);
+                          setModelsByRow((prev) => {
+                            const m = [...prev];
+                            m.splice(idx, 1);
+                            return m;
+                          });
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
 
-              <div>
-                <label>Chiều dài (cm)</label>
-                <input
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                />
-              </div>
+                  <div className="CarCard__main">
+                    <select
+                      value={r.brand}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx] = {
+                          ...clone[idx],
+                          brand: e.target.value,
+                          carModelId: "",
+                        };
+                        setCarRows(clone);
+                        loadModels(idx, e.target.value);
+                      }}
+                    >
+                      <option value="">-- Hãng xe --</option>
+                      {brands.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
 
-              <div>
-                <label>Chiều rộng (cm)</label>
-                <input
-                  value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                />
-              </div>
+                    <select
+                      value={r.carModelId}
+                      onChange={async (e) => {
+                        const clone = [...carRows];
+                        const carModelId = e.target.value;
 
-              <div>
-                <label>Chiều cao (cm)</label>
-                <input
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                />
-              </div>
+                        clone[idx].carModelId = carModelId;
+                        setCarRows(clone);
 
-              <div>
-                <label>Trọng lượng (gram)</label>
-                <input
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                />
-              </div>
-            </div>
+                        const res = await axiosClient.get("/car/attributes", {
+                          params: { carModelId },
+                        });
 
-            <h3>Áp dụng cho xe</h3>
+                        setAttrOptions((prev) => {
+                          const copy = [...prev];
+                          copy[idx] = res.data;
+                          return copy;
+                        });
+                      }}
+                    >
+                      <option value="">-- Mẫu xe --</option>
+                      {(modelsByRow[idx] || []).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.ten_xe}
+                        </option>
+                      ))}
+                    </select>
 
-            {carRows.map((r, idx) => (
-              <div
-                className="CarRow"
-                key={idx}
-                style={{ display: "flex", gap: 8 }}
+                    <select
+                      value={r.year_from}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].year_from = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Từ năm</option>
+                      {years.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={r.year_to}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].year_to = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Đến năm</option>
+                      {years.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/*
+                    "Chi tiết kỹ thuật" — on desktop the grid keeps
+                    all 5 secondary selects inline as part of the row;
+                    on mobile the row would explode into 9 selects
+                    side-by-side, so we hide the secondary selects
+                    behind a toggle. Toggle state is per-row to keep
+                    interaction local.
+                  */}
+                  <button
+                    type="button"
+                    className="CarCard__detailsToggle lg:hidden"
+                    aria-expanded={!!openDetails[idx]}
+                    onClick={() => toggleDetails(idx)}
+                  >
+                    {openDetails[idx]
+                      ? "− Ẩn chi tiết kỹ thuật"
+                      : "+ Chi tiết kỹ thuật (động cơ, hộp số, …)"}
+                  </button>
+
+                  <div
+                    className={
+                      "CarCard__details " +
+                      (openDetails[idx] ? "is-open" : "is-collapsed")
+                    }
+                  >
+                    <select
+                      value={r.dong_co}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].dong_co = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Động cơ</option>
+                      {(attrOptions[idx]?.dong_co || []).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={r.hop_so}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].hop_so = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Hộp số</option>
+                      {(attrOptions[idx]?.hop_so || []).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={r.so_cau}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].so_cau = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Số cầu</option>
+                      {(attrOptions[idx]?.so_cau || []).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={r.kieu_dang}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].kieu_dang = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">Kiểu dáng</option>
+                      {(attrOptions[idx]?.kieu_dang || []).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={r.cc}
+                      onChange={(e) => {
+                        const clone = [...carRows];
+                        clone[idx].cc = e.target.value;
+                        setCarRows(clone);
+                      }}
+                    >
+                      <option value="">CC</option>
+                      {(attrOptions[idx]?.cc || []).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="btnAddCar"
+                onClick={addCarRow}
               >
-                <select
-                  value={r.brand}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx] = {
-                      ...clone[idx],
-                      brand: e.target.value,
-                      carModelId: "",
-                    };
-                    setCarRows(clone);
-                    loadModels(idx, e.target.value);
-                  }}
-                >
-                  <option value="">-- Hãng xe --</option>
-                  {brands.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
+                + Thêm xe
+              </button>
+            </section>
 
-                <select
-                  value={r.carModelId}
-                  onChange={async (e) => {
-                    const clone = [...carRows];
-                    const carModelId = e.target.value;
+            <section className="ProductFormSection">
+              <h3 className="ProductFormSection__title">Kích thước &amp; trọng lượng</h3>
+              <div className="Row3 Row3--dim">
+                <div>
+                  <label>Chiều dài (cm)</label>
+                  <input
+                    inputMode="decimal"
+                    value={length}
+                    onChange={(e) => setLength(e.target.value)}
+                  />
+                </div>
 
-                    clone[idx].carModelId = carModelId;
-                    setCarRows(clone);
+                <div>
+                  <label>Chiều rộng (cm)</label>
+                  <input
+                    inputMode="decimal"
+                    value={width}
+                    onChange={(e) => setWidth(e.target.value)}
+                  />
+                </div>
 
-                    // 🔥 load attribute theo xe
-                    const res = await axiosClient.get("/car/attributes", {
-                      params: { carModelId },
-                    });
+                <div>
+                  <label>Chiều cao (cm)</label>
+                  <input
+                    inputMode="decimal"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                  />
+                </div>
 
-                    setAttrOptions((prev) => {
-                      const copy = [...prev];
-                      copy[idx] = res.data;
-                      return copy;
-                    });
-                  }}
-                >
-                  <option value="">-- Mẫu xe --</option>
-                  {(modelsByRow[idx] || []).map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.ten_xe}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.year_from}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].year_from = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Từ năm</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.year_to}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].year_to = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Đến năm</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.dong_co}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].dong_co = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Động cơ</option>
-                  {(attrOptions[idx]?.dong_co || []).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.hop_so}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].hop_so = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Hộp số</option>
-                  {(attrOptions[idx]?.hop_so || []).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.so_cau}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].so_cau = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Số cầu</option>
-                  {(attrOptions[idx]?.so_cau || []).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.kieu_dang}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].kieu_dang = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">Kiểu dáng</option>
-                  {(attrOptions[idx]?.kieu_dang || []).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={r.cc}
-                  onChange={(e) => {
-                    const clone = [...carRows];
-                    clone[idx].cc = e.target.value;
-                    setCarRows(clone);
-                  }}
-                >
-                  <option value="">CC</option>
-                  {(attrOptions[idx]?.cc || []).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  style={{
-                    background: "red",
-                    color: "#fff",
-                    border: "none",
-                    padding: "4px 8px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    const clone = [...carRows];
-                    clone.splice(idx, 1);
-                    setCarRows(clone);
-
-                    // xoá luôn model tương ứng
-                    setModelsByRow((prev) => {
-                      const m = [...prev];
-                      m.splice(idx, 1);
-                      return m;
-                    });
-                  }}
-                >
-                  ✕
-                </button>
+                <div>
+                  <label>Trọng lượng (gram)</label>
+                  <input
+                    inputMode="decimal"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                  />
+                </div>
               </div>
-            ))}
+            </section>
 
-            <button className="btnAddCar" onClick={addCarRow}>
-              + Thêm xe
-            </button>
+            <section className="ProductFormSection">
+              <h3 className="ProductFormSection__title">Mô tả</h3>
+              <label>Tiêu đề</label>
+              <div className="ShortEditor">
+                <ReactQuill
+                  value={shortDescription}
+                  onChange={setShortDescription}
+                  modules={modules}
+                />
+              </div>
 
-            {/* MÔ TẢ */}
-            <label>Tiêu đề</label>
-            <div className="ShortEditor">
-              <ReactQuill
-                value={shortDescription}
-                onChange={setShortDescription}
-                modules={modules}
-              />
-            </div>
-
-            <label>Mô tả chi tiết</label>
-            <div className="DescriptionEditor">
-              <ReactQuill
-                value={description}
-                onChange={setDescription}
-                modules={modules}
-              />
-            </div>
+              <label>Mô tả chi tiết</label>
+              <div className="DescriptionEditor">
+                <ReactQuill
+                  value={description}
+                  onChange={setDescription}
+                  modules={modules}
+                />
+              </div>
+            </section>
           </div>
 
-          {/* RIGHT */}
+          {/* ----------------------------------------------------------
+              RIGHT column — desktop only image gallery + submit. On
+              mobile this column is hidden via the media query in
+              ProductPopup.css (mobile uses the LeftCol image section
+              and the sticky save bar below).
+              ---------------------------------------------------------- */}
           <div className="RightCol">
-            {/* ACTION */}
-            <div style={{ marginBottom: 20 }}>
-              <button className="btnSubmit" onClick={handleSubmit}>
-                Cập nhật
+            <div className="RightCol__submit">
+              <button
+                type="button"
+                className="btnSubmit"
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting
+                  ? "Đang lưu…"
+                  : product
+                    ? "Cập nhật"
+                    : "Thêm mới"}
               </button>
             </div>
 
-            {/* ẢNH */}
             <h3>Ảnh sản phẩm</h3>
 
-            <input
-              type="file"
-              multiple
-              onChange={(e) => setImages([...images, ...e.target.files])}
+            <ImagePicker
+              images={images}
+              existingImages={existingImages}
+              onAddImages={(files) => setImages([...images, ...files])}
+              onRemoveNewImage={(i) => {
+                const clone = [...images];
+                clone.splice(i, 1);
+                setImages(clone);
+              }}
+              onRemoveExistingImage={(img, i) => {
+                const clone = [...existingImages];
+                setDeletedImages((prev) => [...prev, img.id]);
+                clone.splice(i, 1);
+                setExistingImages(clone);
+              }}
             />
-
-            <div className="ImagePreview">
-              {/* ẢNH CŨ */}
-              {existingImages.map((img, i) => (
-                <div key={"old-" + i} style={{ position: "relative" }}>
-                  <img src={img.url + "?t=" + Date.now()} />
-
-                  <button
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      background: "red",
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      const clone = [...existingImages];
-
-                      // lưu id ảnh bị xoá
-                      setDeletedImages((prev) => [...prev, img.id]);
-
-                      clone.splice(i, 1);
-                      setExistingImages(clone);
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-
-              {/* ẢNH MỚI */}
-              {images.map((img, i) => (
-                <div key={"new-" + i} style={{ position: "relative" }}>
-                  <img src={URL.createObjectURL(img)} />
-
-                  <button
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      background: "red",
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      const clone = [...images];
-                      clone.splice(i, 1);
-                      setImages(clone);
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
           </div>
+        </div>
+
+        {/* Mobile sticky save bar — anchored above the seller bottom
+            nav (which doesn't render on top of the popup because
+            this overlay is at z-index 9999999, but we still respect
+            safe-area). Desktop uses the inline RightCol button so
+            this bar is hidden via the media query. */}
+        <div className="MobileSaveBar lg:hidden">
+          <button
+            type="button"
+            className="btnSubmit"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting
+              ? "Đang lưu…"
+              : product
+                ? "Cập nhật sản phẩm"
+                : "Thêm sản phẩm"}
+          </button>
         </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Image picker — shared by mobile (in LeftCol order-first) and desktop
+   (in RightCol). Visually identical, just renders in different DOM
+   locations so the responsive layout can prioritise it differently.   */
+/* ------------------------------------------------------------------ */
+function ImagePicker({
+  images,
+  existingImages,
+  onAddImages,
+  onRemoveNewImage,
+  onRemoveExistingImage,
+}) {
+  return (
+    <div className="ImagePicker">
+      <label className="ImagePicker__input">
+        <span className="ImagePicker__inputLabel">+ Thêm ảnh</span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length) onAddImages(files);
+            e.target.value = "";
+          }}
+        />
+      </label>
+
+      <div className="ImagePreview">
+        {existingImages.map((img, i) => (
+          <div key={"old-" + i} className="ImagePreview__item">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.url + "?t=" + Date.now()} alt="" />
+            <button
+              type="button"
+              className="ImagePreview__remove"
+              aria-label="Xóa ảnh"
+              onClick={() => onRemoveExistingImage(img, i)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {images.map((img, i) => (
+          <div key={"new-" + i} className="ImagePreview__item ImagePreview__item--new">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={URL.createObjectURL(img)} alt="" />
+            <button
+              type="button"
+              className="ImagePreview__remove"
+              aria-label="Xóa ảnh"
+              onClick={() => onRemoveNewImage(i)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
