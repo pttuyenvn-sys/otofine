@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
+import ShopMapVisualBlock from "@/components/shopsite/ShopMapVisualBlock";
 import {
   fetchPublicShopContactSafe,
   fetchPublicShopSafe,
@@ -71,27 +72,30 @@ export default async function ShopTenantContactPage({ params }) {
           </div>
         </ShopSection>
 
+        {/*
+          Bản đồ — real Google Maps preview.
+          Reuses the shared `<ShopMapVisualBlock>` so the storefront
+          homepage contact card and the dedicated `/lien-he` map block
+          stay visually identical and share the same priority order
+          (mapEmbedUrl → lat/lng → address fallback), lazy iframe
+          mount, and trust overlays (pin badge + business name +
+          address strip + "Mở Google Maps" CTA).
+
+          `bodyClassName="!p-0"` keeps the section header above the
+          card seamless with the rounded corners on the map itself.
+        */}
         <ShopSection title="Bản đồ" bodyClassName="!p-0">
-          <div className="relative aspect-[16/9] rounded-b-2xl overflow-hidden bg-gradient-to-br from-gray-100 via-gray-50 to-white">
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><rect width=%22120%22 height=%22120%22 fill=%22%23f3f4f6%22/><path d=%22M0 60 L120 60 M60 0 L60 120%22 stroke=%22%23e5e7eb%22 stroke-width=%221%22/></svg>')] opacity-60"
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-600">
-              <PinIcon large />
-              <span className="text-sm text-center px-3">{contact.address || "Đang cập nhật"}</span>
-              {contact.address && (
-                <a
-                  href={`https://www.google.com/maps?q=${encodeURIComponent(contact.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-2 bg-[#e60012] hover:bg-[#c1000f] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow"
-                >
-                  Mở trên Google Maps ›
-                </a>
-              )}
-            </div>
-          </div>
+          <ShopMapVisualBlock
+            shopName={contact.name || ""}
+            address={contact.address || ""}
+            province={contact.province || ""}
+            lat={typeof contact.lat === "number" ? contact.lat : null}
+            lng={typeof contact.lng === "number" ? contact.lng : null}
+            mapEmbedUrl={contact.mapEmbedUrl || null}
+            className="rounded-t-none border-t-0"
+            aspectClassName="aspect-[16/10] sm:aspect-[16/9]"
+            testId="shop-lien-he-map"
+          />
         </ShopSection>
       </div>
 
