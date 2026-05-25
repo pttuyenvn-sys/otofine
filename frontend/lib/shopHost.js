@@ -109,6 +109,73 @@ export const HOST_DECISIONS = Object.freeze({
 });
 
 /**
+ * Phase 6A — staged rollout allowlist.
+ *
+ * Parse a comma-separated list of slugs from
+ * `PUBLIC_SHOPSITE_ALLOWED_SLUGS`. When set, ONLY those slugs are
+ * eligible for subdomain rewrite; every other shop falls through to
+ * apex behaviour even when its DNS resolves.
+ *
+ * Special tokens:
+ *   - empty / unset → allowlist DISABLED → all slugs allowed (open
+ *     rollout). This is the steady-state once the staging window ends.
+ *   - "*"           → explicit "all slugs"; same as empty.
+ *
+ * Returns a frozen `{ enabled, set }`:
+ *   - `enabled` is true iff the env var contains at least one concrete
+ *     slug (not "*"). The middleware uses this to know when to apply
+ *     the gate at all.
+ *   - `set` is the lowercased slug set (or empty Set when disabled).
+ *
+ * Module-scope memoisation: process.env is read ONCE per JS bundle.
+ * The middleware/edge runtime restarts when env changes (PM2
+ * `restart --update-env`), so caching is correct.
+ */
+function parseAllowlist(raw) {
+  const v = String(raw ?? "").trim();
+  if (!v || v === "*") return { enabled: false, set: new Set() };
+  const set = new Set(
+    v
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  if (set.size === 0) return { enabled: false, set: new Set() };
+  return { enabled: true, set };
+}
+
+const ALLOWLIST = Object.freeze(
+  parseAllowlist(
+    // Both NEXT_PUBLIC_ (browser) and bare env (server) — middleware
+    // runs on the edge runtime where Next exposes only the `process.env`
+    // values it has inlined at build time, so we accept either name.
+    process.env.NEXT_PUBLIC_SHOPSITE_ALLOWED_SLUGS ??
+      process.env.PUBLIC_SHOPSITE_ALLOWED_SLUGS,
+  ),
+);
+
+/**
+ * @returns {{ enabled: boolean, slugs: string[] }}
+ */
+export function getShopAllowlist() {
+  return { enabled: ALLOWLIST.enabled, slugs: Array.from(ALLOWLIST.set).sort() };
+}
+
+/**
+ * True iff this slug is permitted to render via subdomain right now.
+ *
+ * Decoupled from `classifyHost` so the call site keeps a clean
+ * decision matrix: classify → know the slug → THEN check allowlist.
+ *
+ * Pure / edge-safe.
+ */
+export function isShopSubdomainAllowed(slug) {
+  if (!slug) return false;
+  if (!ALLOWLIST.enabled) return true;
+  return ALLOWLIST.set.has(String(slug).toLowerCase());
+}
+
+/**
  * Single source of truth for "what should the middleware do with this
  * host?". Returns `{ decision, slug?, suffix? }`. NEVER throws.
  *
@@ -166,14 +233,24 @@ export function extractShopSubdomain(hostname) {
  * Decide whether a (host, pathname) pair maps to a shop tenant
  * rewrite. Returns `{ slug, internalPath, decision }` or null.
  *
- * Phase 4.5: now also exposes the `decision` code on success so the
- * middleware can attribute its metrics without re-running classification.
+ * Phase 4.5: exposes the `decision` code on success so the middleware
+ * can attribute its metrics without re-running classification.
+ *
+ * Phase 6A: respects the `PUBLIC_SHOPSITE_ALLOWED_SLUGS` allowlist.
+ * When the allowlist is enabled and the slug is NOT on it, returns a
+ * sentinel `{ decision: REWRITE_OK, slug, blocked: "not-allowlisted" }`
+ * so the middleware can emit a metric and fall through to apex
+ * routing. This is the staging-rollout mode that lets us flip DNS
+ * on globally but still keep most shops apex-only until QA passes.
  */
 export function resolveShopRewrite({ host, pathname, flagEnabled }) {
   if (!flagEnabled) return null;
   const cls = classifyHost(host);
   if (cls.decision !== HOST_DECISIONS.REWRITE_OK) return null;
   const sub = cls.slug;
+  if (!isShopSubdomainAllowed(sub)) {
+    return { slug: sub, decision: cls.decision, blocked: "not-allowlisted" };
+  }
   if (pathname.startsWith(`/shops/${sub}`)) return null;
   const cleanPath = pathname.replace(/\/+$/, "") || "/";
   if (!SHOP_REWRITE_PATHS.has(cleanPath)) return null;

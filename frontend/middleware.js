@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   HOST_DECISIONS,
   classifyHost,
+  getShopAllowlist,
   resolveShopRewrite,
 } from "@/lib/shopHost";
 
@@ -115,6 +116,20 @@ export function middleware(request) {
   });
 
   if (!decision) {
+    return NextResponse.next();
+  }
+
+  // Phase 6A — staged rollout allowlist. A `blocked` sentinel means
+  // the host parsed cleanly into a slug, but the slug is not on the
+  // current allowlist (PUBLIC_SHOPSITE_ALLOWED_SLUGS). Log the event
+  // and fall through to apex routing — the request still resolves
+  // (e.g. via apex `/shops/<slug>` if the visitor knows that URL),
+  // but the subdomain is invisible to them.
+  if (decision.blocked === "not-allowlisted") {
+    logEdge("middleware.allowlist-skip", {
+      slug: decision.slug,
+      path: pathname,
+    });
     return NextResponse.next();
   }
 

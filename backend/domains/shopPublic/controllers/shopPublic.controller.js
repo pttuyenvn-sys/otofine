@@ -11,6 +11,22 @@ import {
 } from "../validators/shopPublic.validators.js";
 import { shopsiteLog } from "../observability/logger.js";
 import { recordPublicRequest } from "../observability/abuseDetector.js";
+import { publicShopConfig } from "../config/publicShop.config.js";
+
+/**
+ * Phase 6A — per-process memoised set of "we already logged that
+ * <slug> is awaiting subdomain rollout". Keeps the log signal alive
+ * (one line per slug per restart) without flooding.
+ */
+const _allowlistPendingLogged = new Set();
+function maybeLogAllowlistPending(slug) {
+  if (!slug) return;
+  if (!publicShopConfig.allowlist.enabled) return;
+  if (publicShopConfig.isSlugAllowed(slug)) return;
+  if (_allowlistPendingLogged.has(slug)) return;
+  _allowlistPendingLogged.add(slug);
+  shopsiteLog.info("storefront.subdomain-pending", { slug });
+}
 
 /**
  * Per-route Cache-Control header sent downstream to the CDN / shared
@@ -63,6 +79,7 @@ export async function handleGetShop(req, res) {
   try {
     const data = await getPublicShopBySlug(slug);
     if (!data) return notFound(req, res, { slug });
+    maybeLogAllowlistPending(slug);
     res.set("Cache-Control", CACHE_HEADERS.shop);
     res.json(data);
     shopsiteLog.info("public-api.ok", { route: "shop", slug, dur_ms: Date.now() - t });
