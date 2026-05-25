@@ -7,6 +7,10 @@ import {
   handleGetShopContact,
   handleGetShopFitments,
   handleGetCacheDebug,
+  handleListShops,
+  handleListProvinces,
+  handleListBrands,
+  handleListRelatedShops,
   responseCache,
   publicApiRateLimit,
   TTL_MS,
@@ -43,6 +47,34 @@ router.use(publicShopsiteEnabledOrNotFound);
  */
 router.get("/debug/cache", handleGetCacheDebug);
 
+/**
+ * Phase 7.1 — directory + facets. MUST be registered BEFORE the
+ * `/:slug` catchall below, otherwise Express resolves `_facets` and
+ * the unprefixed `/` (directory root) as slugs and 404s.
+ *
+ * The directory root uses the `list` tier (heavier query, similar
+ * cost to /:slug/products) and the facets use the `query` tier
+ * (rare, heavy aggregations).
+ */
+router.get(
+  "/",
+  publicApiRateLimit("list"),
+  responseCache(TTL_MS.productsList),
+  handleListShops,
+);
+router.get(
+  "/_facets/provinces",
+  publicApiRateLimit("query"),
+  responseCache(TTL_MS.categories),
+  handleListProvinces,
+);
+router.get(
+  "/_facets/brands",
+  publicApiRateLimit("query"),
+  responseCache(TTL_MS.categories),
+  handleListBrands,
+);
+
 router.get(
   "/:slug",
   publicApiRateLimit("read"),
@@ -72,6 +104,12 @@ router.get(
   publicApiRateLimit("read"),
   responseCache(TTL_MS.contact),
   handleGetShopContact,
+);
+router.get(
+  "/:slug/related",
+  publicApiRateLimit("read"),
+  responseCache(TTL_MS.categories),
+  handleListRelatedShops,
 );
 
 export default router;

@@ -128,6 +128,81 @@ export async function fetchPublicShopContactSafe(slug) {
 }
 
 /**
+ * Phase 7.1 — public shop directory + facets + related shops.
+ *
+ * All four helpers are SSR-friendly: each request is wrapped with
+ * Next's `revalidate` so a single backend can serve the per-IP rate
+ * limited directory listing efficiently across N tab refreshes.
+ *
+ * The `*Safe` variants degrade to empty payloads so a slow / down
+ * backend can never break a directory page render — the empty state
+ * already handles "no shops found".
+ */
+export async function fetchPublicShopDirectory(params = {}) {
+  return publicFetch(`/public/shops`, params);
+}
+
+export async function fetchPublicShopDirectorySafe(params = {}) {
+  try {
+    return await fetchPublicShopDirectory(params);
+  } catch (err) {
+    console.warn("[shopPublic.service] directory fallback", { err: err?.message });
+    return {
+      items: [],
+      total: 0,
+      page: Number(params?.page) || 1,
+      perPage: Number(params?.perPage) || 12,
+      sort: "rank",
+      rankMax: 100,
+      filters: {},
+    };
+  }
+}
+
+export async function fetchPublicShopProvinces() {
+  return publicFetch(`/public/shops/_facets/provinces`);
+}
+
+export async function fetchPublicShopProvincesSafe() {
+  try {
+    return await fetchPublicShopProvinces();
+  } catch (err) {
+    console.warn("[shopPublic.service] provinces fallback", { err: err?.message });
+    return { items: [] };
+  }
+}
+
+export async function fetchPublicShopBrands() {
+  return publicFetch(`/public/shops/_facets/brands`);
+}
+
+export async function fetchPublicShopBrandsSafe() {
+  try {
+    return await fetchPublicShopBrands();
+  } catch (err) {
+    console.warn("[shopPublic.service] brands fallback", { err: err?.message });
+    return { items: [] };
+  }
+}
+
+export async function fetchRelatedShops(slug, limit = 6) {
+  if (!slug) return null;
+  return publicFetch(
+    `/public/shops/${encodeURIComponent(slug)}/related`,
+    { limit },
+  );
+}
+
+export async function fetchRelatedShopsSafe(slug, limit = 6) {
+  try {
+    return await fetchRelatedShops(slug, limit);
+  } catch (err) {
+    console.warn("[shopPublic.service] related fallback", { slug, err: err?.message });
+    return { seedSlug: slug, items: [] };
+  }
+}
+
+/**
  * Compute the basePath for in-shop links given the current request host.
  *
  * - On `cuahangoto355.otofine.com` (and local *.localhost variants):

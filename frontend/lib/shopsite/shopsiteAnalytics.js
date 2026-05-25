@@ -22,14 +22,36 @@
  */
 
 export const ShopsiteEvents = Object.freeze({
-  STOREFRONT_VIEW:   "storefront_view",
-  PRODUCT_CLICK:     "product_click",
-  PHONE_CLICK:       "phone_click",
-  ZALO_CLICK:        "zalo_click",
-  FACEBOOK_CLICK:    "facebook_click",
-  SHARE_CLICK:       "share_click",
-  SHARE_COMPLETE:    "share_complete",
-  SHARE_COPY:        "share_copy",
+  STOREFRONT_VIEW:        "storefront_view",
+  PRODUCT_CLICK:          "product_click",
+  PHONE_CLICK:            "phone_click",
+  ZALO_CLICK:             "zalo_click",
+  FACEBOOK_CLICK:         "facebook_click",
+  SHARE_CLICK:            "share_click",
+  SHARE_COMPLETE:         "share_complete",
+  SHARE_COPY:             "share_copy",
+
+  /**
+   * Phase 7.1 — discovery analytics.
+   *
+   *   STOREFRONT_IMPRESSION — fired when a shop card enters the
+   *     viewport on the directory page or a related-shops section.
+   *     Use a single IntersectionObserver per card list to keep
+   *     the bus volume sane. Payload: { shopSlug, listSource, rank? }
+   *
+   *   SHOP_CARD_CLICK       — buyer clicked into a shop card.
+   *     Payload: { shopSlug, listSource, rank? }
+   *
+   *   DIRECTORY_SEARCH      — search box value committed (debounced
+   *     submit or pressed Enter). Payload: { q, resultCount? }
+   *
+   *   DIRECTORY_FILTER      — a filter chip toggled. Payload:
+   *     { facet: "brand"|"province"|"verified"|"tier", value }
+   */
+  STOREFRONT_IMPRESSION:  "storefront_impression",
+  SHOP_CARD_CLICK:        "shop_card_click",
+  DIRECTORY_SEARCH:       "directory_search",
+  DIRECTORY_FILTER:       "directory_filter",
 });
 
 /**

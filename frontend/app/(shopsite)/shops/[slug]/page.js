@@ -5,6 +5,7 @@ import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
+import RelatedShops from "@/components/shopsite/RelatedShops";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
@@ -105,6 +106,20 @@ export default async function ShopTenantHomePage({ params }) {
       </div>
 
       <ServiceFooter />
+
+      {/*
+        Phase 7.1 — related shops (server component, SSR-rendered).
+        Always renders something (falls back to a "Khám phá shop khác"
+        link to /shops when there are no related shops in the
+        catalogue), so the page never has a dead empty section.
+      */}
+      <Suspense
+        fallback={
+          <div className="bg-white rounded-2xl shadow-sm h-[240px] animate-pulse" />
+        }
+      >
+        <RelatedShops slug={shop.slug} limit={6} />
+      </Suspense>
     </div>
   );
 }

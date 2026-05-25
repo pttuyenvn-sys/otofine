@@ -40,6 +40,26 @@ export {
   handleGetShopFitments,
 } from "./controllers/shopPublic.controller.js";
 
+/** Phase 7.1 — public shop directory + related shops. */
+export {
+  handleListShops,
+  handleListProvinces,
+  handleListBrands,
+  handleListRelatedShops,
+} from "./controllers/shopDirectory.controller.js";
+
+export {
+  getPublicShopDirectory,
+  getPublicShopDirectoryProvinces,
+  getPublicShopDirectoryBrands,
+  getRelatedShopsBySlug,
+} from "./services/shopDirectory.service.js";
+
+export {
+  rankShop,
+  RANK_MAX_SCORE,
+} from "./ranking/shopRanking.js";
+
 export {
   handleGetMyPublicPage,
   handleUpdateMyPublicPage,
