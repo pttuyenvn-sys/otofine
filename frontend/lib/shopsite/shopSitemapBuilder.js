@@ -36,9 +36,11 @@ export function buildShopSitemapEntries(shop, opts = {}) {
   ];
 
   // Categories — each becomes `/san-pham?category=<slug>`. We DO NOT
-  // emit product pages here: those live on apex `/product/<id>` and
-  // are already covered by the existing global sitemap (canonical
-  // safety per Phase 5.5 spec).
+  // emit product pages here: those live on apex `/phu-tung/<slug>-<id>`
+  // and are already covered by the global sitemap (canonical safety
+  // per Phase 5.5 spec — and after the SEO URL migration, the legacy
+  // /product/<id> apex URLs 308-redirect to the canonical phu-tung
+  // form so cross-host link equity is preserved end-to-end).
   if (Array.isArray(opts.categories)) {
     for (const c of opts.categories) {
       if (!c?.slug) continue;

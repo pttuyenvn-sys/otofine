@@ -9,12 +9,15 @@
  *
  * Why this exists:
  *   When a visitor is on `cuahangoto355.otofine.com`, a relative
- *   `/product/123` link would resolve to `cuahangoto355.otofine.com/product/123`,
- *   which (1) currently rewrites through the shop layout (per Phase 3
- *   middleware) and (2) would create a duplicate canonical surface for
- *   crawlers when we eventually enable indexing. Product pages live ONLY
- *   on the apex domain. This util keeps that contract centralized.
+ *   `/phu-tung/...` link would resolve to
+ *   `cuahangoto355.otofine.com/phu-tung/...`, which (1) currently
+ *   rewrites through the shop layout (per Phase 3 middleware) and
+ *   (2) would create a duplicate canonical surface for crawlers when
+ *   we eventually enable indexing. Product pages live ONLY on the
+ *   apex domain. This util keeps that contract centralized.
  */
+import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+
 const FALLBACK = "https://otofine.com";
 
 function clean(raw) {
@@ -36,7 +39,22 @@ export function apexUrl(pathOrUrl) {
   return APEX_ORIGIN + (s.startsWith("/") ? s : "/" + s);
 }
 
-export function apexProductUrl(productId) {
-  if (productId == null || productId === "") return APEX_ORIGIN + "/";
-  return `${APEX_ORIGIN}/product/${productId}`;
+/**
+ * Apex absolute URL to a product detail page.
+ *
+ * Accepts either a bare numeric id (legacy callers) OR a full product
+ * shape with descriptive fields (`name` / `brand` / `model` / `cars`
+ * / `partNumber`). When a full shape is provided we emit the canonical
+ * SEO URL directly — saves the visitor one redirect hop when they
+ * cross from a shop subdomain back to apex. When only the id is
+ * available we emit the minimal `/phu-tung/<id>` form and rely on the
+ * canonical-enforcement route to repair the slug.
+ */
+export function apexProductUrl(productOrId) {
+  if (productOrId == null || productOrId === "") return APEX_ORIGIN + "/";
+  if (typeof productOrId === "object") {
+    const path = buildProductSeoUrl(productOrId);
+    return path === "/" ? APEX_ORIGIN + "/" : `${APEX_ORIGIN}${path}`;
+  }
+  return `${APEX_ORIGIN}/phu-tung/${productOrId}`;
 }

@@ -44,8 +44,22 @@ export default async function sitemap() {
   }
 
   for (const p of remote.products || []) {
-    if (!p?.slug) continue;
-    add(`${base}/product/${encodeURIComponent(p.slug)}`, {
+    // The legacy sitemap-data endpoint emits a synthetic `slug` field
+    // shaped like "sp-<id>" — there is no real slug column on the
+    // products table. We strip the prefix to recover the canonical
+    // numeric id, then emit the MINIMAL `/phu-tung/<id>` URL.
+    //
+    // Crawlers that hit that URL get a single 308 redirect from the
+    // canonical-enforce route to the rich `/phu-tung/<slug>-<id>`
+    // form (slug computed from product fields + cars[] at request
+    // time). That keeps the sitemap migration zero-touch on the
+    // backend (no extra columns, no new fields in the SEO data
+    // endpoint) while still giving search engines a way to discover
+    // every product.
+    const m = String(p?.slug || "").match(/(\d+)$/);
+    const id = m ? Number(m[1]) : null;
+    if (!Number.isFinite(id) || id <= 0) continue;
+    add(`${base}/phu-tung/${id}`, {
       lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
       priority: 0.75,
     });

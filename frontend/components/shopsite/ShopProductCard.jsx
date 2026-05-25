@@ -9,11 +9,14 @@ import ShopImage from "./ShopImage";
 /**
  * Vertical product card (Shopee-like).
  *
- * Click target: existing apex `/product/[id]` page. Phase 4 forces
- * ABSOLUTE apex URLs so that a click from a shop subdomain
- * (`cuahangoto355.otofine.com`) always crosses back to apex
- * (`otofine.com/product/...`) — no host-aware rewrite, no duplicate
- * canonical surface. See audit/shop-public-seo-strategy.md.
+ * Click target: apex `/phu-tung/<slug>-<id>` (canonical SEO URL).
+ * Phase 4 forces ABSOLUTE apex URLs so that a click from a shop
+ * subdomain (`cuahangoto355.otofine.com`) always crosses back to apex
+ * (`otofine.com/phu-tung/...`) — no host-aware rewrite, no duplicate
+ * canonical surface. After the SEO URL migration the legacy
+ * `/product/<id>` form 308-redirects to this canonical, so any older
+ * cards / link archives keep working with a single hop. See
+ * audit/shop-public-seo-strategy.md.
  *
  * Typography hierarchy (top → bottom):
  *   1. Product image (1:1, lazy)
@@ -31,7 +34,14 @@ import ShopImage from "./ShopImage";
  */
 export default function ShopProductCard({ product, shopSlug }) {
   if (!product) return null;
-  const href = product.productId ? apexProductUrl(product.productId) : "#";
+  // Pass the full product shape (name + brand + model + year + part
+  // number) so the apex URL the visitor crosses to is already the
+  // canonical SEO URL — no redirect hop on click. Falls back to id-
+  // only `/phu-tung/<id>` when the card has minimal data, and the
+  // canonical-enforce route handles slug repair on first GET.
+  const href = product.productId
+    ? apexProductUrl({ id: product.productId, ...product })
+    : "#";
   const fitmentLine = formatVehicleLine(product);
   // "Loại hàng" — prefer the canonical part-knowledge label (e.g.
   // "Phớt trục số") over the legacy `category` field, which in seed

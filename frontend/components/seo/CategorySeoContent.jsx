@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { FiPhoneCall, FiTruck, FiShield, FiCheckCircle } from "react-icons/fi";
 import { formatPrice, generateCategoryBreadcrumb } from "@/lib/seo/categorySeoContent";
+import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 import "./seo-landing.css";
 import "./seo-article.css";
 
@@ -353,7 +354,7 @@ export function CategorySeoContentWithProducts({
                     </div>
                   )}
                   <Link 
-                    href={product.slug ? `/product/${encodeURIComponent(product.slug)}` : `/product/${product.id}`}
+                    href={buildProductSeoUrl(product)}
                     className="product-link" prefetch={false}>
                     Xem chi tiết
                   </Link>

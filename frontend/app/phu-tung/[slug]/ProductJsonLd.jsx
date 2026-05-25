@@ -1,4 +1,5 @@
 import { absoluteUrl } from "@/lib/seo/siteUrl";
+import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 
 function strip(html = "") {
   return String(html || "")
@@ -8,15 +9,24 @@ function strip(html = "") {
     .trim();
 }
 
+/**
+ * Product JSON-LD for `/phu-tung/[slug]`.
+ *
+ * Uses the canonical URL (computed via the same `buildProductSeoUrl`
+ * helper the page-level canonical meta uses) so that the schema.org
+ * Product / BreadcrumbList entities, the `og:url`, and the Next.js
+ * `<link rel="canonical">` all line up to one URL. Search engines
+ * receive zero conflicting signals about which URL to index.
+ *
+ * Identical schema shape to the previous legacy `/product/[id]`
+ * implementation — only the URL changed.
+ */
 export default function ProductJsonLd({ data }) {
   const p = data?.product;
   if (!p) return null;
 
   const name = strip(p.shortDescription || p.partName || "Sản phẩm");
-  const path = p.slug
-    ? `/product/${encodeURIComponent(p.slug)}`
-    : `/product/${p.id}`;
-  const url = absoluteUrl(path);
+  const url = absoluteUrl(buildProductSeoUrl({ ...p, cars: data.cars }));
   const image =
     p.image ||
     (Array.isArray(data.images) && data.images[0]
@@ -30,18 +40,8 @@ export default function ProductJsonLd({ data }) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Trang chủ",
-        item: absoluteUrl("/"),
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name,
-        item: url,
-      },
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name, item: url },
     ],
   };
 
@@ -52,10 +52,7 @@ export default function ProductJsonLd({ data }) {
     url,
     sku: p.partNumber || undefined,
     image: image ? [image] : undefined,
-    brand: {
-      "@type": "Brand",
-      name: data?.shop?.name || "Otofine",
-    },
+    brand: { "@type": "Brand", name: data?.shop?.name || "Otofine" },
     offers: {
       "@type": "Offer",
       url,
@@ -68,15 +65,10 @@ export default function ProductJsonLd({ data }) {
     },
   };
 
-  const graph = {
-    "@context": "https://schema.org",
-    "@graph": [breadcrumb, product],
-  };
-
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@graph": [breadcrumb, product] }) }}
     />
   );
 }

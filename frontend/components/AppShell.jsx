@@ -24,6 +24,7 @@ export default function AppShell({ children }) {
     NO_LAYOUT.has(pathname) ||
     pathname.startsWith("/rfq") ||
     pathname.startsWith("/product/") ||
+    pathname.startsWith("/phu-tung/") ||
     pathname === "/shop-demo" ||
     pathname.startsWith("/shop-demo/") ||
     pathname.startsWith("/shops/") ||

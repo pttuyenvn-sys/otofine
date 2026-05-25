@@ -7,11 +7,12 @@ import "./seo-landing.css";
 import "./seo-article.css";
 import { SEO_BASE_SLUG } from "@/lib/seo/slugify";
 import { absoluteUrl } from "@/lib/seo/siteUrl";
+import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 
 function productHref(item) {
-  return item.slug
-    ? `/product/${encodeURIComponent(item.slug)}`
-    : `/product/${item.id}`;
+  // Migrated to /phu-tung/<slug>-<id>; canonical-enforce route
+  // repairs any slug drift, internal APIs remain id-based.
+  return buildProductSeoUrl(item);
 }
 
 function pageHref(slug, n) {

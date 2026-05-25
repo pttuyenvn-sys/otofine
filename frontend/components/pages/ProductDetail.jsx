@@ -11,6 +11,10 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { API_BASE, API_ORIGIN } from "@/lib/config";
+import {
+  buildProductSeoUrl,
+  extractProductIdFromSeoSlug,
+} from "@/lib/seo/productSeoUrl";
 import "./ProductDetail.css";
 
 const RECENT_VIEWED_KEY = "otofine_recent_products_v1";
@@ -48,9 +52,19 @@ const formatPrice = (value) => {
 
 const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
 
-function productHref(slug, id) {
-  if (slug) return `/product/${encodeURIComponent(slug)}`;
-  return `/product/${id}`;
+function productHref(slug, id, item) {
+  // The new SEO URL is always `/phu-tung/<slug>-<id>`. When we have
+  // the full item shape (related-product card, recent-viewed entry)
+  // we delegate to the canonical builder so the slug we emit matches
+  // what the canonical-enforce page would compute — no redirect on
+  // click. With only an id available we fall back to the minimal
+  // form `/phu-tung/<id>` and let the canonical handler enrich it.
+  if (item && typeof item === "object") {
+    const url = buildProductSeoUrl(item);
+    if (url && url !== "/") return url;
+  }
+  if (id != null && id !== "") return `/phu-tung/${id}`;
+  return "/";
 }
 
 function isCurrentListEntry(entry, param) {
@@ -214,8 +228,28 @@ function normalizeShopAvatar(url) {
   return `${base}/${u.replace(/^\/+/, "")}`;
 }
 
-export default function ProductDetail() {
-  const { id: routeId } = useParams();
+export default function ProductDetail({ productId: productIdProp } = {}) {
+  // Two route shapes feed this component:
+  //   1. Legacy `/product/[id]` → useParams() returns { id }.
+  //   2. New SEO `/phu-tung/[slug]` → useParams() returns { slug }, and
+  //      the parent server page (`app/phu-tung/[slug]/page.js`) passes
+  //      the resolved numeric id down via the `productId` prop after
+  //      doing its canonical-enforcement redirect.
+  //
+  // We accept either: an explicit prop wins (server already resolved
+  // and validated the id), otherwise we peel the id out of the slug
+  // ourselves so client-side navigations (history back/forward, soft
+  // pushes via next/router) still work without a server round trip.
+  // The slug → id parser is the same pure-string helper used by the
+  // canonical-enforcement page, so there's no parser drift between
+  // server and client.
+  const params = useParams() || {};
+  const routeId =
+    productIdProp != null && productIdProp !== ""
+      ? String(productIdProp)
+      : params.id != null && params.id !== ""
+        ? String(params.id)
+        : extractProductIdFromSeoSlug(params.slug);
   const router = useRouter();
 
   const handleBack = useCallback(() => {
@@ -683,7 +717,7 @@ export default function ProductDetail() {
               items={relatedList}
               renderCard={(r) => (
                 <Link
-                  href={productHref(r.slug, r.id)}
+                  href={productHref(r.slug, r.id, r)}
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
@@ -725,7 +759,7 @@ export default function ProductDetail() {
               items={recentViewed}
               renderCard={(r) => (
                 <Link
-                  href={productHref(r.slug, r.id)}
+                  href={productHref(r.slug, r.id, r)}
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
