@@ -17,11 +17,16 @@ export default {
   },
 
   async create(data) {
+    // Bug-fix Phase A.1: write `zalo_phone` alongside `zalo` so new
+    // shops start in-sync. The unified storefront read prefers
+    // `zalo`, but the public-page tab still loads `zalo_phone` —
+    // populating both at create time avoids the legacy drift trap.
+    const zaloValue = data.zalo || null;
     const sql = `INSERT INTO shops
-      (accountId, name, avatar, cover, phone, email, zalo, website,
+      (accountId, name, avatar, cover, phone, email, zalo, zalo_phone, website,
        provinceId, districtId, wardId, addressDetail,
        descriptionHtml, salePolicy, warrantyPolicy)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.accountId,
@@ -30,7 +35,8 @@ export default {
       data.cover || null,
       data.phone || null,
       data.email || null,
-      data.zalo || null,
+      zaloValue,
+      zaloValue,
       data.website || null,
       data.provinceId || null,
       data.districtId || null,
@@ -57,7 +63,13 @@ export default {
    */
   async update(id, data) {
     const ALLOWED = [
-      "name", "avatar", "cover", "phone", "email", "zalo", "website",
+      // Bug-fix Phase A.1: `zalo_phone` is admitted so the legacy
+      // `/api/shop/me` controller can mirror it alongside `zalo`. The
+      // public-page repo (`sellerPublicPage.repository.js`) keeps its
+      // own narrower PATCH allowlist; this addition is independent
+      // and additive — `Shop.update` retains PATCH-style semantics so
+      // only keys actually present in `data` are written.
+      "name", "avatar", "cover", "phone", "email", "zalo", "zalo_phone", "website",
       "provinceId", "districtId", "wardId", "addressDetail",
       "descriptionHtml", "salePolicy", "warrantyPolicy",
     ];

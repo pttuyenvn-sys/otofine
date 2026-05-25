@@ -5,6 +5,10 @@ import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
+// Bug-fix Phase A.1: Zalo contact resolution. Mirrors the backend
+// helper to guarantee the storefront contact card never renders a
+// stale public-page value while /shop/settings shows the new one.
+import { resolveShopZalo } from "@/lib/shopsite/resolveShopZalo";
 import RelatedShops from "@/components/shopsite/RelatedShops";
 import {
   fetchPublicShop,
@@ -227,9 +231,14 @@ function EmptyState({ message }) {
 }
 
 function toContactShape(shop) {
+  // Bug-fix Phase A.1: normalize zalo via the helper so the contact
+  // card and the floating CTA share a single source of truth. The
+  // "Liên hệ" placeholder only renders when the helper returns "" AND
+  // there's no phone fallback (preserved by passing phoneFallback).
+  const resolvedZalo = resolveShopZalo(shop, { phoneFallback: true });
   return {
     phone: shop.phone || "Liên hệ",
-    zalo: shop.zalo || shop.phone || "Liên hệ",
+    zalo: resolvedZalo || "Liên hệ",
     facebook: shop.facebook || { label: "Facebook", url: "#" },
     email: shop.email || "",
     address: shop.address || "Đang cập nhật",

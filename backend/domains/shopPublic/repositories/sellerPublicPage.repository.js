@@ -67,6 +67,12 @@ const PATCHABLE_COLUMNS = [
   "avatar",
   "facebook_url",
   "zalo_phone",
+  // Bug-fix Phase A.1: `zalo` joins the public-page PATCH allowlist so
+  // the service layer can mirror `zalo_phone` → `zalo` in the same UPDATE.
+  // Mirror writes are computed in the service (see updateMyPublicPage),
+  // never accepted directly from the request body — the validator still
+  // strips unknown fields.
+  "zalo",
   "working_hours",
   "map_embed_url",
   "addressDetail",

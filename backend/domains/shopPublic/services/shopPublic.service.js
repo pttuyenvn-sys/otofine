@@ -8,6 +8,7 @@ import {
   listShopProducts,
   listShopFitmentOptions,
 } from "../repositories/shopPublicProducts.repository.js";
+import { resolveShopZalo } from "../../../utils/resolveShopZalo.js";
 
 /**
  * Project a raw `shops` row into the public-API DTO. Backwards-
@@ -17,7 +18,14 @@ import {
 function toPublicDto(row, extras = {}) {
   if (!row) return null;
   const phone = row.phone || "";
-  const zalo = row.zalo || row.phone || "";
+  // Bug-fix Phase A.1: centralize zalo normalization. The repo
+  // already projects a flipped-COALESCE alias into `row.zalo`, but
+  // for defense in depth we run the row through the same helper that
+  // the frontend mirror uses — so any code path that bypasses the
+  // repo (tests, future refactors) still gets the canonical answer.
+  // `phoneFallback: true` preserves the legacy behaviour where shops
+  // without an explicit Zalo had the phone reused as a soft fallback.
+  const zalo = resolveShopZalo(row, { phoneFallback: true });
   const facebookUrl = row.facebook_url || null;
   return {
     id: row.id,

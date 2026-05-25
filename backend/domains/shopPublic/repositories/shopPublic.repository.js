@@ -30,7 +30,13 @@ const PUBLIC_SHOP_COLUMNS = `
   COALESCE(s.cover_image, s.cover) AS cover,
   s.phone,
   s.email,
-  COALESCE(s.zalo_phone, s.zalo) AS zalo,
+  -- Bug-fix Phase A.1: the unified /shop/settings page writes the Basic
+  -- tab value into shops.zalo while the public-page tab writes
+  -- shops.zalo_phone. Prefer the unified canonical (shops.zalo) here so
+  -- storefronts pick up the value just saved on /shop/settings, falling
+  -- back to shops.zalo_phone for legacy rows that were never re-saved.
+  -- See backend/utils/resolveShopZalo.js for the application-layer twin.
+  COALESCE(NULLIF(s.zalo, ''), NULLIF(s.zalo_phone, '')) AS zalo,
   s.facebook_url,
   s.website,
   s.provinceId,

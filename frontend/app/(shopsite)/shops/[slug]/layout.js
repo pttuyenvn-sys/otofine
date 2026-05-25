@@ -13,6 +13,11 @@ import {
   getShopBasePath,
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
+// Bug-fix Phase A.1: shared normalization for the Zalo contact. Even
+// though the backend now COALESCEs zalo over zalo_phone, we run the
+// header + CTA through the same helper so any future DTO refactor
+// (or transient API skew during a deploy) can't reintroduce drift.
+import { resolveShopZalo } from "@/lib/shopsite/resolveShopZalo";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -118,7 +123,11 @@ function mapToHeaderShape(shop) {
     avatar: shop.avatar,
     cover: shop.cover,
     phone: shop.phone || "",
-    zalo: shop.zalo || shop.phone || "",
+    // Bug-fix Phase A.1: normalize via the helper. `phoneFallback: true`
+    // preserves the legacy "soft fallback" where a shop with no Zalo
+    // surfaces the phone number on the Zalo button — better than a
+    // dead link.
+    zalo: resolveShopZalo(shop, { phoneFallback: true }),
     province: shop.province || "Việt Nam",
     rating: 4.9,
     ratingCount: 0,
@@ -138,7 +147,7 @@ function mapToCtaShape(shop) {
   return {
     slug: shop.slug,
     phone: shop.phone || "",
-    zalo: shop.zalo || shop.phone || "",
+    zalo: resolveShopZalo(shop, { phoneFallback: true }),
     facebook: shop.facebook || null,
   };
 }

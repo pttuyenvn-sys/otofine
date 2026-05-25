@@ -11,6 +11,7 @@ import {
   validateSlugAvailabilityQuery,
   validateSlugForUpdate,
 } from "../validators/sellerPublicPage.validators.js";
+import { resolveShopZalo } from "../../../utils/resolveShopZalo.js";
 
 const FRONTEND_BASE =
   process.env.FRONTEND_URL?.replace(/\/$/, "") || "https://otofine.com";
@@ -48,7 +49,11 @@ function toSellerDto(row) {
     coverImage: row.cover_image || row.cover,
     phone: row.phone,
     email: row.email,
-    zaloPhone: row.zalo_phone || row.zalo,
+    // Bug-fix Phase A.1: seller-facing DTO MUST reflect the same value
+    // the storefront renders. Use the canonical helper so the "Zalo
+    // phone" field in the public-page tab on /shop/settings mirrors
+    // whatever the Basic tab just saved.
+    zaloPhone: resolveShopZalo(row),
     facebookUrl: row.facebook_url,
     website: row.website,
     addressDetail: row.addressDetail,
@@ -105,6 +110,20 @@ export async function updateMyPublicPage(shopId, body) {
 
   if (errors.length > 0) {
     return { ok: false, errors };
+  }
+
+  // Bug-fix Phase A.1: bidirectional zalo↔zalo_phone mirror, mirror
+  // image of the legacy /api/shop/me write path. Whenever the storefront
+  // tab saves `zalo_phone`, we ALSO overwrite the canonical `zalo`
+  // column so RFQ services + legacy `/api/shop/me` consumers see the
+  // same value. Mirror is computed here rather than in the validator
+  // so the column-allowlist in the validator stays narrow.
+  if (Object.prototype.hasOwnProperty.call(data, "zalo_phone")) {
+    const raw = data.zalo_phone;
+    const normalized =
+      raw == null || String(raw).trim() === "" ? null : String(raw).trim();
+    data.zalo_phone = normalized;
+    data.zalo = normalized;
   }
 
   await updatePublicPageConfig(shopId, data);

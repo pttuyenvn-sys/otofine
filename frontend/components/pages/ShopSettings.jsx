@@ -53,6 +53,11 @@ import ShopSeoPreviewPanel from "./shop-settings/ShopSeoPreviewPanel";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 import { slugifyVi } from "@/lib/seo/slugify";
 import { normalizeRichHtml } from "@/lib/shopsite/normalizeRichHtml";
+// Bug-fix Phase A.1: client-side mirror of resolveShopZalo so the
+// Basic + Storefront tabs hydrate from a single resolved value. The
+// helper is intentionally tiny and stateless — see
+// frontend/lib/shopsite/resolveShopZalo.js for the contract.
+import { resolveShopZalo } from "@/lib/shopsite/resolveShopZalo";
 
 // ---------------------------------------------------------------------------
 // Tiny helpers
@@ -363,6 +368,17 @@ export default function ShopSettings() {
       const s = shopRes?.data || {};
       const d = pubRes?.data || {};
 
+      // Bug-fix Phase A.1: the two APIs (legacy /api/shop/me and the
+      // newer /api/shop/public-page) both surface a Zalo value but the
+      // legacy field is `zalo`, the public-page DTO field is
+      // `zaloPhone`. We feed BOTH form fields from the same resolved
+      // value so the Basic tab and the Storefront tab can never start
+      // out of sync. The save path independently mirrors them in the
+      // DB, but doing it on load too means the user never sees
+      // stale conflicting values while editing.
+      const resolvedZalo =
+        resolveShopZalo({ zalo: s.zalo, zaloPhone: d.zaloPhone }) || "";
+
       if (s.id) {
         setShopId(s.id);
         try { localStorage.setItem("shopId", String(s.id)); } catch (_) {}
@@ -370,7 +386,7 @@ export default function ShopSettings() {
           name: s.name || "",
           phone: s.phone || "",
           email: s.email || "",
-          zalo: s.zalo || "",
+          zalo: resolvedZalo,
           website: s.website || "",
           address: { provinceId: s.provinceId || "", wardId: s.wardId || "", detail: s.addressDetail || "" },
           descriptionHtml: s.descriptionHtml || "",
@@ -388,7 +404,7 @@ export default function ShopSettings() {
         bio:           d.bio           || "",
         introHtml:     d.introHtml     || "",
         facebookUrl:   d.facebookUrl   || "",
-        zaloPhone:     d.zaloPhone     || "",
+        zaloPhone:     resolvedZalo,
         workingHours:  d.workingHours  || "",
         mapEmbedUrl:   d.mapEmbedUrl   || "",
         addressDetail: d.addressDetail || "",
@@ -597,7 +613,18 @@ export default function ShopSettings() {
             />
             <FieldText label="Số điện thoại" value={basic.phone} onChange={(v) => setB("phone", v)} placeholder="0901 234 567" />
             <FieldText label="Email" value={basic.email} onChange={(v) => setB("email", v)} placeholder="shop@example.com" type="email" />
-            <FieldText label="Zalo (số/link)" value={basic.zalo} onChange={(v) => setB("zalo", v)} placeholder="0901 234 567" />
+            {/* Bug-fix Phase A.1: Zalo is one logical value but lives in
+                two columns (zalo + zalo_phone). Edits here mirror into
+                the Storefront E section's input so the user can never
+                save conflicting values. Backend mirrors on save too;
+                this client-side link is just for live UX. */}
+            <FieldText
+              label="Zalo (số/link)"
+              value={basic.zalo}
+              onChange={(v) => { setB("zalo", v); setP("zaloPhone", v); }}
+              placeholder="0901 234 567"
+              hint="Đồng bộ với mục E (Liên hệ & mạng xã hội) — chỉ cần điền một nơi."
+            />
             <FieldText label="Website" value={basic.website} onChange={(v) => setB("website", v)} placeholder="https://example.com" type="url" />
           </div>
           <div className="mt-5">
@@ -726,9 +753,9 @@ export default function ShopSettings() {
             <FieldText
               label="Zalo (số/link — storefront)"
               value={pub.zaloPhone}
-              onChange={(v) => setP("zaloPhone", v)}
+              onChange={(v) => { setP("zaloPhone", v); setB("zalo", v); }}
               placeholder="0901 234 567"
-              hint="Hiển thị nút Zalo trên storefront. Có thể khác với Zalo ở mục A."
+              hint="Đồng bộ với Zalo ở mục A — sửa ở đâu cũng được."
               error={fieldErrors.zalo_phone}
             />
             <FieldText

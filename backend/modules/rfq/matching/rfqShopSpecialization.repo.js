@@ -42,7 +42,10 @@ export async function loadShopBaseRows(shopIds) {
         s.avatar,
         COALESCE(s.cover_image, s.cover) AS cover,
         s.phone,
-        COALESCE(s.zalo_phone, s.zalo) AS zalo,
+        -- Bug-fix Phase A.1: prefer the unified shops.zalo over
+        -- shops.zalo_phone so RFQ-matcher specialization signals see
+        -- the same Zalo contact the storefront renders.
+        COALESCE(NULLIF(s.zalo, ''), NULLIF(s.zalo_phone, '')) AS zalo,
         s.facebook_url,
         s.provinceId,
         s.verified_at,

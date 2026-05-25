@@ -5,6 +5,11 @@ import { uploadToR2 } from "../utils/r2-sdk.js"; // 🔥 THÊM
 import { pool } from "../config/db.js";
 import { syncProductListViewForShop } from "../services/productListViewSync.service.js";
 import { sanitizeShopHtml } from "../domains/shopPublic/utils/htmlSanitize.util.js";
+// Bug-fix Phase A.1: legacy /api/shop/me must invalidate the public
+// storefront cache the same way /api/shop/public-page already does,
+// otherwise a Basic-tab save lags up to 5 min on the storefront.
+import { invalidateShop } from "../domains/shopPublic/cache/caches.js";
+import { resolveShopZalo } from "../utils/resolveShopZalo.js";
 
 /**
  * Three legacy rich-text fields (`descriptionHtml`, `salePolicy`,
@@ -40,7 +45,18 @@ export async function getMyShop(req, res) {
       return res.status(200).json(null);
     }
 
-    res.json(shop);
+    // Bug-fix Phase A.1: normalize the legacy response shape so the
+    // Basic-tab field on /shop/settings pre-fills with the storefront's
+    // resolved value. We DO NOT remove or rename `zalo_phone`; the
+    // public-page DTO consumed by the Storefront tab is unchanged.
+    // Drift on already-saved rows self-heals on the next legacy save
+    // because the mirror also flips `zalo_phone` to match.
+    const resolved = resolveShopZalo(shop);
+    res.json({
+      ...shop,
+      zalo: resolved || shop.zalo || null,
+      zalo_phone: resolved || shop.zalo_phone || null,
+    });
   } catch (err) {
     console.error("getMyShop error:", err);
     res.status(500).json({ message: "Lỗi server" });
@@ -132,6 +148,21 @@ export async function updateMyShop(req, res) {
     if (req.body.salePolicy      !== undefined) data.salePolicy      = sanitizeRichField(req.body.salePolicy);
     if (req.body.warrantyPolicy  !== undefined) data.warrantyPolicy  = sanitizeRichField(req.body.warrantyPolicy);
 
+    // Bug-fix Phase A.1: bidirectional zalo↔zalo_phone mirror.
+    // When the Basic tab on /shop/settings saves `zalo`, also persist
+    // the same value into the public-page column. Empty/whitespace
+    // collapses to NULL on both sides so a "clear" request still
+    // works. Without this mirror, the storefront would keep rendering
+    // the stale `zalo_phone` that the public-page tab last wrote.
+    if (Object.prototype.hasOwnProperty.call(data, "zalo")) {
+      const normalized =
+        data.zalo == null || String(data.zalo).trim() === ""
+          ? null
+          : String(data.zalo).trim();
+      data.zalo = normalized;
+      data.zalo_phone = normalized;
+    }
+
     /**
      * =========================
      * AVATAR → R2 (GHI ĐÈ)
@@ -157,6 +188,14 @@ export async function updateMyShop(req, res) {
 
     await Shop.update(shop.id, data);
     await syncProductListViewForShop(shop.id).catch(() => { });
+    // Bug-fix Phase A.1: invalidate the storefront cache so the new
+    // value surfaces on `<slug>.otofine.com` immediately rather than
+    // waiting up to 5 minutes for the existing TTL to lapse. Slug
+    // pulled from the freshly-loaded row above; safe no-op when
+    // missing.
+    if (shop.slug) {
+      try { invalidateShop(shop.slug); } catch {}
+    }
     res.json({ message: "Cập nhật shop thành công" });
   } catch (err) {
     console.error(err);
