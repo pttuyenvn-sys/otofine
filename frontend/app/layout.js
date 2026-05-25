@@ -1,5 +1,6 @@
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import SellerMobileBottomNav from "@/components/SellerMobileBottomNav";
 import WebSiteJsonLd from "@/components/seo/WebSiteJsonLd";
 import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
@@ -50,6 +51,11 @@ export default function RootLayout({ children }) {
         <WebSiteJsonLd />
         <OrganizationJsonLd />
         <AppShell>{children}</AppShell>
+        {/* Phone-only seller bottom nav. Lives outside AppShell so it
+            remains visible on /rfq/shop/* (where AppShell is hidden).
+            Visibility is fully owned by the component itself
+            (path + auth gate); SSR renders null until hydration. */}
+        <SellerMobileBottomNav />
       </body>
     </html>
   );

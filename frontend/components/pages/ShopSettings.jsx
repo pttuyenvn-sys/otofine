@@ -105,16 +105,21 @@ function useSlugStatus(slug, originalSlug) {
 // ---------------------------------------------------------------------------
 
 function SectionCard({ id, title, subtitle, children }) {
+  // Mobile-first compression — phones get tighter chrome and a shorter
+  // header so the form scrolls faster between sections; desktop is
+  // unchanged from the original sm:* values.
   return (
     <section
       id={id}
-      className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-20"
+      className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-20"
     >
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+      <div className="px-3.5 py-3 sm:px-5 sm:py-4 border-b border-gray-100">
+        <h2 className="text-[15px] sm:text-base font-semibold text-gray-900">{title}</h2>
+        {subtitle && (
+          <p className="text-[12px] sm:text-sm text-gray-500 mt-0.5 leading-snug">{subtitle}</p>
+        )}
       </div>
-      <div className="p-5 sm:p-6">{children}</div>
+      <div className="p-3.5 sm:p-5 lg:p-6">{children}</div>
     </section>
   );
 }
@@ -557,13 +562,21 @@ export default function ShopSettings() {
   }
 
   return (
-    <div className="main-content" style={{ padding: "16px 24px" }}>
+    <div className="main-content shop-settings-page">
+      {/*
+        Desktop keeps a tight 16px/24px gutter — see `.shop-settings-page`
+        in globals.css. Mobile inherits the `.main-content` 12px padding
+        plus the seller-nav safe-area reserve, so the form always sits
+        above the bottom nav.
+      */}
       <Toast feedback={feedback} />
 
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Cài đặt Shop</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Quản lý toàn bộ thông tin, storefront và liên hệ của shop.
+      <header className="mb-3 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+          Cài đặt Shop
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
+          Quản lý thông tin, storefront và liên hệ shop.
         </p>
       </header>
 
@@ -590,8 +603,10 @@ export default function ShopSettings() {
         extras={{ avatar: avatarPreview, cover: coverPreview }}
       />
 
-      {/* Jump-to nav */}
-      <nav className="mb-6 flex flex-wrap gap-2">
+      {/* Jump-to nav (desktop only). Phones use the bottom nav and
+          scroll naturally — adding a chip rail at the top duplicates
+          the mobile bottom-nav affordance and crowds the viewport. */}
+      <nav className="mb-6 hidden lg:flex flex-wrap gap-2">
         {[
           ["#basic",       "Thông tin cơ bản"],
           ["#public",      "Storefront công khai"],
@@ -611,7 +626,7 @@ export default function ShopSettings() {
         ))}
       </nav>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-3 sm:space-y-6">
         {/* ── A. Thông tin cơ bản ─────────────────────────────────────── */}
         <SectionCard
           id="basic"
@@ -873,22 +888,32 @@ export default function ShopSettings() {
         </SectionCard>
 
         {/* ── Sticky save bar ─────────────────────────────────────────── */}
-        <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 py-3 -mx-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 z-20">
-          <p className="text-xs text-gray-500 mr-auto">
+        {/*
+          Mobile compression notes:
+            - -mx-3 matches the new mobile page padding (12px),
+              -mx-6 stays for desktop (24px).
+            - Secondary "Đổi mật khẩu" link is hidden on mobile — the
+              new "Tài khoản" bottom-nav tab is the canonical entry
+              point on phones, so the link is redundant.
+            - On mobile the bar collapses to a single row so the save
+              button stays one tap away even with the keyboard up.
+        */}
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-3 py-2.5 sm:px-4 sm:py-3 -mx-3 sm:-mx-6 flex flex-row items-center justify-end gap-2 sm:gap-3 z-20">
+          <p className="hidden sm:block text-xs text-gray-500 mr-auto">
             {slugBad
               ? "Sửa lỗi slug trước khi lưu."
               : "Lưu sẽ cập nhật cả thông tin cơ bản lẫn storefront."}
           </p>
           <a
             href="/shop/change-password"
-            className="text-sm text-gray-500 hover:text-gray-700 underline self-center mr-4"
+            className="hidden sm:inline text-sm text-gray-500 hover:text-gray-700 underline self-center mr-4"
           >
             Đổi mật khẩu
           </a>
           <button
             type="submit"
             disabled={!canSave}
-            className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-initial px-5 sm:px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Đang lưu…" : "Lưu thay đổi"}
           </button>

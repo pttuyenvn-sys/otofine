@@ -1,8 +1,43 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { computeShopSeoReadiness } from "@/lib/shopsite/shopSeoReadiness";
 import { API_BASE } from "@/lib/config";
+
+/**
+ * Mobile-only collapsible affordance.
+ *
+ * The SEO panel is rich (score bar + per-gate suggestions + Facebook
+ * and Google preview cards). On a phone it can take a full screen of
+ * vertical real estate that the seller almost never edits while
+ * filling out the rest of the form. We collapse it by default on
+ * mobile and let desktop render expanded, identical to the legacy
+ * layout.
+ */
+function useMobileCollapse(defaultOpenMobile = false) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [open, setOpen] = useState(true);
+  // Track whether we've already established the layout-driven default
+  // so the seller's manual expand/collapse on mobile isn't reset by
+  // a window resize / orientation change.
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(max-width: 899.98px)");
+    const update = () => {
+      const mobile = mq.matches;
+      setIsMobile(mobile);
+      if (!initialized.current) {
+        initialized.current = true;
+        setOpen(mobile ? defaultOpenMobile : true);
+      }
+    };
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [defaultOpenMobile]);
+  return { isMobile, open, setOpen };
+}
 
 /**
  * Phase 5.5 — SEO readiness panel for `/shop/settings`.
@@ -78,25 +113,51 @@ export default function ShopSeoPreviewPanel({ basic, pub, extras = {} }) {
     ? "Đã đủ điều kiện để mở indexing — chờ Otofine bật rollout chung."
     : "Chưa đủ điều kiện indexing — bổ sung các mục bắt buộc bên dưới.";
 
+  const { isMobile, open, setOpen } = useMobileCollapse(false);
+
   return (
     <section
       id="seo"
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 mb-4"
+      className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 px-3.5 py-3 sm:px-5 sm:py-4 mb-3 sm:mb-4"
       aria-label="SEO readiness"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <button
+        type="button"
+        onClick={isMobile ? () => setOpen((v) => !v) : undefined}
+        // On desktop the header is just a label, not a button. We
+        // suppress the button affordance via aria-hidden controls
+        // when isMobile=false.
+        aria-expanded={isMobile ? open : undefined}
+        className={
+          "w-full flex items-center justify-between gap-3 " +
+          (isMobile ? "cursor-pointer" : "cursor-default")
+        }
+      >
+        <div className="min-w-0 text-left">
           <h2 className="text-sm font-semibold text-gray-900">
             SEO sẵn sàng {readiness.score}%
           </h2>
           <p className="text-xs text-gray-500 mt-0.5 truncate">{gateMsg}</p>
         </div>
-        <span
-          className={`shrink-0 inline-flex items-center justify-center min-w-[3rem] h-10 px-2 rounded-xl text-base font-bold ${tone.pill}`}
-        >
-          {readiness.score}
+        <span className="inline-flex items-center gap-2 shrink-0">
+          <span
+            className={`inline-flex items-center justify-center min-w-[3rem] h-10 px-2 rounded-xl text-base font-bold ${tone.pill}`}
+          >
+            {readiness.score}
+          </span>
+          {isMobile && (
+            <span
+              aria-hidden
+              className={
+                "text-gray-400 text-lg leading-none transition-transform " +
+                (open ? "rotate-180" : "rotate-0")
+              }
+            >
+              ⌄
+            </span>
+          )}
         </span>
-      </div>
+      </button>
 
       <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
         <div
@@ -106,6 +167,8 @@ export default function ShopSeoPreviewPanel({ basic, pub, extras = {} }) {
         />
       </div>
 
+      {isMobile && !open ? null : (
+      <>
       {/* Per-gate suggestions ---------------------------------------- */}
       {readiness.suggestions.length > 0 ? (
         <div className="mt-4">
@@ -157,6 +220,8 @@ export default function ShopSeoPreviewPanel({ basic, pub, extras = {} }) {
         Preview chỉ là phỏng đoán bằng cùng dữ liệu mà Facebook / Google sẽ
         đọc. Hình ảnh thật có thể khác đôi chút do crawler cache.
       </p>
+      </>
+      )}
     </section>
   );
 }

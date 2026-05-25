@@ -55,7 +55,9 @@ export default function ProductFilter({ onSearch }) {
   };
 
   return (
-    <div className="AdminTimkiem">
+    // Desktop only: the legacy 3-column AdminTimkiem grid is too wide
+    // for phones. Mobile uses `ProductFilterMobile` (compact sheet).
+    <div className="AdminTimkiem hidden lg:block">
       {filterLoadError ? (
         <div
           style={{

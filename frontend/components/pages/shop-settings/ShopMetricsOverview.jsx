@@ -33,11 +33,11 @@ function compactNumber(n) {
 function MetricCard({ icon, label, value, hint, loading }) {
   return (
     <div
-      className="bg-white rounded-xl border border-gray-200 px-3.5 py-3 sm:px-4 sm:py-3.5 flex items-start gap-3 min-w-0"
+      className="bg-white rounded-xl border border-gray-200 px-2.5 py-2.5 sm:px-4 sm:py-3.5 flex items-start gap-2 sm:gap-3 min-w-0"
       aria-label={label}
     >
       <div
-        className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-lg shrink-0"
+        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm sm:text-lg shrink-0"
         style={{ background: "#ecfdf5", color: "#059669" }}
         aria-hidden="true"
       >
@@ -119,16 +119,16 @@ export default function ShopMetricsOverview() {
   return (
     <section
       aria-label="Tổng quan shop"
-      className="mb-4"
+      className="mb-3 sm:mb-4"
     >
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-semibold text-gray-900">
           Tổng quan shop
         </h2>
         <span className="text-[11px] text-gray-400">30 ngày qua</span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <MetricCard
           icon="📦"
           label="Sản phẩm"

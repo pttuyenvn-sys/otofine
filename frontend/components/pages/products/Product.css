@@ -30,6 +30,16 @@
   border-radius: 2px;
 }
 
+/* Mobile UX pass: the legacy desktop toolbar is replaced under lg by
+   the compact `[+ Thêm] [⋮]` row inside ShopProducts.jsx. Hiding it
+   here (instead of relying solely on Tailwind `hidden`) makes the
+   intent explicit and side-steps utility/class specificity ordering. */
+@media (max-width: 1023.98px) {
+  .AdminTieude {
+    display: none;
+  }
+}
+
 /* ====== TEXT BÊN TRÁI ====== */
 .TieudeText {
   font-size: 15px;

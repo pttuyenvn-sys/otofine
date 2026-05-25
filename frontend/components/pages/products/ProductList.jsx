@@ -7,6 +7,7 @@ import {
   deleteProducts,
 } from "../../../services/product.api";
 import ProductTable from "../../products/ProductTable";
+import ProductMobileList from "./ProductMobileList";
 import AddProductPopup from "../../popup/AddProductPopup";
 import "./Product.css";
 
@@ -99,21 +100,34 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
 
   return (
     <div className="ProductListWrap">
-      <div style={{ marginBottom: 8 }}>
+      {/* Bulk delete + selection summary — visible on both layouts. The
+          desktop button keeps its legacy class so existing CSS rules
+          apply; on mobile we mirror it as a compact pill so it's not
+          oversized next to the new card stack. */}
+      <div className="mb-2 flex items-center justify-between gap-2">
         <button
           type="button"
-          className="btn-delete-all"
+          className="btn-delete-all hidden lg:inline-block"
           disabled={!selectedIds.length}
           onClick={handleDeleteAll}
         >
           Xóa All
         </button>
+        <button
+          type="button"
+          className="lg:hidden inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold disabled:bg-gray-300 disabled:text-white"
+          disabled={!selectedIds.length}
+          onClick={handleDeleteAll}
+        >
+          🗑 Xóa{selectedIds.length ? ` (${selectedIds.length})` : ""}
+        </button>
       </div>
 
+      {/* Pagination + page-size — desktop layout (unchanged). */}
       <div
+        className="hidden lg:flex"
         style={{
           marginBottom: 10,
-          display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
@@ -186,16 +200,67 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
         </div>
       </div>
 
+      {/* Mobile total + minimal pager — single tap previous / next. */}
+      <div className="lg:hidden flex items-center justify-between mb-2 text-[12px] text-gray-500">
+        <span>
+          <b className="text-gray-700">{total.toLocaleString("vi-VN")}</b> sản phẩm
+        </span>
+        <span>
+          Trang <b className="text-gray-700">{page}</b>/{totalPages}
+        </span>
+      </div>
+
       {loading ? (
-        <div>Đang tải...</div>
+        <div className="py-6 text-center text-sm text-gray-500">Đang tải…</div>
       ) : (
-        <ProductTable
-          data={data}
-          selectedIds={selectedIds}
-          onSelectChange={setSelectedIds}
-          onEdit={handleEdit}
-          onDelete={onDelete}
-        />
+        <>
+          {/* Desktop table — unchanged. */}
+          <div className="hidden lg:block">
+            <ProductTable
+              data={data}
+              selectedIds={selectedIds}
+              onSelectChange={setSelectedIds}
+              onEdit={handleEdit}
+              onDelete={onDelete}
+            />
+          </div>
+
+          {/* Mobile card stack — only mounted under lg. */}
+          <div className="lg:hidden">
+            <ProductMobileList
+              data={data}
+              selectedIds={selectedIds}
+              onSelectChange={setSelectedIds}
+              onEdit={handleEdit}
+              onDelete={onDelete}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Mobile pager — sits just below the list, simpler footprint. */}
+      {!loading && totalPages > 1 && (
+        <div className="lg:hidden mt-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-50"
+          >
+            ‹ Trước
+          </button>
+          <span className="text-[12px] text-gray-500 tabular-nums shrink-0">
+            {page}/{totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-50"
+          >
+            Sau ›
+          </button>
+        </div>
       )}
 
       {showEdit && editingProduct && (

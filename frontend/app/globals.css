@@ -165,6 +165,14 @@ html {
   flex-direction: column;
 }
 
+/* Shop settings page — tighter desktop gutter than the generic seller
+   pages because the form is field-dense (16px vertical, 24px horizontal
+   matches the original inline style preserved across the mobile UX pass). */
+.main-content.shop-settings-page {
+  padding: 16px 24px;
+  padding-bottom: 40px;
+}
+
 .card {
   background: white;
   border-radius: 10px;
@@ -253,7 +261,108 @@ html {
     flex-direction: column;
   }
 
-  .main-content {
-    padding: 14px;
+  .main-content,
+  .main-content.shop-settings-page {
+    padding: 12px;
+    /* Reserve room for the fixed seller mobile bottom nav (height + safe-area).
+       Desktop ignores this; the sidebar is the canonical nav there. */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* -------------------------------------------------------------------- */
+/* Seller mobile bottom nav (mobile-only)                                */
+/* -------------------------------------------------------------------- */
+/* Phone-first 4-tab nav that complements the desktop sidebar (which is */
+/* hidden under 900px). Sits above the page chrome at z-index 60.       */
+
+.seller-mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 899.98px) {
+  .seller-mobile-bottom-nav {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.06);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .seller-mobile-bottom-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .seller-mobile-bottom-nav li {
+    display: flex;
+    min-width: 0;
+  }
+
+  .seller-mobile-bottom-nav a {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 4px 9px;
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    min-height: 56px;
+  }
+
+  .seller-mobile-bottom-nav .icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .seller-mobile-bottom-nav .label {
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .seller-mobile-bottom-nav a.is-active {
+    color: #047857;
+  }
+
+  .seller-mobile-bottom-nav a.is-active .icon {
+    transform: translateY(-1px);
+  }
+
+  .seller-mobile-bottom-nav a.is-active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: #10b981;
+  }
+
+  /* RFQ inbox/dispatch pages live outside AppShell (`.main-content`
+     does not wrap them). Reserve bottom space directly so the
+     fixed bottom nav never clips the "Tải thêm" button or the last
+     buyer row. */
+  .rfq-scope .rfq-seller-wide,
+  .rfq-scope .rfq-inbox-page,
+  .rfq-scope .rfq-inbox-page--workspace {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
   }
 }
