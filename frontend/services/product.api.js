@@ -18,3 +18,13 @@ export function deleteProducts(ids) {
 export function deleteProduct(id) {
   return axiosClient.delete(`/products/${id}`);
 }
+
+/**
+ * Stock-only inline update — hits the additive PATCH endpoint added
+ * for the seller-ops mobile pass. Callers should treat the response
+ * as the source of truth and rollback their optimistic UI on a
+ * thrown error.
+ */
+export function updateProductStock(id, stock) {
+  return axiosClient.patch(`/products/${id}/stock`, { stock });
+}

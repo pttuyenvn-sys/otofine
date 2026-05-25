@@ -1,6 +1,7 @@
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import SellerMobileBottomNav from "@/components/SellerMobileBottomNav";
+import SellerToaster from "@/components/ui/SellerToaster";
 import WebSiteJsonLd from "@/components/seo/WebSiteJsonLd";
 import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
@@ -56,6 +57,11 @@ export default function RootLayout({ children }) {
             Visibility is fully owned by the component itself
             (path + auth gate); SSR renders null until hydration. */}
         <SellerMobileBottomNav />
+        {/* Global toast surface — see SellerToaster. The component is
+            zero-cost when idle (just a listener registered on the
+            singleton store) so leaving it mounted at the root level
+            is safe across every route. */}
+        <SellerToaster />
       </body>
     </html>
   );

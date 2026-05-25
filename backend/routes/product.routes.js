@@ -5,6 +5,7 @@ import {
   addProduct,
   getProductsByShop,
   updateProduct,
+  updateProductStock,
   deleteProduct,
   deleteProducts,
   importImages,
@@ -42,6 +43,11 @@ router.put(
   uploadProductMemory.array("images", 8),
   updateProduct,
 );
+
+// Stock-only inline update — used by the mobile product card's
+// tap-to-edit stock chip. See controller for the safety rationale
+// (avoids the destructive car-application rewrite of `PUT /:id`).
+router.patch("/:id/stock", requireAuth, requireShop, updateProductStock);
 
 router.get("/filter", requireAuth, requireShop, filterProducts);
 

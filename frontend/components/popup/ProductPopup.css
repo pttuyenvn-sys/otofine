@@ -342,6 +342,35 @@
   display: none;
 }
 
+/* Wizard chrome + draft banner are mobile-only. Hidden by default
+   here so the desktop popup renders byte-identical to the v2 layout. */
+.WizardProgress,
+.WizardDraftIndicator,
+.DraftRestoreBanner,
+.WizardStepError {
+  display: none;
+}
+
+.ProductFormSection--review {
+  display: none;
+}
+
+/* Secondary button used in the mobile wizard footer ("‹ Quay lại"). */
+.btnSecondary {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ---------- Truncate helper (used elsewhere) ---------- */
 .truncate-1-line {
   max-width: 300px;
@@ -591,5 +620,239 @@
     width: 100%;
     padding: 10px 12px;
     margin-bottom: 8px;
+  }
+
+  /* -------- Wizard progress (mobile only) -------- */
+  .WizardProgress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: -2px 0 12px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .WizardProgress::-webkit-scrollbar {
+    display: none;
+  }
+
+  .WizardProgress__dot {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .WizardProgress__dot.is-active {
+    background: #ecfdf5;
+    border-color: #059669;
+    color: #047857;
+  }
+
+  .WizardProgress__dot.is-done {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #047857;
+  }
+
+  .WizardProgress__dotIndex {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .WizardProgress__dot.is-active .WizardProgress__dotIndex,
+  .WizardProgress__dot.is-done .WizardProgress__dotIndex {
+    background: #059669;
+    color: #fff;
+  }
+
+  .WizardDraftIndicator {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #ecfdf5;
+    border: 1px solid #d1fae5;
+    color: #047857;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .WizardDraftIndicator__hint {
+    font-size: 10px;
+    font-weight: 500;
+    color: #059669;
+  }
+
+  /* -------- Draft restore banner -------- */
+  .DraftRestoreBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    padding: 8px 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+
+  .DraftRestoreBanner__msg {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .DraftRestoreBanner__actions {
+    display: inline-flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .DraftRestoreBanner button {
+    background: #d97706;
+    color: #fff;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .DraftRestoreBanner__discard {
+    background: transparent !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a !important;
+  }
+
+  /* -------- Step error banner -------- */
+  .WizardStepError {
+    display: block;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 8px 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+
+  /* -------- Wizard step gating -------- */
+  /* Each section carries `data-wizard-step="N"`. The popup root carries
+     `data-step="N"` (active step). Anything that doesn't match is
+     `display: none` on mobile.
+     `data-wizard-step` is unset on legacy desktop-only blocks like
+     RightCol; those are already hidden via the .RightCol mobile rule. */
+  .AddProductForm[data-step="1"] [data-wizard-step]:not([data-wizard-step="1"]),
+  .AddProductForm[data-step="2"] [data-wizard-step]:not([data-wizard-step="2"]),
+  .AddProductForm[data-step="3"] [data-wizard-step]:not([data-wizard-step="3"]),
+  .AddProductForm[data-step="4"] [data-wizard-step]:not([data-wizard-step="4"]),
+  .AddProductForm[data-step="5"] [data-wizard-step]:not([data-wizard-step="5"]) {
+    display: none !important;
+  }
+
+  /* The review summary is mobile-only AND only mounts on step 5. */
+  .ProductFormSection--review {
+    display: block;
+  }
+
+  /* -------- Review summary list -------- */
+  .ReviewSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ReviewSummary__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .ReviewSummary__label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .ReviewSummary__value {
+    font-size: 13px;
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  /* -------- Mobile wizard footer (extends MobileSaveBar) -------- */
+  .MobileSaveBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .MobileSaveBar .btnSubmit {
+    flex: 1;
+    width: auto;
+  }
+
+  .MobileSaveBar .btnSecondary {
+    flex: 0 0 auto;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .MobileSaveBar__spacer {
+    width: 0;
+  }
+
+  /* -------- Camera-first picker actions -------- */
+  .ImagePicker__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ImagePicker__actions .ImagePicker__input {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ImagePicker__input--camera {
+    background: #0ea5a1;
+  }
+
+  .ImagePreview__item {
+    width: 96px;
+    height: 96px;
   }
 }

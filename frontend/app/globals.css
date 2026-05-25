@@ -317,6 +317,119 @@ html {
 }
 
 /* -------------------------------------------------------------------- */
+/* Seller "Hôm nay" pill row — horizontal scroller on mobile, inline    */
+/* grid above the lg breakpoint. Used by ShopMetricsOverview to surface */
+/* live operational signals without taking up a second 4-card row.      */
+/* -------------------------------------------------------------------- */
+
+.seller-today-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.seller-today-row::-webkit-scrollbar {
+  display: none;
+}
+
+.seller-today-pill {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 900px) {
+  .seller-today-row {
+    overflow: visible;
+    gap: 10px;
+  }
+}
+
+/* -------------------------------------------------------------------- */
+/* SellerToaster — global slide-up toasts (success / error / info).      */
+/*                                                                       */
+/* Anchored just above the seller mobile bottom nav on phones so the     */
+/* nav is never visually obscured. On desktop the toaster floats in      */
+/* the bottom-right corner like a standard admin notification.           */
+/* -------------------------------------------------------------------- */
+
+.seller-toaster {
+  position: fixed;
+  left: 50%;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 16px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10000001;
+  pointer-events: none;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.seller-toaster__toast {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  animation: seller-toaster-in 180ms ease-out;
+}
+
+.seller-toaster__toast--success {
+  background: #059669;
+}
+
+.seller-toaster__toast--error {
+  background: #dc2626;
+}
+
+.seller-toaster__icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.seller-toaster__msg {
+  word-break: break-word;
+}
+
+@keyframes seller-toaster-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 900px) {
+  .seller-toaster {
+    left: auto;
+    right: 24px;
+    bottom: 24px;
+    transform: none;
+    width: min(360px, calc(100vw - 48px));
+  }
+}
+
+/* -------------------------------------------------------------------- */
 /* Seller-center topbar — desktop 64px / mobile 56px compact app-bar.    */
 /* -------------------------------------------------------------------- */
 

@@ -1,38 +1,40 @@
 "use client";
 
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
-import { useEffect, useState } from "react";
-import axiosClient from "../../api/axiosClient";
-import { createPortal } from "react-dom";
-import "./ProductPopup.css";
-
 /**
  * AddProductPopup
  *
- * Used as both the "Thêm mới" and "Sửa / Xem ảnh" entry point. Same
- * upload pipeline, same API endpoints, same FormData payload — the
- * mobile UX pass only rebalances layout and adds an explicit mobile
- * single-column flow with a sticky save bar.
+ * Adds, on top of the v2 mobile rebuild:
  *
- * Layout strategy:
- *   - Desktop (>= lg): the legacy 2-column grid is preserved via
- *     `.FormGrid` in ProductPopup.css (LeftCol fields/cars/descriptions,
- *     RightCol save + image gallery). No change.
- *   - Mobile (< lg): `.FormGrid` collapses to a single column via the
- *     media-query block at the bottom of ProductPopup.css. Inside the
- *     single column we use Tailwind `order-*` and `hidden lg:flex`
- *     utilities to:
- *       1. Show "Ảnh sản phẩm" FIRST (before fields), because the
- *          image picker is the highest-priority action on mobile.
- *       2. Collapse the per-vehicle "Chi tiết kỹ thuật" (dong_co /
- *          hop_so / so_cau / kieu_dang / cc) into an expandable panel
- *          per CarRow so the row stays tappable.
- *       3. Hide the desktop "Cập nhật" button inside RightCol (the
- *          new mobile sticky save bar replaces it).
- *       4. Move the description field group below the rest so the
- *          rich editor doesn't dominate above-the-fold space.
+ *   - Mobile step wizard (5 steps) with progress dots, Previous /
+ *     Next chrome, and per-step validation. Desktop renders all
+ *     sections inline as before — the wizard is gated by a
+ *     `data-step="N"` attribute on `.AddProductForm` which only the
+ *     mobile media query reads.
+ *
+ *   - Draft autosave via `useProductDraftAutosave`. Form state is
+ *     mirrored to localStorage every 700 ms (debounced) under a
+ *     stable scope (productId for edits, "new" for create). On open
+ *     the seller is offered "Khôi phục bản nháp?" if a stored draft
+ *     exists. The draft is cleared after a successful save.
+ *
+ *   - Camera-first image upload — the "Ảnh sản phẩm" step exposes
+ *     two large buttons: 📷 Chụp ảnh (uses `<input capture="environment">`)
+ *     and 🖼️ Thư viện (regular gallery picker).
+ *
+ *   - Toast-driven success / error feedback instead of `alert()`.
+ *
+ * No API / route / schema changes. The submit pipeline is byte-for-
+ * byte identical to v2 — the wizard is purely a navigation overlay.
  */
+
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
+import { useEffect, useMemo, useRef, useState } from "react";
+import axiosClient from "../../api/axiosClient";
+import { createPortal } from "react-dom";
+import "./ProductPopup.css";
+import useProductDraftAutosave from "../../hooks/useProductDraftAutosave";
+import { sellerToast } from "../ui/SellerToaster";
 
 const initialCarRow = () => ({
   brand: "",
@@ -45,6 +47,14 @@ const initialCarRow = () => ({
   kieu_dang: "",
   cc: "",
 });
+
+const WIZARD_STEPS = [
+  { id: 1, label: "Thông tin" },
+  { id: 2, label: "Ảnh" },
+  { id: 3, label: "Xe" },
+  { id: 4, label: "Thông số" },
+  { id: 5, label: "Xác nhận" },
+];
 
 export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [partNumber, setPartNumber] = useState("");
@@ -62,7 +72,6 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [description, setDescription] = useState("");
 
   const [images, setImages] = useState([]);
-  const [cars, setCars] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
 
   const [deletedImages, setDeletedImages] = useState([]);
@@ -74,6 +83,16 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   // Per-row "Chi tiết kỹ thuật" expand state. Only used on mobile —
   // desktop renders all selects inline thanks to the grid layout.
   const [openDetails, setOpenDetails] = useState({});
+
+  // Wizard state — mobile only. Desktop renders the full form
+  // regardless of `step` because the CSS media query gates step
+  // visibility under 1024 px only.
+  const [step, setStep] = useState(1);
+  const [stepError, setStepError] = useState("");
+
+  // Draft restore prompt — shown once on mount if a stored draft is
+  // found. The user can apply or discard before they touch any field.
+  const [restorePromptOpen, setRestorePromptOpen] = useState(false);
 
   const modules = {
     toolbar: [
@@ -90,6 +109,96 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
   const [modelsByRow, setModelsByRow] = useState([]);
 
   const [carRows, setCarRows] = useState([initialCarRow()]);
+
+  // Snapshot used by the autosave hook. Memoize so its identity only
+  // changes when the form state actually changes.
+  const draftSnapshot = useMemo(
+    () => ({
+      partNumber,
+      partName,
+      origin,
+      stock,
+      price,
+      weight,
+      length,
+      width,
+      height,
+      shortDescription,
+      description,
+      carRows,
+      existingImages,
+      step,
+      // We intentionally don't persist `images` (File objects can't be
+      // serialised into localStorage). The seller will need to re-pick
+      // any new images after a crash; everything else is recovered.
+    }),
+    [
+      partNumber,
+      partName,
+      origin,
+      stock,
+      price,
+      weight,
+      length,
+      width,
+      height,
+      shortDescription,
+      description,
+      carRows,
+      existingImages,
+      step,
+    ],
+  );
+
+  const { restored, savedAt, clear: clearDraft } = useProductDraftAutosave({
+    productId: product?.id || null,
+    data: draftSnapshot,
+    enabled: true,
+  });
+
+  // Offer restore once we've read the draft on mount. We don't apply
+  // it implicitly so editing an existing product never overwrites
+  // server state behind the seller's back.
+  const restorePromptArmed = useRef(false);
+  useEffect(() => {
+    if (restorePromptArmed.current) return;
+    if (restored) {
+      restorePromptArmed.current = true;
+      // For new-product flow, restore immediately is OK because there's
+      // nothing to overwrite; for edits, the seller chooses.
+      if (!product) {
+        applyDraft(restored);
+      } else {
+        setRestorePromptOpen(true);
+      }
+    }
+  }, [restored, product]);
+
+  function applyDraft(d) {
+    try {
+      setPartNumber(d.partNumber || "");
+      setPartName(d.partName || "");
+      setOrigin(d.origin || "");
+      setStock(d.stock ?? "");
+      setPrice(d.price ?? "");
+      setWeight(d.weight ?? "");
+      setLength(d.length ?? "");
+      setWidth(d.width ?? "");
+      setHeight(d.height ?? "");
+      setShortDescription(d.shortDescription || "");
+      setDescription(d.description || "");
+      if (Array.isArray(d.carRows) && d.carRows.length) {
+        setCarRows(d.carRows);
+      }
+      if (Array.isArray(d.existingImages)) {
+        setExistingImages(d.existingImages);
+      }
+      if (d.step) setStep(Math.max(1, Math.min(5, Number(d.step) || 1)));
+      sellerToast.info("Đã khôi phục bản nháp");
+    } catch {
+      /* ignore malformed drafts */
+    }
+  }
 
   useEffect(() => {
     axiosClient.get("/car/brands").then((res) => {
@@ -167,6 +276,11 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     };
   }, []);
 
+  // Reset transient step-error when the seller advances/retreats.
+  useEffect(() => {
+    setStepError("");
+  }, [step]);
+
   const loadModels = async (idx, brand) => {
     const res = await axiosClient.get("/car/models", {
       params: { brand },
@@ -186,10 +300,50 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     setCarRows([...carRows, initialCarRow()]);
   };
 
+  function validateStep(s) {
+    if (s === 1) {
+      if (!partNumber.trim() || !partName.trim()) {
+        return "Vui lòng nhập Mã và Tên phụ tùng.";
+      }
+      if (price && Number.isNaN(Number(price))) return "Giá bán không hợp lệ.";
+      if (stock && Number.isNaN(Number(stock))) return "Tồn kho không hợp lệ.";
+    }
+    if (s === 3) {
+      // Only flag PARTIAL rows — fully empty rows are fine, fully
+      // filled rows are fine, partial rows mean the seller forgot
+      // something.
+      for (const r of carRows) {
+        const hasAny = r.brand || r.carModelId || r.year_from || r.year_to;
+        const hasAll = r.carModelId && r.year_from && r.year_to;
+        if (hasAny && !hasAll) {
+          return "Có dòng xe đang thiếu thông tin (hãng / mẫu / năm).";
+        }
+        if (hasAll && Number(r.year_from) > Number(r.year_to)) {
+          return "Năm không hợp lệ ở một trong các dòng xe.";
+        }
+      }
+    }
+    return "";
+  }
+
+  function goNext() {
+    const err = validateStep(step);
+    if (err) {
+      setStepError(err);
+      sellerToast.error(err);
+      return;
+    }
+    setStep((s) => Math.min(5, s + 1));
+  }
+  function goPrev() {
+    setStep((s) => Math.max(1, s - 1));
+  }
+
   const handleSubmit = async () => {
     if (submitting) return;
     if (!partNumber || !partName) {
-      alert("Vui lòng nhập Mã & Tên phụ tùng");
+      sellerToast.error("Vui lòng nhập Mã & Tên phụ tùng");
+      setStep(1);
       return;
     }
 
@@ -222,7 +376,8 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
         })
         .filter(Boolean);
     } catch (e) {
-      alert(e.message);
+      sellerToast.error(e.message);
+      setStep(3);
       return;
     }
 
@@ -258,18 +413,14 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
       if (res?.data?.success) {
         window.dispatchEvent(new Event("reload-products"));
-
-        if (product) {
-          alert("Cập nhật thành công");
-        } else {
-          alert("Thêm sản phẩm thành công");
-        }
-
+        sellerToast.success(product ? "Đã cập nhật sản phẩm" : "Đã thêm sản phẩm");
+        clearDraft();
+        onSuccess?.();
         onClose();
       }
     } catch (err) {
-      console.log("ERROR:", err.response?.data);
-      alert(err.response?.data?.message || "Lỗi khi thêm sản phẩm");
+      const msg = err.response?.data?.message || "Lỗi khi lưu sản phẩm";
+      sellerToast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -281,7 +432,11 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
   return createPortal(
     <div className="AddProductOverlay">
-      <div className="AddProductForm">
+      <div
+        className="AddProductForm"
+        data-step={step}
+        data-mode={WIZARD_STEPS.length >= step ? "wizard" : "full"}
+      >
         <div className="PopupHeader">
           <h2>{product ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
           <div className="PopupHeaderActions">
@@ -291,18 +446,84 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
           </div>
         </div>
 
+        {/* Mobile-only wizard progress dots + autosave indicator. The
+            legacy desktop layout ignores both — `.WizardProgress` and
+            `.WizardDraftIndicator` are `display: none` above the lg
+            breakpoint. The dots scroll horizontally on tiny phones so
+            we keep the draft indicator on its own row below them
+            (never pushed off-screen). */}
+        <div className="WizardProgress" aria-label="Tiến độ">
+          {WIZARD_STEPS.map((s) => (
+            <button
+              type="button"
+              key={s.id}
+              onClick={() => setStep(s.id)}
+              className={
+                "WizardProgress__dot " +
+                (step === s.id
+                  ? "is-active"
+                  : step > s.id
+                    ? "is-done"
+                    : "")
+              }
+              aria-current={step === s.id ? "step" : undefined}
+            >
+              <span className="WizardProgress__dotIndex">{s.id}</span>
+              <span className="WizardProgress__dotLabel">{s.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {savedAt && (
+          <div className="WizardDraftIndicator" aria-live="polite">
+            ✓ Đã lưu nháp
+            <span className="WizardDraftIndicator__hint">
+              Tự động khôi phục nếu thoát giữa chừng
+            </span>
+          </div>
+        )}
+
+        {restorePromptOpen && (
+          <div className="DraftRestoreBanner" role="alert">
+            <div className="DraftRestoreBanner__msg">
+              Phát hiện bản nháp chưa lưu trước đó.
+            </div>
+            <div className="DraftRestoreBanner__actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setRestorePromptOpen(false);
+                  applyDraft(restored);
+                }}
+              >
+                Khôi phục
+              </button>
+              <button
+                type="button"
+                className="DraftRestoreBanner__discard"
+                onClick={() => {
+                  setRestorePromptOpen(false);
+                  clearDraft();
+                }}
+              >
+                Bỏ qua
+              </button>
+            </div>
+          </div>
+        )}
+
+        {stepError && (
+          <div className="WizardStepError" role="alert">
+            {stepError}
+          </div>
+        )}
+
         <div className="FormGrid">
-          {/* ----------------------------------------------------------
-              LEFT column — order on desktop:
-                1. Basic info (Row2 + Row3)
-                2. Vehicle compatibility
-                3. Short + full descriptions
-              On mobile this column flows linearly; the RightCol
-              (images) is reordered to appear AFTER the basic info via
-              `lg:order-*` utilities below.
-              ---------------------------------------------------------- */}
           <div className="LeftCol">
-            <section className="ProductFormSection">
+            <section
+              className="ProductFormSection"
+              data-wizard-step="1"
+            >
               <h3 className="ProductFormSection__title">Thông tin cơ bản</h3>
               <div className="Row2">
                 <div>
@@ -351,14 +572,13 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               </div>
             </section>
 
-            {/* ------------------------------------------------------
-                IMAGES — mobile renders this section here (high
-                priority). Desktop hides it because the legacy
-                RightCol still owns the gallery.
-                ------------------------------------------------------ */}
-            <section className="ProductFormSection ProductFormSection--mobileImages lg:hidden">
+            <section
+              className="ProductFormSection ProductFormSection--mobileImages lg:hidden"
+              data-wizard-step="2"
+            >
               <h3 className="ProductFormSection__title">Ảnh sản phẩm</h3>
               <ImagePicker
+                cameraFirst
                 images={images}
                 existingImages={existingImages}
                 onAddImages={(files) => setImages([...images, ...files])}
@@ -376,7 +596,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               />
             </section>
 
-            <section className="ProductFormSection">
+            <section className="ProductFormSection" data-wizard-step="3">
               <h3 className="ProductFormSection__title">Áp dụng cho xe</h3>
 
               {carRows.map((r, idx) => (
@@ -487,14 +707,6 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
                     </select>
                   </div>
 
-                  {/*
-                    "Chi tiết kỹ thuật" — on desktop the grid keeps
-                    all 5 secondary selects inline as part of the row;
-                    on mobile the row would explode into 9 selects
-                    side-by-side, so we hide the secondary selects
-                    behind a toggle. Toggle state is per-row to keep
-                    interaction local.
-                  */}
                   <button
                     type="button"
                     className="CarCard__detailsToggle lg:hidden"
@@ -604,7 +816,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               </button>
             </section>
 
-            <section className="ProductFormSection">
+            <section className="ProductFormSection" data-wizard-step="4">
               <h3 className="ProductFormSection__title">Kích thước &amp; trọng lượng</h3>
               <div className="Row3 Row3--dim">
                 <div>
@@ -645,7 +857,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               </div>
             </section>
 
-            <section className="ProductFormSection">
+            <section className="ProductFormSection" data-wizard-step="4">
               <h3 className="ProductFormSection__title">Mô tả</h3>
               <label>Tiêu đề</label>
               <div className="ShortEditor">
@@ -665,14 +877,26 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
                 />
               </div>
             </section>
+
+            {/* Mobile-only "Xác nhận" review step. Hidden on desktop. */}
+            <section
+              className="ProductFormSection ProductFormSection--review lg:hidden"
+              data-wizard-step="5"
+            >
+              <h3 className="ProductFormSection__title">Xác nhận</h3>
+              <ReviewSummary
+                partNumber={partNumber}
+                partName={partName}
+                price={price}
+                stock={stock}
+                origin={origin}
+                carRows={carRows}
+                imageCount={images.length + existingImages.length}
+                onJump={setStep}
+              />
+            </section>
           </div>
 
-          {/* ----------------------------------------------------------
-              RIGHT column — desktop only image gallery + submit. On
-              mobile this column is hidden via the media query in
-              ProductPopup.css (mobile uses the LeftCol image section
-              and the sticky save bar below).
-              ---------------------------------------------------------- */}
           <div className="RightCol">
             <div className="RightCol__submit">
               <button
@@ -710,24 +934,46 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
           </div>
         </div>
 
-        {/* Mobile sticky save bar — anchored above the seller bottom
-            nav (which doesn't render on top of the popup because
-            this overlay is at z-index 9999999, but we still respect
-            safe-area). Desktop uses the inline RightCol button so
-            this bar is hidden via the media query. */}
+        {/* Mobile wizard footer: Prev / Next on steps 1-4, "Lưu sản
+            phẩm" on step 5. Desktop uses the legacy RightCol button so
+            this footer stays hidden via `.lg:hidden`. */}
         <div className="MobileSaveBar lg:hidden">
-          <button
-            type="button"
-            className="btnSubmit"
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting
-              ? "Đang lưu…"
-              : product
-                ? "Cập nhật sản phẩm"
-                : "Thêm sản phẩm"}
-          </button>
+          {step > 1 ? (
+            <button
+              type="button"
+              className="btnSecondary"
+              onClick={goPrev}
+              disabled={submitting}
+            >
+              ‹ Quay lại
+            </button>
+          ) : (
+            <span className="MobileSaveBar__spacer" />
+          )}
+
+          {step < 5 ? (
+            <button
+              type="button"
+              className="btnSubmit"
+              onClick={goNext}
+              disabled={submitting}
+            >
+              Tiếp tục ›
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btnSubmit"
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting
+                ? "Đang lưu…"
+                : product
+                  ? "Cập nhật sản phẩm"
+                  : "Thêm sản phẩm"}
+            </button>
+          )}
         </div>
       </div>
     </div>,
@@ -738,7 +984,11 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 /* ------------------------------------------------------------------ */
 /* Image picker — shared by mobile (in LeftCol order-first) and desktop
    (in RightCol). Visually identical, just renders in different DOM
-   locations so the responsive layout can prioritise it differently.   */
+   locations so the responsive layout can prioritise it differently.
+   On mobile (`cameraFirst` prop) it also exposes a separate "Chụp ảnh"
+   button that uses `<input capture="environment">` to nudge the device
+   to its rear camera. Falls back to the gallery picker on desktop
+   browsers that ignore the `capture` attribute.                       */
 /* ------------------------------------------------------------------ */
 function ImagePicker({
   images,
@@ -746,22 +996,42 @@ function ImagePicker({
   onAddImages,
   onRemoveNewImage,
   onRemoveExistingImage,
+  cameraFirst,
 }) {
   return (
     <div className="ImagePicker">
-      <label className="ImagePicker__input">
-        <span className="ImagePicker__inputLabel">+ Thêm ảnh</span>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => {
-            const files = Array.from(e.target.files || []);
-            if (files.length) onAddImages(files);
-            e.target.value = "";
-          }}
-        />
-      </label>
+      <div className="ImagePicker__actions">
+        {cameraFirst && (
+          <label className="ImagePicker__input ImagePicker__input--camera">
+            <span className="ImagePicker__inputLabel">📷 Chụp ảnh</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length) onAddImages(files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+        <label className="ImagePicker__input">
+          <span className="ImagePicker__inputLabel">
+            {cameraFirst ? "🖼️ Thư viện" : "+ Thêm ảnh"}
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length) onAddImages(files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
 
       <div className="ImagePreview">
         {existingImages.map((img, i) => (
@@ -794,6 +1064,82 @@ function ImagePicker({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* ReviewSummary — read-only summary shown on mobile step 5. Each row
+   is tappable; tapping jumps the wizard back to that step so the
+   seller can correct without leaving the popup.                       */
+/* ------------------------------------------------------------------ */
+function ReviewSummary({
+  partNumber,
+  partName,
+  price,
+  stock,
+  origin,
+  carRows,
+  imageCount,
+  onJump,
+}) {
+  const filledCarRows = carRows.filter(
+    (r) => r.carModelId && r.year_from && r.year_to,
+  );
+
+  return (
+    <div className="ReviewSummary">
+      <button
+        type="button"
+        className="ReviewSummary__row"
+        onClick={() => onJump(1)}
+      >
+        <span className="ReviewSummary__label">Mã / Tên</span>
+        <span className="ReviewSummary__value">
+          {partNumber || "—"} · {partName || "(chưa có)"}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="ReviewSummary__row"
+        onClick={() => onJump(1)}
+      >
+        <span className="ReviewSummary__label">Giá / Tồn</span>
+        <span className="ReviewSummary__value">
+          {price ? Number(price).toLocaleString("vi-VN") + "₫" : "—"} ·{" "}
+          {stock || 0} sp
+        </span>
+      </button>
+      <button
+        type="button"
+        className="ReviewSummary__row"
+        onClick={() => onJump(1)}
+      >
+        <span className="ReviewSummary__label">Xuất xứ</span>
+        <span className="ReviewSummary__value">{origin || "—"}</span>
+      </button>
+      <button
+        type="button"
+        className="ReviewSummary__row"
+        onClick={() => onJump(2)}
+      >
+        <span className="ReviewSummary__label">Ảnh</span>
+        <span className="ReviewSummary__value">
+          {imageCount ? `${imageCount} ảnh` : "Chưa có ảnh"}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="ReviewSummary__row"
+        onClick={() => onJump(3)}
+      >
+        <span className="ReviewSummary__label">Xe áp dụng</span>
+        <span className="ReviewSummary__value">
+          {filledCarRows.length
+            ? `${filledCarRows.length} xe`
+            : "Chưa chọn xe"}
+        </span>
+      </button>
     </div>
   );
 }

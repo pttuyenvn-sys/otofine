@@ -114,6 +114,7 @@ export default function ShopMetricsOverview() {
   }, []);
 
   const cards = data?.cards || {};
+  const cardsToday = data?.cardsToday || {};
   const showValue = (raw) => (error ? "—" : compactNumber(raw));
 
   return (
@@ -121,6 +122,45 @@ export default function ShopMetricsOverview() {
       aria-label="Tổng quan shop"
       className="mb-3 sm:mb-4"
     >
+      {/* "Hôm nay" mini-row — additive operational signals, sourced from
+          the same `/shop/metrics/overview` payload (no extra request).
+          On mobile the row is a horizontally scrollable carousel of
+          compact pills; desktop renders it inline as a 4-col grid. */}
+      <div className="flex items-center justify-between mb-1.5">
+        <h3 className="text-[12px] font-semibold text-gray-900 uppercase tracking-wide">
+          Hôm nay
+        </h3>
+        <span className="text-[10px] text-gray-400">cập nhật trực tiếp</span>
+      </div>
+
+      <div className="seller-today-row mb-3 sm:mb-4">
+        <TodayPill
+          icon="📨"
+          label="RFQ mới"
+          value={showValue(cardsToday.rfqReceivedToday)}
+          loading={loading}
+        />
+        <TodayPill
+          icon="📞"
+          label="Lượt CTA"
+          value={showValue(cardsToday.ctaClicksToday)}
+          loading={loading}
+        />
+        <TodayPill
+          icon="👀"
+          label="Lượt xem"
+          value={showValue(cardsToday.storefrontViewsToday)}
+          loading={loading}
+        />
+        <TodayPill
+          icon="⚠️"
+          label="Hết hàng"
+          value={showValue(cardsToday.outOfStockCount)}
+          loading={loading}
+          tone="warn"
+        />
+      </div>
+
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-semibold text-gray-900">
           Tổng quan shop
@@ -159,5 +199,40 @@ export default function ShopMetricsOverview() {
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * Compact pill used for the "Hôm nay" operational row. Smaller than
+ * MetricCard so the row reads as a quick glance band rather than a
+ * second full grid.
+ */
+function TodayPill({ icon, label, value, loading, tone = "info" }) {
+  const toneCls =
+    tone === "warn"
+      ? "border-amber-100 bg-amber-50"
+      : "border-gray-100 bg-white";
+  return (
+    <div
+      className={
+        "seller-today-pill inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 shrink-0 " +
+        toneCls
+      }
+    >
+      <span aria-hidden className="text-[14px]">{icon}</span>
+      <div className="flex flex-col leading-tight">
+        <span className="text-[10px] text-gray-500 font-medium">{label}</span>
+        <span className="text-[13px] font-bold text-gray-900 tabular-nums">
+          {loading ? (
+            <span
+              className="inline-block w-6 h-3.5 rounded bg-gray-100 animate-pulse align-middle"
+              aria-hidden
+            />
+          ) : (
+            value
+          )}
+        </span>
+      </div>
+    </div>
   );
 }

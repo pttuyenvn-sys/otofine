@@ -52,6 +52,52 @@ async function countRfqReceived(shopId, sinceDays) {
   return Number(row?.c) || 0;
 }
 
+/**
+ * Anchored "today" counters (00:00:00 → now in server time).
+ *
+ * Separate from the trailing N-day counters because the seller's
+ * operational dashboard cares about "what happened TODAY" — a
+ * trailing-24h window would re-include events from yesterday
+ * evening which is misleading right after midnight.
+ */
+async function countRfqReceivedToday(shopId) {
+  const [[row]] = await pool.query(
+    `SELECT COUNT(*) AS c
+       FROM rfq_dispatches d
+       INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
+      WHERE d.shop_id = ?
+        AND r.deleted_at IS NULL
+        AND COALESCE(r.spam_flag, 0) = 0
+        AND d.created_at >= CURDATE()`,
+    [shopId],
+  );
+  return Number(row?.c) || 0;
+}
+
+async function countOutOfStockProducts(shopId) {
+  const [[row]] = await pool.query(
+    `SELECT COUNT(*) AS c FROM products
+      WHERE shopId = ? AND COALESCE(stock, 0) <= 0`,
+    [shopId],
+  );
+  return Number(row?.c) || 0;
+}
+
+async function countShopEventsToday(shopId) {
+  if (!shopId) return {};
+  const [rows] = await pool.query(
+    `SELECT event_type, COUNT(*) AS c
+       FROM shop_storefront_events
+      WHERE shop_id = ?
+        AND occurred_at >= CURDATE()
+      GROUP BY event_type`,
+    [shopId],
+  );
+  const out = {};
+  for (const r of rows) out[r.event_type] = Number(r.c) || 0;
+  return out;
+}
+
 async function countActiveConversations(shopId, sinceDays) {
   // "Conversations that had buyer activity in the last N days".
   // A row counts when any non-deleted buyer message lives inside the
@@ -85,11 +131,19 @@ export async function getShopMetricsOverview(shopId) {
     rfqReceivedLast30d,
     conversationsLast30d,
     eventCountsLast30d,
+    // "Today" payload runs in parallel with the 30d aggregates so
+    // there's no additional latency floor.
+    rfqReceivedToday,
+    outOfStockCount,
+    eventCountsToday,
   ] = await Promise.all([
     countProducts(shopId),
     countRfqReceived(shopId, RFQ_RECEIVED_WINDOW_DAYS),
     countActiveConversations(shopId, CONVERSATIONS_ACTIVE_WINDOW_DAYS),
     countShopEventsByType(shopId, { sinceDays: 30 }),
+    countRfqReceivedToday(shopId),
+    countOutOfStockProducts(shopId),
+    countShopEventsToday(shopId),
   ]);
 
   // Sum CTA-style event types into one number for the dashboard
@@ -98,6 +152,10 @@ export async function getShopMetricsOverview(shopId) {
   let ctaClicksLast30d = 0;
   for (const t of CTA_EVENT_TYPES) {
     ctaClicksLast30d += eventCountsLast30d[t] || 0;
+  }
+  let ctaClicksToday = 0;
+  for (const t of CTA_EVENT_TYPES) {
+    ctaClicksToday += eventCountsToday[t] || 0;
   }
 
   return {
@@ -109,9 +167,19 @@ export async function getShopMetricsOverview(shopId) {
       ctaClicksLast30d,
       conversationsLast30d,
     },
+    // Additive operational "Today" payload — keys are intentionally
+    // optional so legacy clients ignore them and the existing 30-day
+    // cards keep working untouched.
+    cardsToday: {
+      rfqReceivedToday,
+      ctaClicksToday,
+      storefrontViewsToday: eventCountsToday.storefront_view || 0,
+      outOfStockCount,
+    },
     // Bonus payload — UI hides this today but it's there for the
     // "storefront views" placeholder card to read once we ship it.
     eventCountsLast30d,
+    eventCountsToday,
     storefrontViewsLast30d: eventCountsLast30d.storefront_view || 0,
   };
 }

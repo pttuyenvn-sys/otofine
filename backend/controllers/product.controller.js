@@ -250,6 +250,74 @@ export const updateProduct = async (req, res) => {
 };
 
 /* =========================
+   PATCH STOCK (inline edit)
+
+   Lightweight, additive endpoint that only updates the `stock`
+   column. The legacy `PUT /products/:id` requires partNumber +
+   partName and aggressively rewrites the car-application mapping;
+   that's the right behavior for the full edit form but it's unsafe
+   for an inline tap-to-edit on the mobile product card.
+
+   Contract:
+     PATCH /products/:id/stock { stock: number }
+     →  { success: true, stock: <integer> }
+
+   Authorization:
+     - `requireAuth` + `requireShop` middleware (route layer).
+     - Scoped via `WHERE id = ? AND shopId = ?` so a seller cannot
+       touch another shop's row even if they spoof an id.
+
+   The endpoint mirrors the cache invalidation hooks used by the
+   full update path (typesense + list view) so the product card
+   reflects the new stock immediately.
+   ========================= */
+export const updateProductStock = async (req, res) => {
+  try {
+    const shopId = req.shop.id;
+    const productId = Number(req.params.id);
+    if (!Number.isFinite(productId) || productId <= 0) {
+      return res.status(400).json({ message: "Invalid product id" });
+    }
+
+    let { stock } = req.body || {};
+    const stockNum = Math.max(0, Math.floor(Number(stock)));
+    if (!Number.isFinite(stockNum)) {
+      return res.status(400).json({ message: "Stock không hợp lệ" });
+    }
+
+    const [result] = await pool.query(
+      `UPDATE products SET stock = ? WHERE id = ? AND shopId = ?`,
+      [stockNum, productId, shopId],
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        message: "Sản phẩm không tồn tại hoặc không thuộc shop",
+      });
+    }
+
+    // Best-effort downstream invalidation. We never block the seller
+    // on these — typesense / list-view sync are eventually consistent
+    // and the inline update is optimistic on the client anyway.
+    try {
+      await syncProductListViewByProductId(productId);
+    } catch (err) {
+      console.warn("updateProductStock listview sync warn:", err.message);
+    }
+    try {
+      await queueUpsertProductInTypesense(productId);
+    } catch (err) {
+      console.warn("updateProductStock typesense sync warn:", err.message);
+    }
+
+    res.json({ success: true, stock: stockNum });
+  } catch (err) {
+    console.error("updateProductStock error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* =========================
    GET PRODUCT CARS
    ========================= */
 export const getProductCars = async (req, res) => {

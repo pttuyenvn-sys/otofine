@@ -3,22 +3,22 @@
 /**
  * Compact mobile-friendly product row.
  *
- * Replaces the desktop `<ProductTable>` row on phones. Designed to
- * fit the seller's mental model from Shopee/TikTok Shop seller apps:
- *   - Square thumbnail on the left
- *   - Title (2-line clamp)
- *   - Price + stock chip on the same row
- *   - One kebab button for secondary actions (Sửa, Xóa) so the row
- *     is tappable as a whole into "Xem" (which opens the existing
- *     AddProductPopup in edit mode) without overloading the visible
- *     buttons.
+ * Operational additions (seller-ops pass):
+ *   - Inline stock edit — tap the stock chip to swap into a numeric
+ *     input. Save fires `PATCH /products/:id/stock` (additive endpoint)
+ *     with optimistic UI; on failure we rollback and surface a toast.
+ *   - Derived status pill (Đang bán / Hết hàng) sits beside price so
+ *     the seller can tell at a glance which SKUs are dead.
+ *   - Kebab menu picks up a "Sao chép liên kết" quick share that
+ *     copies the storefront canonical product URL to the clipboard.
  *
- * No business logic added or removed — every action this card surfaces
- * (`onEdit`, `onDelete`, select-toggle) maps 1:1 to a handler already
- * used by `ProductTable.jsx`. The desktop table stays exactly as-is.
+ * Desktop layout (`ProductTable`) is untouched.
  */
 
 import { useEffect, useRef, useState } from "react";
+import { updateProductStock } from "../../../services/product.api";
+import { sellerToast } from "../../ui/SellerToaster";
+import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 
 const FALLBACK_IMG =
   "data:image/svg+xml;utf8," +
@@ -37,6 +37,11 @@ function stripHtml(html) {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
+function siteOrigin() {
+  if (typeof window === "undefined") return "https://otofine.com";
+  return window.location.origin.replace(/\/$/, "");
+}
+
 export default function ProductMobileCard({
   product,
   selected,
@@ -46,6 +51,22 @@ export default function ProductMobileCard({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // Inline stock edit local state. `localStock` mirrors the server
+  // value but switches to user input while editing — this lets us
+  // be optimistic without forcing the parent to reload the whole
+  // product list on every stock tweak.
+  const [localStock, setLocalStock] = useState(Number(product.stock || 0));
+  const [editingStock, setEditingStock] = useState(false);
+  const [stockDraft, setStockDraft] = useState(String(localStock));
+  const [stockSaving, setStockSaving] = useState(false);
+  const stockInputRef = useRef(null);
+
+  useEffect(() => {
+    // Re-sync if the parent reloads with a different product or stock.
+    setLocalStock(Number(product.stock || 0));
+    setStockDraft(String(Number(product.stock || 0)));
+  }, [product.id, product.stock]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -65,9 +86,16 @@ export default function ProductMobileCard({
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (editingStock && stockInputRef.current) {
+      stockInputRef.current.focus();
+      stockInputRef.current.select();
+    }
+  }, [editingStock]);
+
   const thumb = pickThumb(product);
   const price = Number(product.price || 0);
-  const stock = Number(product.stock || 0);
+  const stock = localStock;
   const car = stripHtml((product.car || "").replace(/<br\/?>/gi, " · "));
   const fitmentLine = car || product.origin || "";
 
@@ -75,6 +103,72 @@ export default function ProductMobileCard({
   let stockTone = "bg-emerald-50 text-emerald-700 border-emerald-100";
   if (stock <= 0) stockTone = "bg-gray-100 text-gray-500 border-gray-200";
   else if (stock < 5) stockTone = "bg-amber-50 text-amber-700 border-amber-100";
+
+  // Derived status pill — "Đang bán" while stock > 0, "Hết hàng"
+  // otherwise. (We deliberately do NOT surface a "Tạm ẩn" state here
+  // because there's no schema column to back it; future work.)
+  const status = stock > 0 ? "selling" : "oos";
+  const statusLabel = status === "selling" ? "Đang bán" : "Hết hàng";
+  const statusTone =
+    status === "selling"
+      ? "bg-emerald-600/10 text-emerald-700 border-emerald-200"
+      : "bg-gray-100 text-gray-500 border-gray-200";
+
+  async function commitStock(nextValue) {
+    const next = Math.max(0, Math.floor(Number(nextValue) || 0));
+    if (next === localStock) {
+      setEditingStock(false);
+      return;
+    }
+    const prev = localStock;
+    setLocalStock(next); // optimistic
+    setStockSaving(true);
+    setEditingStock(false);
+    try {
+      await updateProductStock(product.id, next);
+      sellerToast.success(
+        next === 0 ? "Đã cập nhật: Hết hàng" : `Tồn kho: ${next}`,
+      );
+    } catch (err) {
+      // Rollback on failure.
+      setLocalStock(prev);
+      setStockDraft(String(prev));
+      sellerToast.error(
+        err?.response?.data?.message || "Cập nhật tồn kho thất bại",
+      );
+    } finally {
+      setStockSaving(false);
+    }
+  }
+
+  function handleCopyLink() {
+    try {
+      const path = buildProductSeoUrl({
+        id: product.id,
+        partName: product.partName,
+        partNumber: product.partNumber,
+        ...(product.cars?.[0] || {}),
+      });
+      const url = path.startsWith("http") ? path : siteOrigin() + path;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(
+          () => sellerToast.success("Đã sao chép liên kết"),
+          () => sellerToast.error("Không thể sao chép liên kết"),
+        );
+      } else {
+        // Fallback for very old mobile browsers.
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        sellerToast.success("Đã sao chép liên kết");
+      }
+    } catch (e) {
+      sellerToast.error("Không thể sao chép liên kết");
+    }
+  }
 
   return (
     <li
@@ -140,18 +234,66 @@ export default function ProductMobileCard({
           {fitmentLine}
         </p>
 
-        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
           <span className="text-[13px] font-bold text-[#e60012] tabular-nums">
             {price.toLocaleString("vi-VN")}₫
           </span>
+
+          {/* Status pill — derived from stock. One-tap to "Sửa nhanh"
+              from the kebab. */}
           <span
             className={
               "inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none " +
-              stockTone
+              statusTone
             }
           >
-            Tồn: {stock.toLocaleString("vi-VN")}
+            {statusLabel}
           </span>
+
+          {/* Inline stock edit. Tapping the chip swaps it for a small
+              numeric input; Enter / blur commits. */}
+          {editingStock ? (
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[10px] text-gray-500">Tồn:</span>
+              <input
+                ref={stockInputRef}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={stockDraft}
+                onChange={(e) => setStockDraft(e.target.value)}
+                onBlur={() => commitStock(stockDraft)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitStock(stockDraft);
+                  } else if (e.key === "Escape") {
+                    setEditingStock(false);
+                    setStockDraft(String(localStock));
+                  }
+                }}
+                className="w-14 px-1.5 py-0.5 rounded border border-emerald-300 bg-emerald-50/30 text-[12px] text-gray-900 tabular-nums"
+              />
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setStockDraft(String(localStock));
+                setEditingStock(true);
+              }}
+              disabled={stockSaving}
+              aria-label={`Sửa tồn kho (hiện ${stock})`}
+              className={
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none " +
+                stockTone +
+                " active:scale-95 transition-transform"
+              }
+            >
+              <span aria-hidden>{stockSaving ? "⏳" : "✏️"}</span>
+              Tồn: {stock.toLocaleString("vi-VN")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -170,7 +312,7 @@ export default function ProductMobileCard({
         {menuOpen && (
           <div
             role="menu"
-            className="absolute right-0 top-10 z-30 min-w-[140px] bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm"
+            className="absolute right-0 top-10 z-30 min-w-[170px] bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm"
           >
             <button
               type="button"
@@ -183,6 +325,31 @@ export default function ProductMobileCard({
               className="w-full text-left px-3 py-2 hover:bg-gray-50"
             >
               ✏️ Sửa / Xem ảnh
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                setStockDraft(String(localStock));
+                setEditingStock(true);
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-gray-50"
+            >
+              🔢 Sửa tồn kho
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                handleCopyLink();
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-gray-50"
+            >
+              🔗 Sao chép liên kết
             </button>
             <button
               type="button"

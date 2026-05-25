@@ -211,7 +211,34 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
       </div>
 
       {loading ? (
-        <div className="py-6 text-center text-sm text-gray-500">Đang tải…</div>
+        <>
+          {/* Desktop falls back to the simple "Đang tải…" hint to keep
+              the legacy table area stable. Mobile gets a card-shaped
+              skeleton so the seller sees the eventual layout
+              immediately — no layout shift on first paint. */}
+          <div className="hidden lg:block py-6 text-center text-sm text-gray-500">
+            Đang tải…
+          </div>
+          <ul className="lg:hidden space-y-2" aria-busy="true" aria-label="Đang tải sản phẩm">
+            {[0, 1, 2, 3].map((i) => (
+              <li
+                key={i}
+                className="bg-white rounded-xl border border-gray-200 px-2.5 py-2.5 flex items-start gap-2.5 animate-pulse"
+              >
+                <div className="shrink-0 w-16 h-16 rounded-lg bg-gray-100" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-3.5 w-3/4 rounded bg-gray-100 mb-2" />
+                  <div className="h-3 w-2/3 rounded bg-gray-100 mb-2" />
+                  <div className="flex gap-1.5">
+                    <div className="h-4 w-16 rounded bg-gray-100" />
+                    <div className="h-4 w-12 rounded bg-gray-100" />
+                  </div>
+                </div>
+                <div className="w-9 h-9 rounded-lg bg-gray-100" />
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <>
           {/* Desktop table — unchanged. */}
