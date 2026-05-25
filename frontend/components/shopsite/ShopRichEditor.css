@@ -15,6 +15,28 @@
   color: #1f2937;
 }
 
+/*
+ * UX-polish — "tall canvas" variant.
+ *
+ * Used by `ShopRichEditorWithPreview` for the storefront intro
+ * (the page's primary branding surface) so the editor feels like a
+ * CMS/article builder rather than a tiny textarea. The base
+ * `.shop-rich-editor` styling is untouched — policy editors and any
+ * other consumers keep the original compact 280px canvas.
+ */
+.shop-rich-editor--tall .shop-rich-editor .ProseMirror,
+.shop-rich-editor--tall .shop-rich-editor .shop-editor-content {
+  min-height: 480px;
+  font-size: 15.5px;
+}
+
+@media (min-width: 1280px) {
+  .shop-rich-editor--tall .shop-rich-editor .ProseMirror,
+  .shop-rich-editor--tall .shop-rich-editor .shop-editor-content {
+    min-height: 520px;
+  }
+}
+
 .shop-rich-editor .ProseMirror p { margin: 0.4rem 0; }
 .shop-rich-editor .ProseMirror h2 { font-size: 1.3rem; font-weight: 700; color: #111827; margin: 1.1rem 0 0.4rem; }
 .shop-rich-editor .ProseMirror h3 { font-size: 1.15rem; font-weight: 700; color: #e60012; margin: 1rem 0 0.4rem; }

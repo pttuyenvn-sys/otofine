@@ -171,11 +171,20 @@ function SlugHint({ status, value }) {
   return null;
 }
 
-function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1", helperText, maxWidth = 260 }) {
+function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1", helperText, maxWidth = 260, className = "" }) {
   const inputRef = useRef(null);
   const openPicker = () => { if (!uploading) inputRef.current?.click(); };
+  // UX polish: callers can pass `maxWidth={null}` (or `"100%"`) to opt
+  // out of the historical 260px cap — used by the new branding layout
+  // where the cover preview must fill the storefront-hero column.
+  // Avatar callers still pass an explicit number to keep the compact
+  // square shape. We DO NOT change upload click areas, the file picker
+  // input, WebP processing, validation hints, or aspect ratios — only
+  // the maximum container width is now opt-out-able.
+  const resolvedMaxWidth =
+    maxWidth === null || maxWidth === undefined ? "100%" : maxWidth;
   return (
-    <div>
+    <div className={className}>
       <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
       <button
         type="button"
@@ -187,7 +196,7 @@ function ImageUploader({ label, previewUrl, onPickFile, uploading, aspect = "1/1
             ? "border-gray-200 cursor-wait"
             : "border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/30 cursor-pointer")
         }
-        style={{ aspectRatio: aspect, maxWidth }}
+        style={{ aspectRatio: aspect, maxWidth: resolvedMaxWidth }}
         aria-label={previewUrl ? `Đổi ${label.toLowerCase()}` : `Tải ${label.toLowerCase()} lên`}
       >
         {previewUrl
@@ -580,8 +589,8 @@ export default function ShopSettings() {
         {[
           ["#basic",       "Thông tin cơ bản"],
           ["#public",      "Storefront công khai"],
-          ["#branding",    "Branding"],
-          ["#intro",       "Giới thiệu"],
+          ["#branding",    "Hình ảnh thương hiệu"],
+          ["#intro",       "Giới thiệu doanh nghiệp"],
           ["#contact",     "Liên hệ & mạng xã hội"],
           ["#policies",    "Chính sách (marketplace)"],
           ["#seo",         "SEO"],
@@ -693,48 +702,85 @@ export default function ShopSettings() {
         {/* ── C. Branding ─────────────────────────────────────────────── */}
         <SectionCard
           id="branding"
-          title="C. Branding"
-          subtitle="Ảnh đại diện và ảnh bìa hiển thị trên trang storefront. Ảnh tự động chuyển sang WebP và tối ưu kích thước."
+          title="C. Hình ảnh thương hiệu"
+          subtitle="Ảnh đại diện và ảnh bìa xuất hiện trên header của storefront. Tỉ lệ trong panel này phản ánh đúng tỉ lệ hiển thị thật cho khách hàng."
         >
-          <div className="grid gap-8 md:grid-cols-2">
+          {/*
+            UX polish — branding section visual balance.
+
+            Desktop (lg+): asymmetric two-column grid.
+              ┌─────────┬──────────────────────────────────────────┐
+              │ avatar  │ wide cover (16:6 hero)                   │
+              │ 140 px  │ takes the rest of the row                │
+              └─────────┴──────────────────────────────────────────┘
+            This matches the actual storefront hero proportions: a
+            small circular avatar floating on top of a wide cover
+            banner. The seller's visual mental model now matches
+            production.
+
+            Mobile (< lg): single column, COVER FIRST so the most
+            important banner sits above the fold; the smaller avatar
+            sits below it, mirroring how the storefront stacks on
+            phones.
+
+            We preserve:
+              - upload click areas (whole tile still triggers picker)
+              - WebP pipeline / handleAvatarPick / handleCoverPick
+              - aspect-ratio props ("1/1" and "16/6") so cropping
+                contracts remain identical
+              - validation `helperText` hints
+            We ONLY change container width + element order.
+          */}
+          <div className="grid gap-5 lg:gap-7 lg:grid-cols-[150px_minmax(0,1fr)] lg:items-start">
             <ImageUploader
               label="Avatar"
               previewUrl={avatarPreview}
               onPickFile={handleAvatarPick}
               uploading={uploadingAvatar}
               aspect="1/1"
+              maxWidth={150}
               helperText="Vuông. PNG / JPG / WEBP. Tối đa 5 MB. Tự động resize 512×512."
+              className="order-2 lg:order-1"
             />
             <ImageUploader
-              label="Ảnh bìa (cover)"
+              label="Ảnh bìa (cover storefront)"
               previewUrl={coverPreview}
               onPickFile={handleCoverPick}
               uploading={uploadingCover}
               aspect="16/6"
-              helperText="Tỉ lệ 16:6 (ví dụ 1600×600). Tự động resize max-width 1600px."
+              maxWidth={null}
+              helperText="Tỉ lệ 16:6 (ví dụ 1600×600). Tự động resize max-width 1600px. Đây là banner xuất hiện trên đầu storefront."
+              className="order-1 lg:order-2"
             />
           </div>
         </SectionCard>
 
-        {/* ── D. Giới thiệu ───────────────────────────────────────────── */}
+        {/* ── D. Giới thiệu doanh nghiệp ─────────────────────────────── */}
         <SectionCard
           id="intro"
-          title="D. Giới thiệu"
-          subtitle="Nội dung xuất hiện trên trang storefront và trong danh sách Otofine."
+          title="D. Giới thiệu doanh nghiệp"
+          subtitle="Trang giới thiệu là phần nội dung quan trọng nhất trên storefront — nơi shop thể hiện thương hiệu, năng lực và lý do để khách hàng tin chọn."
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
             <FieldTextarea
-              label="Giới thiệu ngắn (bio)"
+              label="Mô tả ngắn (hiển thị dưới tên shop)"
               value={pub.bio}
               onChange={(v) => setP("bio", v)}
-              placeholder="Một câu mô tả shop, hiển thị ngay dưới tên shop."
+              placeholder="Một câu giới thiệu cô đọng về shop của bạn — ví dụ: “Phụ tùng Kia chính hãng, kho hàng tại Hà Nội, ship toàn quốc.”"
               maxLength={255}
               rows={2}
             />
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Giới thiệu chi tiết (intro — storefront)
-              </label>
+              <div className="flex items-end justify-between gap-3 mb-2">
+                <div>
+                  <label className="block text-base font-semibold text-gray-900">
+                    Nội dung hiển thị trên storefront
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Mô tả thương hiệu, năng lực, dịch vụ, cam kết. Có thể chèn ảnh, danh sách và nút liên hệ.
+                  </p>
+                </div>
+              </div>
               <ShopRichEditorWithPreview
                 value={pub.introHtml}
                 onChange={(v) => setP("introHtml", v)}

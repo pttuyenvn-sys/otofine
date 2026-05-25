@@ -262,9 +262,16 @@ function composePreview({ basic, pub, extras }) {
   const title = `${name} | Otofine`;
   const image = absolutize(extras?.cover || extras?.avatar || pub?.coverImage || pub?.avatar);
   const favicon = absolutize(extras?.avatar || pub?.avatar);
-  const path = `/shops/${slug}`;
-  const host = "otofine.com";
-  const url = `https://${host}${path}`;
+  // UX polish: storefront subdomain is now the live indexed URL, so
+  // the seller should preview EXACTLY what Google / Facebook will
+  // render after wildcard rollout: `<slug>.otofine.com` instead of
+  // the legacy `/shops/<slug>` path on the apex. This is preview-only
+  // — backend canonical, sitemap, og:url and JSON-LD continue to
+  // emit whichever URL the existing SEO logic computes. We do NOT
+  // touch backend/SEO logic from here. See `lib/shopsite/*` for the
+  // server-side truth.
+  const host = `${slug}.otofine.com`;
+  const url = `https://${host}/`;
 
   return { name, slug, title, description, image, favicon, host, urlPath: url, url };
 }
