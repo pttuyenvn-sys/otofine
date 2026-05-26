@@ -78,3 +78,47 @@ export function validateMessageText(raw) {
 
   return normalized;
 }
+
+/**
+ * Text optional when attachmentIds present; at least one required.
+ * @param {{ text?: unknown, attachmentIds?: unknown }} payload
+ */
+export function validateConversationMessagePayload(payload = {}) {
+  const attachmentIds = normalizeAttachmentIds(payload?.attachmentIds);
+  let messageText = null;
+
+  const rawText = payload?.text ?? payload?.messageText ?? "";
+  const normalized = normalizeMessageText(rawText);
+  if (!isEffectivelyEmpty(normalized)) {
+    if (normalized.length > RFQ_MESSAGE_TEXT_MAX) {
+      throw Object.assign(new Error("MESSAGE_TOO_LONG"), { status: 400 });
+    }
+    if (hasExcessiveCharRepeat(normalized)) {
+      throw Object.assign(new Error("MESSAGE_SPAM"), { status: 400 });
+    }
+    if (hasSpamSignals(normalized)) {
+      throw Object.assign(new Error("MESSAGE_SPAM"), { status: 400 });
+    }
+    messageText = normalized;
+  }
+
+  if (!messageText && !attachmentIds.length) {
+    throw Object.assign(new Error("EMPTY_MESSAGE"), { status: 400 });
+  }
+
+  return { messageText, attachmentIds };
+}
+
+export function normalizeAttachmentIds(raw) {
+  if (raw == null) return [];
+  const list = Array.isArray(raw) ? raw : [raw];
+  const ids = [];
+  const seen = new Set();
+  for (const x of list) {
+    const id = Number(x);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}

@@ -85,7 +85,7 @@ export async function listInboxForShop(shopId, opts = {}) {
   const limit = Math.min(Number(opts.limit) || 50, 50);
   const offset = Math.max(Number(opts.offset) || 0, 0);
   const filter = String(opts.filter || "all").toLowerCase();
-  const sort = String(opts.sort || "sla").toLowerCase();
+  const sort = String(opts.sort || "activity").toLowerCase();
   const vehicleFilters = parseInboxFilterQuery(opts);
 
   const where = [`d.shop_id = ?`, `r.deleted_at IS NULL`, `COALESCE(r.spam_flag, 0) = 0`];
@@ -97,17 +97,71 @@ export async function listInboxForShop(shopId, opts = {}) {
   let orderBy;
   if (sort === "recent") {
     orderBy = `d.web_notified_at DESC, d.id DESC`;
-  } else {
+  } else if (sort === "sla") {
     orderBy = `CASE WHEN d.first_viewed_at IS NULL THEN 0 ELSE 1 END ASC,
       (d.respond_by IS NULL) ASC,
       d.respond_by ASC,
       d.web_notified_at DESC`;
+  } else {
+    orderBy = `(d.first_viewed_at IS NULL) DESC,
+      (
+        SELECT COUNT(m.id)
+        FROM rfq_conversations conv
+        LEFT JOIN rfq_conversation_reads cr
+          ON cr.conversation_id = conv.id
+         AND cr.participant_type = 'shop'
+         AND cr.participant_shop_id = d.shop_id
+        LEFT JOIN rfq_messages m
+          ON m.conversation_id = conv.id
+         AND m.deleted_at IS NULL
+         AND m.sender_type IN ('buyer', 'system')
+         AND (cr.last_read_message_id IS NULL OR m.id > cr.last_read_message_id)
+        WHERE conv.dispatch_id = d.id
+      ) DESC,
+      COALESCE(
+        (
+          SELECT m.created_at
+          FROM rfq_conversations conv
+          INNER JOIN rfq_messages m ON m.conversation_id = conv.id AND m.deleted_at IS NULL
+          WHERE conv.dispatch_id = d.id
+          ORDER BY m.id DESC
+          LIMIT 1
+        ),
+        d.web_notified_at,
+        d.created_at
+      ) DESC,
+      d.id DESC`;
   }
 
   const sql = `
     SELECT d.*, r.public_id, r.part_description, r.status AS rfq_status, r.vehicle_json,
+           r.images_json,
            r.category_key, r.created_at AS rfq_created_at, r.expires_at AS rfq_expires_at,
-           (${QUOTE_SUBMITTED_EXISTS}) AS has_submitted_quote
+           (${QUOTE_SUBMITTED_EXISTS}) AS has_submitted_quote,
+           (
+             SELECT m.message_type
+             FROM rfq_conversations conv
+             INNER JOIN rfq_messages m ON m.conversation_id = conv.id AND m.deleted_at IS NULL
+             WHERE conv.dispatch_id = d.id
+             ORDER BY m.id DESC
+             LIMIT 1
+           ) AS last_message_type,
+           (
+             SELECT m.message_text
+             FROM rfq_conversations conv
+             INNER JOIN rfq_messages m ON m.conversation_id = conv.id AND m.deleted_at IS NULL
+             WHERE conv.dispatch_id = d.id
+             ORDER BY m.id DESC
+             LIMIT 1
+           ) AS last_message_text,
+           (
+             SELECT m.sender_type
+             FROM rfq_conversations conv
+             INNER JOIN rfq_messages m ON m.conversation_id = conv.id AND m.deleted_at IS NULL
+             WHERE conv.dispatch_id = d.id
+             ORDER BY m.id DESC
+             LIMIT 1
+           ) AS last_message_sender_type
     FROM rfq_dispatches d
     INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
     WHERE ${where.join(" AND ")}
@@ -159,6 +213,33 @@ export async function countInboxBuckets(shopId) {
     waiting: Number(row?.waiting_count || 0),
     quoted: Number(row?.quoted_count || 0),
   };
+}
+
+/** All buyer-visible dispatches for an RFQ — chat rooms exist before quote submit. */
+export async function listDispatchesForBuyerRequest(rfqRequestId, conn = null) {
+  const c = conn || pool;
+  const [rows] = await c.query(
+    `SELECT d.id AS dispatch_id, d.shop_id, s.name AS shop_name
+     FROM rfq_dispatches d
+     INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
+     LEFT JOIN shops s ON s.id = d.shop_id
+     WHERE d.rfq_request_id = ?
+       AND r.deleted_at IS NULL
+       AND COALESCE(r.spam_flag, 0) = 0
+     ORDER BY d.id ASC`,
+    [rfqRequestId],
+  );
+  return rows;
+}
+
+/** Idempotent — marks first shop engagement on a dispatch room. */
+export async function markFirstShopMessageAt(conn, dispatchId) {
+  await conn.query(
+    `UPDATE rfq_dispatches
+     SET first_shop_message_at = COALESCE(first_shop_message_at, NOW(3))
+     WHERE id = ?`,
+    [dispatchId],
+  );
 }
 
 export async function findDispatchForShop(dispatchId, shopId) {

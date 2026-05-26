@@ -11,6 +11,7 @@ router.use((req, res, next) => {
 
 router.get("/health", ctrl.rfqAdminHealth);
 router.get("/metrics", ctrl.rfqAdminMetrics);
+router.get("/reminder-metrics", ctrl.rfqAdminReminderMetrics);
 
 router.get("/analytics/funnel", ctrl.rfqAdminAnalyticsFunnel);
 router.get("/analytics/sellers", ctrl.rfqAdminAnalyticsSellers);

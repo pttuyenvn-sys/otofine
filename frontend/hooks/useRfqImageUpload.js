@@ -255,21 +255,17 @@ export function useRfqImageUpload({
     return urls;
   }, []);
 
+  /** Reactive upload gate — use `uploadStatus` for submit button (not ref-only callbacks). */
+  const uploadStatus = computeUploadStatus(sections, inflightRef.current);
+
   const hasUploading = useCallback(() => {
-    for (const key of RFQ_IMAGE_SECTION_KEYS) {
-      for (const it of sectionsRef.current[key] || []) {
-        if (it.status === "uploading" || it.status === "pending") return true;
-      }
-    }
-    return inflightRef.current.size > 0;
-  }, []);
+    const s = computeUploadStatus(sectionsRef.current, inflightRef.current);
+    return s.hasUploading;
+  }, [sections]);
 
   const hasErrors = useCallback(() => {
-    for (const key of RFQ_IMAGE_SECTION_KEYS) {
-      if ((sectionsRef.current[key] || []).some((it) => it.status === "error")) return true;
-    }
-    return false;
-  }, []);
+    return computeUploadStatus(sectionsRef.current, inflightRef.current).hasErrors;
+  }, [sections]);
 
   /** After final create, upload any items that were waiting for publicId. */
   const flushPending = useCallback(async () => {
@@ -298,6 +294,7 @@ export function useRfqImageUpload({
 
   return {
     sections,
+    uploadStatus,
     addFiles,
     removeItem,
     retryUpload,
@@ -306,5 +303,30 @@ export function useRfqImageUpload({
     hasErrors,
     flushPending,
     countItems,
+  };
+}
+
+/** Derived from React state — safe for render-time submit gating. */
+export function computeUploadStatus(sections, inflightSize = 0) {
+  let pending = 0;
+  let uploading = 0;
+  let errors = 0;
+  let done = 0;
+  for (const key of RFQ_IMAGE_SECTION_KEYS) {
+    for (const it of sections[key] || []) {
+      if (it.status === "pending") pending += 1;
+      else if (it.status === "uploading") uploading += 1;
+      else if (it.status === "error") errors += 1;
+      else if (it.status === "done") done += 1;
+    }
+  }
+  const inflight = Number(inflightSize) || 0;
+  return {
+    pending,
+    uploading,
+    errors,
+    done,
+    hasUploading: pending > 0 || uploading > 0 || inflight > 0,
+    hasErrors: errors > 0,
   };
 }

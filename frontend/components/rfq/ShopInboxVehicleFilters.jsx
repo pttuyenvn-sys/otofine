@@ -26,6 +26,7 @@ function CompactSelect({
         className="rfq-inbox-filter-select"
         value={value || ""}
         disabled={disabled || loading}
+        aria-label={label}
         onChange={(e) => onSelect(e.target.value)}
       >
         <option value="">{placeholder}</option>
@@ -68,7 +69,7 @@ export default function ShopInboxVehicleFilters({
   return (
     <div className="rfq-inbox-vehicle-filters">
       <p className="rfq-inbox-vehicle-filters__label muted">Lọc theo xe &amp; danh mục</p>
-      <div className="rfq-inbox-vehicle-filters__grid">
+      <div className="rfq-inbox-vehicle-filters__layout">
         <CompactSelect
           id="inbox-filter-brand"
           label="Hãng"
@@ -101,13 +102,14 @@ export default function ShopInboxVehicleFilters({
           placeholder="Tất cả năm"
           onSelect={selector.setYear}
         />
-        <label className="rfq-inbox-filter-field">
-          <span className="rfq-inbox-filter-field__label">Danh mục (key)</span>
+        <label className="rfq-inbox-filter-field rfq-inbox-filter-field--category">
+          <span className="rfq-inbox-filter-field__label">Danh mục</span>
           <input
             type="text"
             className="rfq-inbox-filter-input"
             value={categoryKey || ""}
-            placeholder="VD: phanh, loc-dau"
+            placeholder="Danh mục"
+            aria-label="Danh mục"
             onChange={(e) =>
               onChange({
                 brand: selector.brand,

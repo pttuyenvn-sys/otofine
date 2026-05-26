@@ -30,10 +30,10 @@ export function pickReadMessageId(items, listEl, stickToBottom) {
 /** Dispatches eligible for mark-read when user is caught up on merged timeline. */
 export function pickReadMapForBuyer(items, listEl, stickToBottomRef) {
   const byDispatch = latestMessageIdByDispatch(items);
-  const stick = stickToBottomRef?.current !== false;
+  const stick = stickToBottomRef?.current === true;
   const el = listEl;
-  const nearBottom = el ? isNearScrollBottom(el) : true;
-  const shortThread = el ? el.scrollHeight <= el.clientHeight + 12 : true;
+  const nearBottom = el ? isNearScrollBottom(el) : false;
+  const shortThread = el ? el.scrollHeight <= el.clientHeight + 12 : false;
   if (!stick && !nearBottom && !shortThread) return {};
 
   const out = {};

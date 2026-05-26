@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { API_BASE } from "@/lib/config";
+import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
+import {
+  buildShopRfqConversationPath,
+  parseShopDispatchId,
+  SHOP_RFQ_INBOX_PATH,
+} from "@/lib/rfq/rfqShopDeepLink";
 import RfqConversationTimeline from "@/components/rfq/RfqConversationTimeline";
 import RfqMessageComposer from "@/components/rfq/RfqMessageComposer";
+import RfqShopDispatchSummary from "@/components/rfq/RfqShopDispatchSummary";
+import RfqShopBuyerList from "@/components/rfq/RfqShopBuyerList";
+import RfqShopBuyerDrawer from "@/components/rfq/RfqShopBuyerDrawer";
+import { useShopInboxList } from "@/hooks/useShopInboxList";
 import { useShopConversationMessages } from "@/hooks/useRfqConversationMessages";
+import { shopConversationHeaders } from "@/lib/rfq/rfqConversationApi";
+import { SHOP_INBOX_STATUS_FILTERS } from "@/lib/rfq/rfqInboxFilters";
 
 const LINE_OPTIONS = [
   { value: "oem", label: "Chính hãng (OEM)" },
@@ -22,8 +34,8 @@ function formatMoney(n, cur) {
 
 export default function RfqSellerDispatchPage() {
   const params = useParams();
+  const router = useRouter();
   const dispatchId = params.dispatchId;
-  const priceRef = useRef(null);
   const [detail, setDetail] = useState(null);
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
@@ -33,14 +45,42 @@ export default function RfqSellerDispatchPage() {
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [timelineRefresh, setTimelineRefresh] = useState(0);
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState("all");
+  const [authRequired, setAuthRequired] = useState(false);
   const submitLock = useRef(false);
+  const loginRedirectRef = useRef(false);
+
+  const loginUrl =
+    typeof window !== "undefined" ? buildShopLoginUrl(getCurrentShopReturnPath()) : "/shop/login";
+
+  const parsedDispatchId = parseShopDispatchId(dispatchId);
+
+  useEffect(() => {
+    if (dispatchId && !parsedDispatchId) {
+      router.replace(SHOP_RFQ_INBOX_PATH);
+    }
+  }, [dispatchId, parsedDispatchId, router]);
+
+  useEffect(() => {
+    if (!authRequired || loginRedirectRef.current) return;
+    loginRedirectRef.current = true;
+    router.replace(buildShopLoginUrl(getCurrentShopReturnPath()));
+  }, [authRequired, router]);
+
+  const {
+    items: inboxItems,
+    messageUnreadTotal,
+    loading: inboxLoading,
+  } = useShopInboxList({ filter: inboxFilter, sort: "activity" });
 
   const {
     items: timelineItems,
     loading: timelineLoading,
     error: timelineError,
     reload: reloadTimeline,
-    sendText,
+    sendMessage,
     unreadCount: chatUnreadCount,
     listRef: timelineListRef,
     stickToBottomRef: timelineStickRef,
@@ -54,13 +94,27 @@ export default function RfqSellerDispatchPage() {
     async function load() {
       setLoadingDetail(true);
       setErrMsg("");
-      setSuccessMsg("");
+      setAuthRequired(false);
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        setAuthRequired(true);
+        setLoadingDetail(false);
+        return;
+      }
+
       try {
         await axios.patch(`${API_BASE}/shop/rfq/${dispatchId}/view`, {}, { headers: headers() });
         const res = await axios.get(`${API_BASE}/shop/rfq/${dispatchId}`, { headers: headers() });
         setDetail(res.data);
-      } catch {
-        setErrMsg("Không mở được RFQ — đăng nhập shop hoặc kiểm tra link.");
+      } catch (err) {
+        if (err.response?.status === 401) {
+          setAuthRequired(true);
+        } else if (err.response?.status === 404) {
+          router.replace(SHOP_RFQ_INBOX_PATH);
+        } else {
+          setErrMsg("Không mở được RFQ — đăng nhập shop hoặc kiểm tra link.");
+        }
       } finally {
         setLoadingDetail(false);
       }
@@ -72,13 +126,8 @@ export default function RfqSellerDispatchPage() {
   const hasQuote = Boolean(detail?.quotes?.some((q) => q.status === "submitted"));
 
   useEffect(() => {
-    if (loadingDetail || hasQuote || !d) return;
-    const t = setTimeout(() => {
-      priceRef.current?.focus?.();
-      priceRef.current?.select?.();
-    }, 120);
-    return () => clearTimeout(t);
-  }, [loadingDetail, hasQuote, d?.id]);
+    setQuoteOpen(false);
+  }, [dispatchId]);
 
   useEffect(() => {
     if (!successMsg) return undefined;
@@ -105,9 +154,10 @@ export default function RfqSellerDispatchPage() {
       if (res.data?.idempotent) {
         setSuccessMsg("Đã có báo giá — không gửi trùng.");
       } else {
-        setSuccessMsg("Đã gửi — khách thấy báo giá ngay trên điện thoại.");
+        setSuccessMsg("Đã gửi báo giá — khách thấy trên điện thoại.");
         setTimelineRefresh((n) => n + 1);
       }
+      setQuoteOpen(false);
     } catch (err) {
       setErrMsg(err.response?.data?.message || err.response?.data?.code || "Gửi báo giá lỗi — thử lại.");
     } finally {
@@ -116,190 +166,209 @@ export default function RfqSellerDispatchPage() {
     }
   }
 
-  const slaMs = d?.respond_by != null ? new Date(d.respond_by).getTime() - Date.now() : null;
-  const slaLabel =
-    slaMs == null || !Number.isFinite(slaMs)
-      ? null
-      : slaMs <= 0
-        ? "Quá SLA — báo giá web ngay"
-        : slaMs < 3600000
-          ? `${Math.max(1, Math.ceil(slaMs / 60000))} phút còn lại`
-          : `${Math.ceil(slaMs / 3600000)} giờ còn lại`;
+  const mobileTriggerLabel = useMemo(() => {
+    const count = inboxItems.length;
+    if (messageUnreadTotal > 0) {
+      return `Buyer (${count}) · ${messageUnreadTotal} mới`;
+    }
+    return `Buyer (${count})`;
+  }, [inboxItems.length, messageUnreadTotal]);
 
-  const slaSeverity = slaMs != null && Number.isFinite(slaMs) ? (slaMs <= 0 ? "late" : slaMs < 7200000 ? "soon" : "ok") : null;
+  const handleSelectBuyer = useCallback(
+    (id) => {
+      if (Number(id) !== Number(dispatchId)) {
+        router.push(buildShopRfqConversationPath(id));
+      }
+    },
+    [dispatchId, router],
+  );
+
+  const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
+  const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
+  const toggleQuote = useCallback(() => setQuoteOpen((v) => !v), []);
 
   return (
-    <div className="rfq-seller-wide rfq-detail-page">
-      <div className="rfq-detail-top">
-        <div>
-          <h1 className="rfq-detail-h1">RFQ · Chi tiết</h1>
-          <p className="muted rfq-detail-meta-line">
-            #{d?.public_id?.slice(0, 8) || dispatchId}
-          </p>
-        </div>
-        <Link href="/rfq/shop/inbox" className="rfq-btn rfq-btn--ghost rfq-btn--sm rfq-btn--touch">
-          ← Inbox
-        </Link>
-      </div>
-
+    <div className="rfq-seller-wide rfq-shop-layout-page">
       {loadingDetail && (
         <div className="rfq-detail-skeleton">
+          <div className="rfq-skel rfq-skel--block" />
           <div className="rfq-skel rfq-skel--block rfq-skel--tall" />
-          <div className="rfq-skel rfq-skel--block rfq-skel--form" />
         </div>
       )}
 
-      {successMsg && <p className="rfq-banner-success">{successMsg}</p>}
-      {errMsg && <p className="rfq-banner-error">{errMsg}</p>}
+      {successMsg && <p className="rfq-banner-success rfq-detail-banner">{successMsg}</p>}
+      {authRequired ? (
+        <p className="rfq-banner-error rfq-detail-banner">
+          Cần{" "}
+          <Link href={loginUrl} className="rfq-auth-login-link">
+            đăng nhập shop
+          </Link>{" "}
+          để xem RFQ này.
+        </p>
+      ) : null}
+      {!authRequired && errMsg ? <p className="rfq-banner-error rfq-detail-banner">{errMsg}</p> : null}
 
       {d && (
-        <>
-          <section className="card rfq-detail-desc">
-            <div className="rfq-detail-status-row">
-              {slaLabel && slaSeverity && (
-                <span className={`rfq-sla rfq-sla--${slaSeverity}`} title="SLA gợi ý">
-                  {slaLabel}
-                </span>
-              )}
-              {d.first_viewed_at ? (
-                <span className="rfq-pill rfq-pill--seen">Đã xem web</span>
-              ) : (
-                <span className="rfq-pill rfq-pill--new">Chưa đọc — ưu tiên</span>
-              )}
-              <span className="rfq-pill rfq-pill--muted">{dispatchStatusVi(d.status)}</span>
-            </div>
-            <p className="rfq-detail-text">{d.part_description}</p>
-          </section>
-
-          <section id="rq-quote" className="card rfq-quote-section rfq-quote-anchor">
-            <h2 className="rfq-quote-heading">Báo giá · &lt;10 giây</h2>
-            <p className="muted rfq-quote-hint">Nhập giá → chọn loại hàng → Gửi. Khách nhận giá realtime.</p>
-            <form onSubmit={submitQuote} className="rfq-quote-form">
-              <label className="rfq-quote-label-price">
-                Giá (VND)
-                <input
-                  ref={priceRef}
-                  type="number"
-                  inputMode="decimal"
-                  enterKeyHint="done"
-                  autoComplete="off"
-                  min={1}
-                  step={1}
-                  className="rfq-quote-price-input"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
-                  disabled={hasQuote || submitting}
-                />
-              </label>
-              <label>
-                Loại hàng
-                <select value={lineType} onChange={(e) => setLineType(e.target.value)} disabled={hasQuote || submitting}>
-                  {LINE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <details className="rfq-quote-note-details">
-                <summary className="rfq-quote-note-summary">Ghi chú (tuỳ chọn)</summary>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={2}
-                  placeholder="VD: BH 6 tháng, có VAT…"
-                  disabled={hasQuote || submitting}
-                  className="rfq-quote-note-field"
-                />
-              </details>
-              <button type="submit" className="rfq-btn rfq-btn--primary rfq-btn--block rfq-btn--touch-submit" disabled={hasQuote || submitting}>
-                {submitting ? (
-                  <>
-                    <span className="rfq-spinner" aria-hidden />
-                    Đang gửi…
-                  </>
-                ) : hasQuote ? (
-                  "Đã gửi báo giá"
+        <div className="rfq-shop-chat-viewport">
+          <section className="rfq-chat-shell rfq-chat-shell--primary" aria-label="Chat khách">
+            <div className="rfq-shop-layout">
+              <aside className="rfq-shop-buyer-sidebar rfq-desktop-only" aria-label="Khách hỏi phụ tùng">
+                <header className="rfq-shop-buyer-sidebar__head">
+                  <h2 className="rfq-shop-buyer-sidebar__title">Buyer hỏi phụ tùng</h2>
+                  <span className="rfq-shop-buyer-sidebar__count">{inboxItems.length}</span>
+                </header>
+                <div className="rfq-shop-buyer-sidebar__filters">
+                  <div className="rfq-chip-row rfq-chip-row--compact">
+                    {SHOP_INBOX_STATUS_FILTERS.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        className={`rfq-chip rfq-chip--xs ${inboxFilter === f.id ? "rfq-chip--active" : ""}`}
+                        onClick={() => setInboxFilter(f.id)}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {inboxLoading && !inboxItems.length ? (
+                  <p className="muted rfq-shop-buyer-sidebar__loading">Đang tải…</p>
                 ) : (
-                  "Gửi báo giá ngay"
+                  <RfqShopBuyerList
+                    items={inboxItems}
+                    activeDispatchId={dispatchId}
+                    variant="sidebar"
+                    useLinks
+                  />
                 )}
-              </button>
-            </form>
-          </section>
+              </aside>
 
-          <section className="card rfq-quote-sent-card">
-            <h2 className="rfq-quote-sent-title">Đã gửi</h2>
-            {!detail.quotes?.length && <p className="muted rfq-quote-sent-empty">Chưa có báo giá trên dispatch này.</p>}
-            <ul className="rfq-quote-history">
-              {detail.quotes?.map((q) => (
-                <li key={q.id}>
-                  <strong>{formatMoney(q.price_amount, q.currency)}</strong>
-                  {q.line_type && q.line_type !== "unknown" && (
-                    <span className="rfq-pill rfq-pill--muted">{q.line_type}</span>
-                  )}
-                  {q.note && <div className="muted">{q.note}</div>}
-                </li>
-              ))}
-            </ul>
-          </section>
+              <div className="rfq-shop-chat-column">
+                <RfqShopDispatchSummary
+                  dispatch={d}
+                  chatUnreadCount={chatUnreadCount}
+                  showBack={false}
+                />
 
-          <section className="card rfq-conv-section rfq-conv-section--chat">
-            <h2 className="rfq-conv-section__title">
-              Trao đổi với khách
-              {chatUnreadCount > 0 && (
-                <span className="rfq-chat-unread-badge">{chatUnreadCount > 99 ? "99+" : chatUnreadCount}</span>
-              )}
-            </h2>
-            <p className="muted rfq-conv-section__hint">
-              Tin nhắn + báo giá — cập nhật mỗi vài giây khi tab đang mở (chưa realtime).
-            </p>
-            <RfqConversationTimeline
-              items={timelineItems}
-              loading={timelineLoading}
-              error={timelineError}
-              onRetry={reloadTimeline}
-              viewerRole="shop"
-              listRef={timelineListRef}
-              stickToBottomRef={timelineStickRef}
-              emptyTitle="Chưa có tin nhắn"
-              emptyHint="Gửi tin nhắn hoặc báo giá để bắt đầu trao đổi."
-              noQuotesHint={
-                !hasQuote ? "Chưa có báo giá — form báo giá ở trên vẫn dùng như cũ." : null
-              }
-            />
-            <RfqMessageComposer
-              onSend={sendText}
-              placeholder="Nhắn tin cho khách…"
-            />
-          </section>
+                <button
+                  type="button"
+                  className="rfq-shop-drawer-trigger rfq-mobile-only"
+                  onClick={handleOpenDrawer}
+                  aria-haspopup="dialog"
+                  aria-expanded={drawerOpen}
+                >
+                  <span className="rfq-shop-drawer-trigger__icon" aria-hidden>
+                    ☰
+                  </span>
+                  <span className="rfq-shop-drawer-trigger__label">{mobileTriggerLabel}</span>
+                  {messageUnreadTotal > 0 ? (
+                    <span className="rfq-shop-drawer-trigger__badge">
+                      {messageUnreadTotal > 99 ? "99+" : messageUnreadTotal}
+                    </span>
+                  ) : null}
+                </button>
 
-          <div className="rfq-quote-bar" aria-hidden={hasQuote}>
-            {!hasQuote && (
-              <div className="rfq-quote-bar-inner">
-                <span className="rfq-quote-bar-text">{slaLabel || "Phản hồi web trước — hạn chế nhắc Zalo"}</span>
-                <a href="#rq-quote" className="rfq-btn rfq-btn--primary rfq-btn--sm rfq-btn--touch">
-                  Báo giá
-                </a>
+                <RfqConversationTimeline
+                  items={timelineItems}
+                  loading={timelineLoading}
+                  error={timelineError}
+                  onRetry={reloadTimeline}
+                  viewerRole="shop"
+                  listRef={timelineListRef}
+                  stickToBottomRef={timelineStickRef}
+                  emptyTitle="Chưa có tin nhắn"
+                  emptyHint=""
+                  hideFootnote
+                  hideRequestImageSeed
+                />
+
+                <div className="rfq-shop-quote-bar">
+                  <button
+                    type="button"
+                    className={`rfq-shop-quote-bar__toggle ${hasQuote ? "rfq-shop-quote-bar__toggle--done" : ""}`}
+                    onClick={toggleQuote}
+                    aria-expanded={quoteOpen}
+                  >
+                    {hasQuote ? "✓ Báo giá" : "💰 Báo giá"}
+                  </button>
+                  {quoteOpen ? (
+                    <div id="rq-quote" className="rfq-shop-quote-bar__panel">
+                      <form onSubmit={submitQuote} className="rfq-quote-form rfq-quote-form--compact">
+                        <label className="rfq-quote-label-price">
+                          Giá
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={1}
+                            step={1}
+                            className="rfq-quote-price-input"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            required
+                            disabled={hasQuote || submitting}
+                          />
+                        </label>
+                        <label>
+                          Loại
+                          <select value={lineType} onChange={(e) => setLineType(e.target.value)} disabled={hasQuote || submitting}>
+                            {LINE_OPTIONS.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <textarea
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          rows={2}
+                          placeholder="Ghi chú"
+                          disabled={hasQuote || submitting}
+                          className="rfq-quote-note-field"
+                        />
+                        <button
+                          type="submit"
+                          className="rfq-btn rfq-btn--primary rfq-btn--block"
+                          disabled={hasQuote || submitting}
+                        >
+                          {submitting ? "Đang gửi…" : hasQuote ? "Đã gửi báo giá" : "Gửi báo giá"}
+                        </button>
+                      </form>
+                      {detail.quotes?.length > 0 && (
+                        <ul className="rfq-quote-history rfq-quote-history--compact">
+                          {detail.quotes.map((q) => (
+                            <li key={q.id}>
+                              <strong>{formatMoney(q.price_amount, q.currency)}</strong>
+                              {q.note && <span className="muted"> — {q.note}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <RfqMessageComposer
+                  dispatchId={Number(dispatchId)}
+                  conversationHeaders={shopConversationHeaders()}
+                  onSend={(text, opts) => sendMessage(text, opts)}
+                  placeholder="Nhắn tin cho khách hàng…"
+                  sticky
+                  hideHints
+                />
               </div>
-            )}
-          </div>
-        </>
+            </div>
+          </section>
+        </div>
       )}
+
+      <RfqShopBuyerDrawer
+        open={drawerOpen}
+        onClose={handleCloseDrawer}
+        items={inboxItems}
+        activeDispatchId={dispatchId}
+        onSelectDispatch={handleSelectBuyer}
+      />
     </div>
   );
-}
-
-function dispatchStatusVi(s) {
-  const m = {
-    pending: "Chờ gửi",
-    web_notified: "Đã vào inbox",
-    viewed: "Shop đã xem",
-    accepted: "Đã nhận",
-    quoted: "Đã báo giá",
-    skipped: "Bỏ qua",
-    expired: "Hết hạn",
-    failed: "Lỗi",
-  };
-  return m[s] || s || "";
 }

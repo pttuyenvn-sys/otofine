@@ -1,5 +1,29 @@
 import { parseVehicleJsonField } from "./rfqVehicleNormalize.js";
 
+function parseImageCount(imagesJson) {
+  if (imagesJson == null) return 0;
+  try {
+    const arr = typeof imagesJson === "string" ? JSON.parse(imagesJson) : imagesJson;
+    return Array.isArray(arr) ? arr.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function formatInboxLastMessagePreview(row) {
+  const type = row?.last_message_type;
+  if (!type) return null;
+  const sender = row?.last_message_sender_type === "shop" ? "Shop" : "Khách";
+  if (type === "quote") return `${sender}: Đã báo giá`;
+  if (type === "image") {
+    const cap = String(row?.last_message_text || "").trim();
+    return cap ? `${sender}: ${cap.slice(0, 60)}` : `${sender}: Đã gửi ảnh`;
+  }
+  const text = String(row?.last_message_text || "").trim();
+  if (!text) return `${sender}: Tin nhắn`;
+  return `${sender}: ${text.length > 72 ? `${text.slice(0, 69)}…` : text}`;
+}
+
 /**
  * Additive inbox row fields for shop UI (response contract keeps all original columns).
  */
@@ -24,6 +48,8 @@ export function mapInboxDispatchRow(row, messageUnreadCount = 0) {
     message_unread_count: chatUnread,
     has_message_unread: chatUnread > 0,
     needs_shop_response: !hasQuote && !isTerminalDispatch(row, row.rfq_status),
+    image_count: parseImageCount(row.images_json),
+    last_message_preview: formatInboxLastMessagePreview(row),
   };
 }
 

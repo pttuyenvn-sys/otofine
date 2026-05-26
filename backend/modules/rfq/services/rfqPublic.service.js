@@ -8,39 +8,22 @@ import { buildDedupeFingerprint } from "../utils/rfqFingerprint.js";
 import { rfqLog } from "../utils/rfqLogger.js";
 import * as audit from "./rfqAudit.service.js";
 import { rfqCounterInc } from "./rfqObservability.service.js";
+import { formatRfqOtpSmsBody } from "../utils/rfqOtpSms.js";
 import { generatePublicId, runDispatchForOpenRequest } from "./rfqDispatch.service.js";
 import { scheduleInitialAutoWaveJob } from "./rfqAutoWave.schedule.js";
 import {
   normalizePhoneVN,
   validateRfqCreateBody,
 } from "../utils/rfqCreateValidation.js";
+import { buildBuyerEngagementPayload } from "../utils/rfqBuyerEngagement.js";
+import { mergeRfqImageUrlLists } from "../utils/rfqImageUrls.js";
 
 function randomOtp6() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function mergeImageLists(existingJson, incomingUrls) {
-  let prev = [];
-  try {
-    prev =
-      typeof existingJson === "string"
-        ? JSON.parse(existingJson)
-        : Array.isArray(existingJson)
-          ? existingJson
-          : [];
-  } catch {
-    prev = [];
-  }
-  const incoming = Array.isArray(incomingUrls) ? incomingUrls : [];
-  const seen = new Set();
-  const out = [];
-  for (const u of [...prev, ...incoming]) {
-    const s = String(u || "").trim();
-    if (!s || seen.has(s)) continue;
-    seen.add(s);
-    out.push(s);
-  }
-  return out;
+  return mergeRfqImageUrlLists(existingJson, incomingUrls);
 }
 
 export async function createRfqDraft(body) {
@@ -111,6 +94,7 @@ export async function createRfqDraft(body) {
         }
 
         console.info(`[RFQ] OTP merge ${phoneE164} (publicId=${dup.public_id}): ${code}`);
+        console.info(`[RFQ] OTP SMS preview:\n${formatRfqOtpSmsBody(code)}`);
         return out;
       }
 
@@ -171,6 +155,7 @@ export async function createRfqDraft(body) {
     }
 
     console.info(`[RFQ] OTP for ${phoneE164} (publicId=${publicId}): ${code}`);
+    console.info(`[RFQ] OTP SMS preview:\n${formatRfqOtpSmsBody(code)}`);
 
     return out;
   } catch (e) {
@@ -290,7 +275,9 @@ export async function verifyOtp(body) {
 
 export async function getRfqForViewer(rfqRow) {
   const quoteRepo = await import("../repositories/rfqQuote.repository.js");
+  const dispatchRepo = await import("../repositories/rfqDispatch.repository.js");
   const quotes = await quoteRepo.listQuotesForRequest(rfqRow.id);
+  const dispatchRows = await dispatchRepo.listDispatchesForBuyerRequest(rfqRow.id);
   let vehicle = rfqRow.vehicle_json;
   try {
     vehicle = typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
@@ -304,12 +291,19 @@ export async function getRfqForViewer(rfqRow) {
     images = [];
   }
 
+  const engagement = buildBuyerEngagementPayload(rfqRow, {
+    dispatchCount: dispatchRows.length,
+    quoteCount: quotes.length,
+  });
+
   return {
+    rfqRequestId: rfqRow.id,
     publicId: rfqRow.public_id,
     status: rfqRow.status,
     partDescription: rfqRow.part_description,
     vehicle,
     images,
+    ...engagement,
     quotes: quotes.map((q) => ({
       id: q.id,
       dispatchId: q.dispatch_id,
@@ -320,6 +314,11 @@ export async function getRfqForViewer(rfqRow) {
       note: q.note,
       lineType: q.line_type || "unknown",
       submittedAt: q.submitted_at,
+    })),
+    dispatches: dispatchRows.map((d) => ({
+      dispatchId: Number(d.dispatch_id),
+      shopId: Number(d.shop_id),
+      shopName: (d.shop_name && String(d.shop_name).trim()) || null,
     })),
     expiresAt: rfqRow.expires_at,
   };

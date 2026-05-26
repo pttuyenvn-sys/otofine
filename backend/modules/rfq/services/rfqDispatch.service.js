@@ -10,6 +10,8 @@ import { rfqCounterInc } from "./rfqObservability.service.js";
 import { scheduleZaloEscalationJob } from "./rfqEscalation.schedule.js";
 import { sendPush } from "../../../services/onesignalService.js";
 import { ensureConversationForDispatch } from "./rfqConversation.service.js";
+import { notifyBuyerStatusPush } from "./rfqPushBuyer.service.js";
+import { buildShopRfqConversationPath } from "../utils/rfqShopDeepLink.js";
 
 /** Wave dispatch — respects max_dispatches_per_rfq, excludes shops already dispatched, env tuning only */
 async function appendDispatchWaveInternal(rfqRequestId) {
@@ -103,7 +105,7 @@ async function appendDispatchWaveInternal(rfqRequestId) {
 
           message: "Giá phụ tùng ô tô",
 
-          url: `/rfq/shop/${dispatchId}`,
+          url: buildShopRfqConversationPath(dispatchId),
         });
 
         console.log(
@@ -185,6 +187,14 @@ async function appendDispatchWaveInternal(rfqRequestId) {
       } catch (err) {
         console.error("[RFQ] schedule Zalo escalation:", err?.message || err);
       }
+    }
+
+    if (shopIds.length > 0) {
+      void notifyBuyerStatusPush({
+        rfqRequestId: rid,
+        status: "dispatching",
+        fromStatus: existing > 0 ? "dispatching" : "open",
+      });
     }
 
     return { dispatched: shopIds.length, wave: nextWave };

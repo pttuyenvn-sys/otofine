@@ -1,22 +1,23 @@
 "use client";
 
-/**
- * RFQ conversation timeline (rfq_messages) — quote/system/text events.
- *
- * - rfq_quotes / dispatch remain source of truth for quotes and routing.
- * - dispatchId is the canonical room anchor.
- * - Text send via composer + poll (no websocket / unread yet).
- */
-
-import { useEffect, useRef } from "react";
+import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import {
   RFQ_LINE_TYPE_LABEL,
   conversationHasQuoteMessages,
+  enrichMessagesForDisplay,
   formatConversationTime,
+  formatConversationTimeShort,
   formatQuoteMoney,
-  isNearScrollBottom,
+  messageStableKey,
 } from "@/lib/rfq/rfqConversationMessages";
+import {
+  RFQ_SCROLL_BOTTOM_THRESHOLD,
+  readNearBottom,
+  scrollToEndInstant,
+  shouldScrollToEndOnUpdate,
+} from "@/lib/rfq/rfqConversationScroll";
 import RfqSafeMessageText from "@/components/rfq/RfqSafeMessageText";
+import RfqConversationImageGallery from "@/components/rfq/RfqConversationImageGallery";
 
 export default function RfqConversationTimeline({
   items = [],
@@ -24,49 +25,107 @@ export default function RfqConversationTimeline({
   error = "",
   onRetry,
   emptyTitle = "Chưa có tin nhắn",
-  emptyHint = "Lịch sử hội thoại sẽ hiện ở đây khi có báo giá hoặc sự kiện hệ thống.",
+  emptyHint = "Nhắn tin để trao đổi với shop.",
   noQuotesHint = null,
   showShopLabel = false,
   viewerRole = null,
   listRef: externalListRef,
   stickToBottomRef,
   className = "",
+  compact = true,
+  hideFootnote = false,
+  hideRequestImageSeed = false,
 }) {
   const hasQuote = conversationHasQuoteMessages(items);
   const showNoQuotesNote = noQuotesHint && !hasQuote && !loading && !error && items.length === 0;
   const internalListRef = useRef(null);
   const listRef = externalListRef || internalListRef;
 
-  useEffect(() => {
+  const displayItems = useMemo(() => {
+    const enriched = enrichMessagesForDisplay(items);
+    if (!hideRequestImageSeed) return enriched;
+    return enriched.filter((msg) => msg.metadata_json?.seed !== "rfq_request_images");
+  }, [items, hideRequestImageSeed]);
+
+  const tailSignature = displayItems.length
+    ? `${displayItems.length}:${messageStableKey(displayItems[displayItems.length - 1])}`
+    : "0";
+
+  const prevCountRef = useRef(0);
+  const prevLastIdRef = useRef(null);
+  const initialScrollDoneRef = useRef(false);
+  const pendingRestoreRef = useRef(null);
+  const displayItemsRef = useRef(displayItems);
+  displayItemsRef.current = displayItems;
+
+  useLayoutEffect(() => {
     const el = listRef.current;
+    const rows = displayItemsRef.current;
     if (!el || loading) return;
-    const stick = stickToBottomRef?.current !== false;
-    const nearBottom = isNearScrollBottom(el);
-    if (stick || nearBottom) {
-      el.scrollTop = el.scrollHeight;
+
+    const nextCount = rows.length;
+    const nextLastId = nextCount ? rows[nextCount - 1].id : null;
+
+    if (!initialScrollDoneRef.current && nextCount > 0) {
+      scrollToEndInstant(el);
+      initialScrollDoneRef.current = true;
+      prevCountRef.current = nextCount;
+      prevLastIdRef.current = nextLastId;
+      return;
     }
-  }, [items, loading, listRef, stickToBottomRef]);
+
+    if (pendingRestoreRef.current != null) {
+      el.scrollTop = pendingRestoreRef.current;
+      pendingRestoreRef.current = null;
+      prevCountRef.current = nextCount;
+      prevLastIdRef.current = nextLastId;
+      return;
+    }
+
+    const nearBottom = readNearBottom(el, RFQ_SCROLL_BOTTOM_THRESHOLD);
+    const stick = stickToBottomRef?.current === true;
+
+    if (
+      shouldScrollToEndOnUpdate({
+        prevCount: prevCountRef.current,
+        prevLastId: prevLastIdRef.current,
+        nextCount,
+        nextLastId,
+        stickToBottom: stick,
+        nearBottom,
+      })
+    ) {
+      scrollToEndInstant(el);
+    }
+
+    prevCountRef.current = nextCount;
+    prevLastIdRef.current = nextLastId;
+  }, [tailSignature, loading, listRef, stickToBottomRef]);
 
   function onListScroll() {
-    if (!stickToBottomRef || !listRef.current) return;
-    stickToBottomRef.current = isNearScrollBottom(listRef.current);
+    const el = listRef.current;
+    if (!el || !stickToBottomRef) return;
+    const near = readNearBottom(el, RFQ_SCROLL_BOTTOM_THRESHOLD);
+    stickToBottomRef.current = near;
+    if (!near) {
+      pendingRestoreRef.current = el.scrollTop;
+    }
   }
 
   return (
     <section
-      className={`rfq-conv-timeline ${className}`.trim()}
+      className={`rfq-conv-timeline ${compact ? "rfq-conv-timeline--compact" : ""} ${viewerRole ? `rfq-conv-timeline--viewer-${viewerRole}` : ""} ${className}`.trim()}
       aria-label="Lịch sử hội thoại"
     >
       {loading && (
         <div className="rfq-conv-timeline__loading" aria-busy="true">
           <div className="rfq-skel rfq-conv-skel" />
           <div className="rfq-skel rfq-conv-skel rfq-conv-skel--short" />
-          <div className="rfq-skel rfq-conv-skel" />
         </div>
       )}
 
       {!loading && error && (
-        <div className="rfq-conv-timeline__error card">
+        <div className="rfq-conv-timeline__error">
           <p className="rfq-conv-timeline__error-text">{error}</p>
           {onRetry && (
             <button type="button" className="rfq-btn rfq-btn--ghost rfq-btn--sm" onClick={onRetry}>
@@ -76,138 +135,164 @@ export default function RfqConversationTimeline({
         </div>
       )}
 
-      {!loading && !error && items.length === 0 && (
-        <div className="rfq-conv-timeline__empty card">
+      {!loading && !error && displayItems.length === 0 && (
+        <div className="rfq-conv-timeline__empty">
           <p className="rfq-conv-timeline__empty-title">{emptyTitle}</p>
-          <p className="muted rfq-conv-timeline__empty-hint">{emptyHint}</p>
-          {showNoQuotesNote && (
+          {emptyHint ? <p className="muted rfq-conv-timeline__empty-hint">{emptyHint}</p> : null}
+          {showNoQuotesNote && noQuotesHint ? (
             <p className="muted rfq-conv-timeline__empty-hint">{noQuotesHint}</p>
-          )}
+          ) : null}
         </div>
       )}
 
-      {!loading && !error && items.length > 0 && (
+      {!loading && !error && displayItems.length > 0 && (
         <ol
           className="rfq-conv-timeline__list"
           ref={listRef}
           onScroll={onListScroll}
         >
-          {items.map((msg) => (
-            <li key={`${msg.dispatchId || ""}-${msg.id}`} className="rfq-conv-timeline__item">
+          {displayItems.map((msg) => (
+            <li
+              key={`${msg.dispatchId || ""}-${msg.id}`}
+              className={`rfq-conv-timeline__item ${msg.isGroupedWithPrev ? "rfq-conv-timeline__item--grouped" : ""}`}
+            >
               {msg.message_type === "quote" ? (
-                <QuoteTimelineCard msg={msg} showShopLabel={showShopLabel} />
+                <QuoteTimelineCard msg={msg} showShopLabel={showShopLabel} showTime={msg.showTime} />
               ) : msg.message_type === "system" ? (
-                <SystemTimelineCard msg={msg} showShopLabel={showShopLabel} />
+                <SystemTimelineCard msg={msg} showTime={msg.showTime} />
               ) : msg.message_type === "text" ? (
-                <TextTimelineCard msg={msg} showShopLabel={showShopLabel} viewerRole={viewerRole} />
+                <TextBubble msg={msg} viewerRole={viewerRole} showShopLabel={showShopLabel} showTime={msg.showTime} />
+              ) : msg.message_type === "image" ? (
+                <ImageBubble msg={msg} viewerRole={viewerRole} showShopLabel={showShopLabel} showTime={msg.showTime} />
               ) : (
-                <GenericTimelineCard msg={msg} showShopLabel={showShopLabel} />
+                <GenericBubble msg={msg} showShopLabel={showShopLabel} />
               )}
             </li>
           ))}
         </ol>
       )}
 
-      <p className="rfq-conv-timeline__footnote muted">
-        Tin nhắn cập nhật định kỳ khi tab đang mở — chưa có realtime. Báo giá chính thức lưu trong RFQ.
-      </p>
+      {!hideFootnote && (
+        <p className="rfq-conv-timeline__footnote muted">Cập nhật khi tab mở — cuộn lên để đọc, không tự nhảy.</p>
+      )}
     </section>
   );
 }
 
-function QuoteTimelineCard({ msg, showShopLabel }) {
+function bubblePropsEqual(a, b) {
+  return (
+    a.msg === b.msg &&
+    a.showShopLabel === b.showShopLabel &&
+    a.viewerRole === b.viewerRole &&
+    a.showTime === b.showTime
+  );
+}
+
+const QuoteTimelineCard = memo(function QuoteTimelineCard({ msg, showShopLabel, showTime }) {
   const meta = msg.metadata_json || {};
   const lineKey = meta.line_type || "unknown";
   const lineLabel = RFQ_LINE_TYPE_LABEL[lineKey] || lineKey;
   const note = msg.message_text || meta.note || null;
 
   return (
-    <article className="rfq-conv-msg rfq-conv-msg--quote card">
-      <div className="rfq-conv-msg__head">
-        <span className="rfq-conv-msg__badge">Báo giá</span>
-        {showShopLabel && msg.shopLabel && (
-          <span className="rfq-conv-msg__shop">{msg.shopLabel}</span>
-        )}
-      </div>
-      <div className="rfq-conv-msg__price">
-        {formatQuoteMoney(meta.price_amount, meta.currency)}
-      </div>
+    <article className="rfq-conv-msg rfq-conv-msg--quote">
+      <div className="rfq-conv-msg__quote-label">Báo giá</div>
+      {showShopLabel && msg.shopLabel && (
+        <span className="rfq-conv-msg__shop-inline">{msg.shopLabel}</span>
+      )}
+      <div className="rfq-conv-msg__price">{formatQuoteMoney(meta.price_amount, meta.currency)}</div>
       {lineLabel && lineLabel !== "unknown" && (
-        <span className="rfq-pill rfq-pill--muted rfq-conv-msg__line">{lineLabel}</span>
+        <span className="rfq-conv-msg__line-pill">{lineLabel}</span>
       )}
       {note && (
-        <p className="rfq-conv-msg__text muted">
+        <p className="rfq-conv-msg__quote-note">
           <RfqSafeMessageText text={note} />
         </p>
       )}
-      <time className="rfq-conv-msg__time" dateTime={msg.created_at}>
-        {formatConversationTime(msg.created_at)}
-      </time>
+      {showTime && (
+        <time className="rfq-conv-msg__time" dateTime={msg.created_at}>
+          {formatConversationTime(msg.created_at)}
+        </time>
+      )}
     </article>
   );
-}
+}, bubblePropsEqual);
 
-function SystemTimelineCard({ msg, showShopLabel }) {
+const SystemTimelineCard = memo(function SystemTimelineCard({ msg, showTime }) {
   return (
-    <article className="rfq-conv-msg rfq-conv-msg--system card">
-      <div className="rfq-conv-msg__head">
-        <span className="rfq-conv-msg__badge rfq-conv-msg__badge--system">Hệ thống</span>
-        {showShopLabel && msg.shopLabel && (
-          <span className="rfq-conv-msg__shop muted">{msg.shopLabel}</span>
-        )}
-      </div>
-      <p className="rfq-conv-msg__text">
-        <RfqSafeMessageText text={msg.message_text || "Sự kiện hệ thống"} />
+    <article className="rfq-conv-msg rfq-conv-msg--system">
+      <p className="rfq-conv-msg__system-text">
+        <RfqSafeMessageText text={msg.message_text || "Hệ thống"} />
       </p>
-      <time className="rfq-conv-msg__time" dateTime={msg.created_at}>
-        {formatConversationTime(msg.created_at)}
-      </time>
+      {showTime && (
+        <time className="rfq-conv-msg__time rfq-conv-msg__time--center" dateTime={msg.created_at}>
+          {formatConversationTimeShort(msg.created_at)}
+        </time>
+      )}
     </article>
   );
-}
+}, bubblePropsEqual);
 
-function TextTimelineCard({ msg, showShopLabel, viewerRole }) {
-  const isOwn =
-    viewerRole === "shop"
-      ? msg.sender_type === "shop"
-      : viewerRole === "buyer"
-        ? msg.sender_type === "buyer"
-        : false;
+const TextBubble = memo(function TextBubble({ msg, viewerRole, showShopLabel, showTime }) {
+  const isOwn = resolveIsOwn(msg, viewerRole);
 
   return (
-    <article
-      className={`rfq-conv-msg rfq-conv-msg--text card ${isOwn ? "rfq-conv-msg--own" : "rfq-conv-msg--peer"}`}
-    >
-      <div className="rfq-conv-msg__head">
-        <span className="rfq-conv-msg__badge rfq-conv-msg__badge--text">
-          {isOwn ? "Bạn" : msg.sender_type === "shop" ? "Shop" : "Khách"}
-        </span>
-        {showShopLabel && msg.shopLabel && !isOwn && (
-          <span className="rfq-conv-msg__shop">{msg.shopLabel}</span>
-        )}
-      </div>
-      <p className="rfq-conv-msg__text rfq-conv-msg__text--body">
+    <article className={`rfq-bubble rfq-bubble--text ${isOwn ? "rfq-bubble--own" : "rfq-bubble--peer"}`}>
+      {!isOwn && showShopLabel && msg.shopLabel && (
+        <span className="rfq-bubble__sender">{msg.shopLabel}</span>
+      )}
+      <p className="rfq-bubble__body">
         <RfqSafeMessageText text={msg.message_text} />
       </p>
-      <time className="rfq-conv-msg__time" dateTime={msg.created_at}>
-        {formatConversationTime(msg.created_at)}
-      </time>
+      {showTime && (
+        <time className="rfq-bubble__time" dateTime={msg.created_at}>
+          {formatConversationTimeShort(msg.created_at)}
+        </time>
+      )}
     </article>
   );
-}
+}, bubblePropsEqual);
 
-function GenericTimelineCard({ msg, showShopLabel }) {
+const ImageBubble = memo(function ImageBubble({ msg, viewerRole, showShopLabel, showTime }) {
+  const isOwn = resolveIsOwn(msg, viewerRole);
+  const isSeed = msg.metadata_json?.seed === "rfq_request_images";
+
   return (
-    <article className="rfq-conv-msg card">
-      {showShopLabel && msg.shopLabel && (
-        <span className="rfq-conv-msg__shop muted">{msg.shopLabel}</span>
+    <article className={`rfq-bubble rfq-bubble--image ${isOwn ? "rfq-bubble--own" : "rfq-bubble--peer"}`}>
+      {!isOwn && showShopLabel && msg.shopLabel && (
+        <span className="rfq-bubble__sender">{msg.shopLabel}</span>
       )}
-      <p className="rfq-conv-msg__text">
+      {isSeed && <span className="rfq-bubble__tag">Ảnh yêu cầu</span>}
+      <RfqConversationImageGallery attachments={msg.attachments} />
+      {msg.message_text ? (
+        <p className="rfq-bubble__caption">
+          <RfqSafeMessageText text={msg.message_text} />
+        </p>
+      ) : null}
+      {showTime && (
+        <time className="rfq-bubble__time" dateTime={msg.created_at}>
+          {formatConversationTimeShort(msg.created_at)}
+        </time>
+      )}
+    </article>
+  );
+}, bubblePropsEqual);
+
+const GenericBubble = memo(function GenericBubble({ msg, showShopLabel }) {
+  return (
+    <article className="rfq-bubble rfq-bubble--peer">
+      {showShopLabel && msg.shopLabel && (
+        <span className="rfq-bubble__sender">{msg.shopLabel}</span>
+      )}
+      <p className="rfq-bubble__body">
         <RfqSafeMessageText text={msg.message_text || msg.message_type} />
       </p>
-      <time className="rfq-conv-msg__time" dateTime={msg.created_at}>
-        {formatConversationTime(msg.created_at)}
-      </time>
     </article>
   );
+}, (a, b) => a.msg === b.msg && a.showShopLabel === b.showShopLabel);
+
+function resolveIsOwn(msg, viewerRole) {
+  if (viewerRole === "shop") return msg.sender_type === "shop";
+  if (viewerRole === "buyer") return msg.sender_type === "buyer";
+  return false;
 }

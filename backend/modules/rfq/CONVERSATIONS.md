@@ -43,7 +43,8 @@ Quote submit still writes `rfq_quotes` first; a `message_type = 'quote'` row is 
 |--------|------|------|
 | GET | `/api/rfq/conversations/:dispatchId` | Shop JWT **or** `x-rfq-viewer-token` |
 | GET | `/api/rfq/conversations/:dispatchId/messages` | Same — includes `unread_count`, `last_read_message_id` |
-| POST | `/api/rfq/conversations/:dispatchId/messages` | Same — text only |
+| POST | `/api/rfq/conversations/:dispatchId/messages` | Same — text and/or `attachmentIds` |
+| POST | `/api/rfq/conversations/:dispatchId/upload-image` | Stage image (multipart `file`) |
 | POST | `/api/rfq/conversations/:dispatchId/read` | Same — body optional `{ messageId }` |
 | GET | `/api/rfq/conversations/unread-summary?dispatchIds=1,2` | Buyer viewer token only |
 
@@ -102,8 +103,7 @@ cd backend && npm run migrate:rfq:message-indexes
 ## Not implemented (intentional)
 
 - WebSocket / SSE / typing indicators
-- Push notification changes for chat
-- Image upload messaging
+- WebSocket push events for chat
 - Edit / delete messages
 - Server-side moderation queue / ML spam (roadmap below)
 
@@ -128,4 +128,4 @@ cd backend && npm run migrate:rfq:message-indexes
 1. **Realtime** — on `insertMessage`, push event to room; client updates timeline + unread without waiting for poll.
 2. **Unread** — optional denormalized `unread_count` on `rfq_conversations` if COUNT per poll becomes hot; cursors remain source of truth.
 3. **Push** — only after product rules; use read cursor to suppress notifications.
-4. **Images** — separate upload + `message_type = 'image'`.
+4. **Images** — implemented; see `RFQ_MEDIA_MESSAGING.md`.

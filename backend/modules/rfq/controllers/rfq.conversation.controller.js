@@ -71,19 +71,24 @@ export async function unreadSummary(req, res) {
   }
 }
 
-/** POST body: { text } — text-only; realtime deferred. */
+/** POST body: { text?, attachmentIds? } — text and/or staged images. */
 export async function postMessage(req, res) {
   const dispatchId = Number(req.params.dispatchId);
   const access = req.conversationAccess;
 
   try {
     const text = req.body?.text ?? req.body?.messageText ?? "";
+    const attachmentIds = req.body?.attachmentIds ?? req.body?.attachment_ids ?? [];
     rfqLog.info("rfq.conversation.post_message", {
       dispatch_id: dispatchId,
       participant_type: access?.type ?? null,
       has_text: Boolean(String(text ?? "").length),
+      attachment_count: Array.isArray(attachmentIds) ? attachmentIds.length : 0,
     });
-    const data = await convSvc.sendTextMessage(dispatchId, access, { text });
+    const data = await convSvc.sendConversationMessage(dispatchId, access, {
+      text,
+      attachmentIds,
+    });
     res.status(201).json(data);
   } catch (e) {
     const status = Number(e?.status || e?.statusCode || 500);
@@ -95,6 +100,27 @@ export async function postMessage(req, res) {
       sql_code: e?.code ?? null,
       stack: e?.stack ? String(e.stack).split("\n").slice(0, 6).join("\n") : null,
     });
+    sendHttpError(res, e);
+  }
+}
+
+/** POST multipart `file` — stage image for a later message. */
+export async function uploadMessageImage(req, res) {
+  const dispatchId = Number(req.params.dispatchId);
+  const access = req.conversationAccess;
+
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "MISSING_FILE", code: "MISSING_FILE" });
+    }
+    const data = await convSvc.uploadConversationImage(
+      dispatchId,
+      access,
+      req.file.buffer,
+      { mime: req.file.mimetype, size: req.file.size },
+    );
+    res.status(201).json(data);
+  } catch (e) {
     sendHttpError(res, e);
   }
 }

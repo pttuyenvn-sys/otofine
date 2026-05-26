@@ -3,10 +3,17 @@
 import { useEffect, useRef } from "react";
 import { markConversationRead } from "@/lib/rfq/rfqConversationApi";
 import { RFQ_READ_DEBOUNCE_MS } from "@/lib/rfq/rfqConversationConstants";
+import { messageStableKey } from "@/lib/rfq/rfqConversationMessages";
 import {
   pickReadMapForBuyer,
   pickReadMessageId,
 } from "@/lib/rfq/rfqConversationRead";
+
+function itemsTailSignature(items) {
+  if (!items?.length) return "0";
+  const tail = items[items.length - 1];
+  return `${items.length}:${messageStableKey(tail)}`;
+}
 
 /**
  * Debounced mark-read when timeline is visible and user is caught up.
@@ -24,6 +31,9 @@ export function useShopConversationMarkRead({
 }) {
   const timerRef = useRef(null);
   const lastSentIdRef = useRef(0);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const tailSignature = itemsTailSignature(items);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -35,9 +45,9 @@ export function useShopConversationMarkRead({
     }
 
     const messageId = pickReadMessageId(
-      items,
+      itemsRef.current,
       listRef?.current,
-      stickToBottomRef?.current !== false,
+      stickToBottomRef?.current === true,
     );
     if (messageId == null || messageId <= lastSentIdRef.current) {
       return undefined;
@@ -55,7 +65,7 @@ export function useShopConversationMarkRead({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [dispatchId, items, loading, enabled, headers, listRef, stickToBottomRef, onMarked]);
+  }, [dispatchId, tailSignature, loading, enabled, headers, listRef, stickToBottomRef, onMarked]);
 }
 
 export function useBuyerConversationMarkRead({
@@ -70,6 +80,9 @@ export function useBuyerConversationMarkRead({
 }) {
   const timerRef = useRef(null);
   const lastSentByDispatchRef = useRef({});
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const tailSignature = itemsTailSignature(items);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -80,7 +93,7 @@ export function useBuyerConversationMarkRead({
       return undefined;
     }
 
-    const readMap = pickReadMapForBuyer(items, listRef?.current, stickToBottomRef);
+    const readMap = pickReadMapForBuyer(itemsRef.current, listRef?.current, stickToBottomRef);
     const entries = Object.entries(readMap).filter(([d, id]) => {
       const prev = lastSentByDispatchRef.current[d] || 0;
       return id > prev;
@@ -103,5 +116,5 @@ export function useBuyerConversationMarkRead({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [viewerToken, items, loading, enabled, headers, listRef, stickToBottomRef, onMarked]);
+  }, [viewerToken, tailSignature, loading, enabled, headers, listRef, stickToBottomRef, onMarked]);
 }

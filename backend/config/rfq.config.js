@@ -20,6 +20,12 @@ export const rfqFlags = {
   RFQ_OTP_DEV_RETURN: envBool("RFQ_OTP_DEV_RETURN", false),
   /** Delayed RFQ dispatch waves (worker jobs/rfqAutoWave.worker.js) */
   RFQ_AUTO_WAVE_ENABLED: envBool("RFQ_AUTO_WAVE_ENABLED", false),
+  /** Buyer inactive reminder worker (jobs/rfqBuyerReminder.worker.js) */
+  RFQ_BUYER_REMINDER_ENABLED: envBool("RFQ_BUYER_REMINDER_ENABLED", false),
+  /** Generate thumb_400 + thumb_100 on RFQ image upload */
+  RFQ_THUMBNAILS_ENABLED: envBool("RFQ_THUMBNAILS_ENABLED", true),
+  /** Encode thumbnails as WebP (thumb_*_{stem}.webp); originals stay JPEG */
+  RFQ_THUMBS_WEBP_ENABLED: envBool("RFQ_THUMBS_WEBP_ENABLED", true),
 };
 
 /** OTP pepper — required when module enabled + OTP verify */
@@ -51,6 +57,12 @@ export const rfqLimits = {
   conversationUnreadSummaryPerBuyerMinute: Number(
     process.env.RFQ_RL_CONV_UNREAD_SUM_MIN || 60,
   ),
+  /** POST /api/rfq/history/request-otp per IP per hour */
+  historyOtpRequestPerIpHour: Number(process.env.RFQ_RL_HISTORY_OTP_IP_HOUR || 20),
+  /** POST /api/rfq/history/verify-otp per IP per hour */
+  historyOtpVerifyPerIpHour: Number(process.env.RFQ_RL_HISTORY_OTP_VERIFY_IP_HOUR || 40),
+  /** GET history list/detail per session per minute */
+  historyReadPerSessionMinute: Number(process.env.RFQ_RL_HISTORY_READ_MIN || 60),
   // Phase 8.2 — RFQ Assist (soft rollout). Generous defaults; the panel
   // only renders for a small slice of RFQs while RFQ_ASSIST_ROLLOUT_PCT is low.
   assistSuggestionsPerMinute: Number(process.env.RFQ_RL_ASSIST_SUGGEST_MIN || 60),
@@ -121,4 +133,23 @@ export function rfqAutoWaveDelayMinutes() {
  */
 export function rfqAutoWaveExtraRounds() {
   return Math.max(0, Math.min(5, Number(process.env.RFQ_AUTO_WAVE_EXTRA_ROUNDS ?? 1)));
+}
+
+export function rfqThumbnailsEnabled() {
+  return rfqFlags.RFQ_THUMBNAILS_ENABLED;
+}
+
+export function rfqThumbsWebpEnabled() {
+  return rfqFlags.RFQ_THUMBS_WEBP_ENABLED;
+}
+
+/** Buyer history portal session TTL (days) */
+export function rfqHistorySessionTtlDays() {
+  return Math.max(1, Math.min(90, Number(process.env.RFQ_HISTORY_SESSION_DAYS || 30)));
+}
+
+/** Buyer reminder worker poll interval (ms) — default 20 min */
+export function rfqBuyerReminderPollMs() {
+  const raw = Number(process.env.RFQ_BUYER_REMINDER_POLL_MS || 20 * 60 * 1000);
+  return Math.max(15 * 60 * 1000, Math.min(30 * 60 * 1000, raw));
 }

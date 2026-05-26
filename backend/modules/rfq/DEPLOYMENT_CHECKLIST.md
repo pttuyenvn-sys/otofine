@@ -34,6 +34,7 @@
 8. **Conversation read cursors:** `npm run migrate:rfq:conversation-reads` — `030` (`rfq_conversation_reads`). Enables POST `…/read` + unread badges; polling unchanged (no websocket).
 9. **Message query indexes:** `npm run migrate:rfq:message-indexes` — `031` (unread/list indexes). Safe to run after `029`; improves poll/unread under load.
 10. **RFQ image upload (nginx):** See `NGINX_RFQ_UPLOAD.md` — `client_max_body_size 12m`, proxy `/uploads/` to Express, 120s proxy timeouts. Without this: **413** on large photos, broken thumbnails after upload.
+11. **Conversation image attachments:** `npm run migrate:rfq:message-attachments` — `032`. See `RFQ_MEDIA_MESSAGING.md`. Enables chat images + seeds initial RFQ photos into timeline.
 
 ### Rollback — push subscription `viewer_path` (`027`)
 

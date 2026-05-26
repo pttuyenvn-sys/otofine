@@ -1,5 +1,4 @@
 import { pool } from "../../../config/db.js";
-import { sendBuyerQuotePush } from "../../../services/rfqPush.service.js";
 import * as dispatchRepo from "../repositories/rfqDispatch.repository.js";
 import * as quoteRepo from "../repositories/rfqQuote.repository.js";
 import * as audit from "./rfqAudit.service.js";
@@ -11,67 +10,13 @@ import {
   appendQuoteTimelineEvent,
   getMessageUnreadMapForShop,
 } from "./rfqConversation.service.js";
-
-/** Fire-and-forget buyer push — never throws into quote flow */
-function notifyBuyerQuotePushed(rfqRequestId, shopId) {
-  void (async () => {
-    try {
-      const rid = Number(rfqRequestId);
-      if (!Number.isFinite(rid) || rid <= 0) {
-        console.warn("[RFQ PUSH] buyer notify skipped: invalid rfqRequestId", rfqRequestId);
-        return;
-      }
-
-      const [subRows] = await pool.query(
-        `SELECT onesignal_subscription_id FROM rfq_push_subscriptions WHERE rfq_request_id = ?`,
-        [rid],
-      );
-      const subscriptionIds = subRows
-        .map((r) => r.onesignal_subscription_id)
-        .filter((id) => id != null && String(id).trim() !== "");
-      console.log("[RFQ PUSH] buyer subscriptions", subscriptionIds.length);
-
-      if (!subscriptionIds.length) return;
-
-      const [[shopRow]] = await pool.query(`SELECT name FROM shops WHERE id = ? LIMIT 1`, [
-        shopId,
-      ]);
-      const shopName =
-        (shopRow?.name && String(shopRow.name).trim()) || "Shop";
-
-      const [[pushRow]] = await pool.query(
-        `
-          SELECT viewer_path
-          FROM rfq_push_subscriptions
-          WHERE rfq_request_id = ?
-            AND viewer_path IS NOT NULL
-            AND viewer_path <> ''
-          ORDER BY id DESC
-          LIMIT 1
-          `,
-        [rid]
-      );
-
-      await sendBuyerQuotePush({
-        subscriptionIds,
-        rfqRequestId: rid,
-        shopName,
-        viewerPath: pushRow?.viewer_path || null,
-      });
-    } catch (e) {
-      console.warn("[RFQ PUSH] buyer notify failed:", e?.message || e, {
-        rfq_request_id: rfqRequestId,
-        shop_id: shopId,
-      });
-    }
-  })();
-}
+import { notifyBuyerQuotePushEvent, notifyBuyerStatusPush } from "./rfqPushBuyer.service.js";
 
 export async function listInbox(shopId, query) {
   const limit = Math.min(Number(query.limit) || 24, 50);
   const offset = Math.max(Number(query.offset) || 0, 0);
   const filter = query.filter || "all";
-  const sort = query.sort || "sla";
+  const sort = query.sort || "activity";
   const vehicleFilters = parseInboxFilterQuery(query);
   const rows = await dispatchRepo.listInboxForShop(shopId, {
     limit,
@@ -262,7 +207,12 @@ export async function submitQuote(dispatchId, shopId, body) {
 
     rfqCounterInc("quote_submitted");
 
-    notifyBuyerQuotePushed(d.rfq_request_id, shopId);
+    void notifyBuyerQuotePushEvent({
+      rfqRequestId: d.rfq_request_id,
+      shopId,
+      quoteId,
+      dispatchId,
+    });
 
     return { ok: true };
   } catch (e) {

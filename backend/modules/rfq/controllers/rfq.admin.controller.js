@@ -1,7 +1,9 @@
 import * as adminSvc from "../services/rfqAdminHealth.service.js";
 import * as rfqObs from "../services/rfqObservability.service.js";
+import { getRfqR2MetricsSnapshot } from "../utils/rfqR2Observability.js";
 import * as analyticsSvc from "../services/rfqAnalytics.service.js";
 import * as opsSvc from "../services/rfqAdminOps.service.js";
+import * as reminderMetrics from "../services/rfqReminderAttribution.service.js";
 import * as jobRepo from "../repositories/rfqEscalationJob.repository.js";
 import { sendHttpError } from "../utils/httpError.js";
 
@@ -11,6 +13,7 @@ export async function rfqAdminHealth(req, res) {
     const deadOrSkipped = await jobRepo.listRecentDeadOrSkipped(40);
     res.json({
       counters: rfqObs.getRfqCountersSnapshot(),
+      r2: getRfqR2MetricsSnapshot(),
       snapshot,
       recent_escalations: deadOrSkipped,
     });
@@ -24,10 +27,21 @@ export async function rfqAdminMetrics(req, res) {
     const snapshot = await adminSvc.getRfqAdminHealthSnapshot();
     res.json({
       counters: rfqObs.getRfqCountersSnapshot(),
+      r2: getRfqR2MetricsSnapshot(),
       funnel24h: snapshot.last24h,
       backlog: snapshot.backlog,
       latency_seconds_7d: snapshot.latency_seconds_7d,
     });
+  } catch (e) {
+    sendHttpError(res, e);
+  }
+}
+
+export async function rfqAdminReminderMetrics(req, res) {
+  try {
+    const days = req.query.days;
+    const data = await reminderMetrics.getReminderMetrics(days);
+    res.json(data);
   } catch (e) {
     sendHttpError(res, e);
   }

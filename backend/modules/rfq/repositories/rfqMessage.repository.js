@@ -1,4 +1,5 @@
 import { pool } from "../../../config/db.js";
+import * as attRepo from "./rfqMessageAttachment.repository.js";
 
 /**
  * Timeline messages — additive layer; rfq_quotes remains quote source of truth.
@@ -61,7 +62,19 @@ export async function findMessageById(messageId, conn = null) {
      LIMIT 1`,
     [messageId],
   );
-  return row ? normalizeMessageRow(row) : null;
+  if (!row) return null;
+  const msg = normalizeMessageRow(row);
+  const attRows = await attRepo.listByMessageIds([msg.id], conn);
+  msg.attachments = attRows.map((a) => ({
+    id: a.id,
+    url: a.url,
+    mime_type: a.mime_type,
+    byte_size: a.byte_size != null ? Number(a.byte_size) : null,
+    width: a.width != null ? Number(a.width) : null,
+    height: a.height != null ? Number(a.height) : null,
+    sort_order: Number(a.sort_order || 0),
+  }));
+  return msg;
 }
 
 /** Deep pagination cap — avoids expensive OFFSET scans via poll abuse. */
@@ -91,11 +104,36 @@ export async function listMessagesForConversation(conversationId, opts = {}) {
     [conversationId],
   );
 
+  const items = rows.map(normalizeMessageRow);
+  const messageIds = items.map((m) => m.id);
+  const attRows = await attRepo.listByMessageIds(messageIds);
+  const attByMsg = new Map();
+  for (const a of attRows) {
+    const mid = Number(a.message_id);
+    if (!attByMsg.has(mid)) attByMsg.set(mid, []);
+    attByMsg.get(mid).push(normalizeAttachmentRow(a));
+  }
+  for (const m of items) {
+    m.attachments = attByMsg.get(Number(m.id)) || [];
+  }
+
   return {
-    items: rows.map(normalizeMessageRow),
+    items,
     limit,
     offset,
     total: Number(total || 0),
+  };
+}
+
+function normalizeAttachmentRow(row) {
+  return {
+    id: row.id,
+    url: row.url,
+    mime_type: row.mime_type,
+    byte_size: row.byte_size != null ? Number(row.byte_size) : null,
+    width: row.width != null ? Number(row.width) : null,
+    height: row.height != null ? Number(row.height) : null,
+    sort_order: Number(row.sort_order || 0),
   };
 }
 

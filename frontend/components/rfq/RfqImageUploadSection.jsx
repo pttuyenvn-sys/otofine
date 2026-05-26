@@ -5,31 +5,22 @@ import { rfqImageSrc } from "@/lib/rfq/rfqMediaUrl";
 import { RFQ_UPLOAD_ACCEPT } from "@/lib/rfq/rfqUploadImage";
 
 /**
- * Mobile-first image picker: camera capture + gallery, multi-select, preview grid.
+ * Mobile-first image picker: separate camera vs gallery (no forced capture on gallery).
  */
 export default function RfqImageUploadSection({
-  sectionKey,
   title,
-  hint,
-  capture = "environment",
   items = [],
   maxCount = 6,
   canUpload = true,
-  uploadBlockedHint = "",
   onAddFiles,
   onRemove,
   onRetry,
   rejectMessage = "",
 }) {
   const inputId = useId();
-  const inputRef = useRef(null);
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
   const atMax = items.length >= maxCount;
-
-  function openPicker() {
-    if (!canUpload) return;
-    if (atMax) return;
-    inputRef.current?.click();
-  }
 
   function onInputChange(e) {
     onAddFiles(e.target.files);
@@ -38,30 +29,32 @@ export default function RfqImageUploadSection({
 
   return (
     <section className="rfq-upload-section" aria-labelledby={`${inputId}-title`}>
-      <div className="rfq-upload-section__head">
-        <h3 id={`${inputId}-title`} className="rfq-upload-section__title">
-          {title}
-        </h3>
-        {hint ? <p className="rfq-upload-section__hint muted">{hint}</p> : null}
-      </div>
+      <h3 id={`${inputId}-title`} className="rfq-upload-section__title">
+        {title}
+      </h3>
 
-      <div className="rfq-upload-actions">
+      <div className="rfq-upload-actions rfq-upload-actions--split">
         <button
           type="button"
           className="rfq-upload-btn rfq-upload-btn--camera"
           disabled={!canUpload || atMax}
-          onClick={openPicker}
+          onClick={() => cameraRef.current?.click()}
         >
-          📷 Chụp / chọn ảnh
+          📷 Chụp ảnh
+        </button>
+        <button
+          type="button"
+          className="rfq-upload-btn rfq-upload-btn--gallery"
+          disabled={!canUpload || atMax}
+          onClick={() => galleryRef.current?.click()}
+        >
+          🖼 Chọn từ thư viện
         </button>
         <span className="rfq-upload-count muted">
           {items.length}/{maxCount}
         </span>
       </div>
 
-      {!canUpload && uploadBlockedHint ? (
-        <p className="rfq-upload-blocked muted">{uploadBlockedHint}</p>
-      ) : null}
       {rejectMessage ? (
         <p className="rfq-field-error" role="alert">
           {rejectMessage}
@@ -69,11 +62,19 @@ export default function RfqImageUploadSection({
       ) : null}
 
       <input
-        ref={inputRef}
-        id={inputId}
+        ref={cameraRef}
+        id={`${inputId}-camera`}
         type="file"
         accept={RFQ_UPLOAD_ACCEPT}
-        capture={capture}
+        capture="environment"
+        className="rfq-upload-input-hidden"
+        onChange={onInputChange}
+      />
+      <input
+        ref={galleryRef}
+        id={`${inputId}-gallery`}
+        type="file"
+        accept={RFQ_UPLOAD_ACCEPT}
         multiple
         className="rfq-upload-input-hidden"
         onChange={onInputChange}
@@ -90,7 +91,13 @@ export default function RfqImageUploadSection({
               <li key={it.clientId} className="rfq-upload-tile">
                 <div className="rfq-upload-tile__frame">
                   {src ? (
-                    <img src={src} alt="" className="rfq-upload-tile__img" />
+                    <img
+                      src={src}
+                      alt=""
+                      className="rfq-upload-tile__img"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <span className="rfq-upload-tile__placeholder" aria-hidden />
                   )}
@@ -133,9 +140,7 @@ export default function RfqImageUploadSection({
             );
           })}
         </ul>
-      ) : (
-        <p className="rfq-upload-empty muted">Chưa có ảnh — bấm chụp hoặc chọn từ thư viện.</p>
-      )}
+      ) : null}
     </section>
   );
 }

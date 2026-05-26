@@ -16,9 +16,22 @@ export async function fetchConversationMessages(dispatchId, { headers = {}, limi
 }
 
 export async function sendConversationTextMessage(dispatchId, text, { headers = {} } = {}) {
+  return sendConversationMessage(dispatchId, { text }, { headers });
+}
+
+/** Text and/or staged attachmentIds from upload-image. */
+export async function sendConversationMessage(
+  dispatchId,
+  { text = "", attachmentIds = [] } = {},
+  { headers = {} } = {},
+) {
+  const body = { text: text || "" };
+  if (attachmentIds?.length) {
+    body.attachmentIds = attachmentIds;
+  }
   const res = await axios.post(
     `${API_BASE}/rfq/conversations/${dispatchId}/messages`,
-    { text },
+    body,
     { headers },
   );
   return res.data;

@@ -1,10 +1,18 @@
 import { pool } from "../../../config/db.js";
 import * as convRepo from "../repositories/rfqConversation.repository.js";
 import * as msgRepo from "../repositories/rfqMessage.repository.js";
+import * as attRepo from "../repositories/rfqMessageAttachment.repository.js";
 import * as readRepo from "../repositories/rfqConversationRead.repository.js";
 import * as dispatchRepo from "../repositories/rfqDispatch.repository.js";
+import * as reqRepo from "../repositories/rfqRequest.repository.js";
 import { rfqLog } from "../utils/rfqLogger.js";
-import { validateMessageText } from "../utils/rfqMessageValidation.js";
+import {
+  validateConversationMessagePayload,
+  validateMessageText,
+} from "../utils/rfqMessageValidation.js";
+import { saveConversationImageBuffer } from "../utils/rfqConversationImageStorage.js";
+import { notifyConversationMessagePush } from "./rfqConversationPush.service.js";
+import { tryAttributeReminderConversion } from "./rfqReminderAttribution.service.js";
 
 /**
  * RFQ v2 conversation layer (scaffolding).
@@ -197,10 +205,63 @@ async function resolveConversationForAccess(dispatchId, access, conn) {
 }
 
 /**
- * Send a text message (non-realtime). WebSocket, unread, and push are intentionally deferred.
+ * Stage a conversation image (sharp pipeline). Returns attachment row id + url.
  */
-export async function sendTextMessage(dispatchId, access, { text }) {
-  const messageText = validateMessageText(text);
+export async function uploadConversationImage(dispatchId, access, fileBuffer, fileMeta = {}) {
+  if (!fileBuffer?.length) {
+    throw Object.assign(new Error("MISSING_FILE"), { status: 400 });
+  }
+
+  const conversation = await resolveConversationForAccess(dispatchId, access);
+  if (!conversation) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+  if (conversation.status === "closed") {
+    throw Object.assign(new Error("CONVERSATION_CLOSED"), { status: 400 });
+  }
+
+  const { url, byte_size, thumbnails } = await saveConversationImageBuffer(fileBuffer, {
+    dispatch_id: dispatchId,
+    sender_type: access.type === "shop" ? "shop" : "buyer",
+    mime: fileMeta.mime ?? null,
+    input_bytes: fileMeta.size ?? fileBuffer.length,
+  });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const attachmentId = await attRepo.insertStaging(conn, {
+      conversation_id: conversation.id,
+      url,
+      mime_type: "image/jpeg",
+      byte_size,
+    });
+    await conn.commit();
+
+    rfqLog.info("rfq.conversation.image_staged", {
+      dispatch_id: dispatchId,
+      conversation_id: conversation.id,
+      attachment_id: attachmentId,
+      url,
+    });
+
+    return {
+      ok: true,
+      attachmentId,
+      url,
+      thumbnails: thumbnails || null,
+    };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
+/**
+ * Send text and/or image message. Push is async after commit.
+ */
+export async function sendConversationMessage(dispatchId, access, payload = {}) {
+  const { messageText, attachmentIds } = validateConversationMessagePayload(payload);
   const conn = await pool.getConnection();
   const sender_type = access.type === "shop" ? "shop" : "buyer";
 
@@ -208,7 +269,8 @@ export async function sendTextMessage(dispatchId, access, { text }) {
     dispatch_id: dispatchId,
     sender_type,
     shop_id: access.type === "shop" ? access.shopId : null,
-    text_len: messageText.length,
+    text_len: messageText?.length ?? 0,
+    attachment_count: attachmentIds.length,
   });
 
   try {
@@ -219,28 +281,84 @@ export async function sendTextMessage(dispatchId, access, { text }) {
       throw Object.assign(new Error("CONVERSATION_CLOSED"), { status: 400 });
     }
 
+    const prevLatestMessageId = await msgRepo.findLatestMessageId(conversation.id, conn);
+
+    let staged = [];
+    if (attachmentIds.length) {
+      if (attachmentIds.length > attRepo.RFQ_MAX_ATTACHMENTS_PER_MESSAGE) {
+        throw Object.assign(new Error("TOO_MANY_ATTACHMENTS"), { status: 400 });
+      }
+      staged = await attRepo.findStagedByIds(conversation.id, attachmentIds, conn);
+      if (staged.length !== attachmentIds.length) {
+        throw Object.assign(new Error("INVALID_ATTACHMENTS"), { status: 400 });
+      }
+      const cutoff = Date.now() - attRepo.RFQ_STAGING_MAX_AGE_MS;
+      for (const s of staged) {
+        const created = new Date(s.created_at).getTime();
+        if (created < cutoff) {
+          throw Object.assign(new Error("ATTACHMENT_EXPIRED"), { status: 400 });
+        }
+      }
+    }
+
     const sender_shop_id = access.type === "shop" ? access.shopId : null;
+    const message_type = attachmentIds.length > 0 ? "image" : "text";
 
     const messageId = await msgRepo.insertMessage(conn, {
       conversation_id: conversation.id,
       sender_type,
       sender_shop_id,
-      message_type: "text",
+      message_type,
       message_text: messageText,
+      attachments_json: attachmentIds.length
+        ? { attachment_ids: attachmentIds }
+        : null,
     });
 
+    if (attachmentIds.length) {
+      await attRepo.linkStagedToMessage(conn, messageId, attachmentIds, conversation.id);
+    }
+
     await convRepo.touchLastMessageAt(conn, conversation.id);
+
+    if (sender_type === "shop") {
+      await reqRepo.markFirstShopMessageAt(conn, conversation.rfq_request_id);
+      await dispatchRepo.markFirstShopMessageAt(conn, dispatchId);
+    }
 
     await conn.commit();
 
     const message = await msgRepo.findMessageById(messageId);
+    const finalType = message?.message_type || (attachmentIds.length ? "image" : "text");
+
     rfqLog.info("rfq.conversation.message_created", {
       dispatch_id: dispatchId,
       conversation_id: conversation.id,
       message_id: messageId,
       sender_type,
-      message_type: "text",
+      message_type: finalType,
     });
+
+    notifyConversationMessagePush({
+      dispatchId,
+      conversationId: conversation.id,
+      rfqRequestId: conversation.rfq_request_id,
+      shopId: conversation.shop_id,
+      messageId,
+      senderType: sender_type,
+      messageText,
+      messageType: finalType,
+      attachmentCount: attachmentIds.length,
+      prevLatestMessageId,
+    });
+
+    if (sender_type === "buyer") {
+      void tryAttributeReminderConversion(conversation.rfq_request_id, "buyer_message", {
+        source: "conversation_send",
+        dispatch_id: dispatchId,
+        message_id: messageId,
+      });
+    }
 
     return {
       ok: true,
@@ -260,6 +378,90 @@ export async function sendTextMessage(dispatchId, access, { text }) {
     throw e;
   } finally {
     conn.release();
+  }
+}
+
+/** @deprecated alias — use sendConversationMessage */
+export async function sendTextMessage(dispatchId, access, { text }) {
+  return sendConversationMessage(dispatchId, access, { text });
+}
+
+/**
+ * Idempotent: seed buyer's initial RFQ images into each shop conversation timeline.
+ */
+export async function seedRequestImagesForConversation(conversation, conn = null) {
+  const c = conn || pool;
+  const existing = await attRepo.findSeedMessageByKind(
+    conversation.id,
+    "rfq_request_images",
+    c,
+  );
+  if (existing) return { skipped: true };
+
+  const [[reqRow]] = await c.query(
+    `SELECT images_json FROM rfq_requests WHERE id = ? LIMIT 1`,
+    [conversation.rfq_request_id],
+  );
+  if (!reqRow) return { skipped: true };
+
+  let urls = reqRow.images_json;
+  try {
+    urls = typeof urls === "string" ? JSON.parse(urls) : urls;
+  } catch {
+    urls = [];
+  }
+  if (!Array.isArray(urls) || !urls.length) return { skipped: true };
+
+  const valid = urls
+    .map((u) => String(u || "").trim())
+    .filter(
+      (u) =>
+        u.startsWith("/uploads/rfq/") ||
+        u.startsWith("http://") ||
+        u.startsWith("https://"),
+    );
+  if (!valid.length) return { skipped: true };
+
+  const ownConn = conn ? null : await pool.getConnection();
+  const tx = ownConn || conn;
+  try {
+    if (ownConn) await ownConn.beginTransaction();
+
+    const messageId = await msgRepo.insertMessage(tx, {
+      conversation_id: conversation.id,
+      sender_type: "buyer",
+      sender_shop_id: null,
+      message_type: "image",
+      message_text: "Ảnh đính kèm yêu cầu báo giá",
+      metadata_json: { seed: "rfq_request_images" },
+    });
+
+    await attRepo.insertAttachmentsForMessage(
+      tx,
+      conversation.id,
+      messageId,
+      valid.map((url, i) => ({ url, mime_type: "image/jpeg", sort_order: i })),
+    );
+
+    await convRepo.touchLastMessageAt(tx, conversation.id);
+
+    if (ownConn) await ownConn.commit();
+
+    rfqLog.info("rfq.conversation.request_images_seeded", {
+      conversation_id: conversation.id,
+      dispatch_id: conversation.dispatch_id,
+      image_count: valid.length,
+    });
+    return { message_id: messageId, image_count: valid.length };
+  } catch (e) {
+    if (ownConn) await ownConn.rollback();
+    rfqLog.warn("rfq.conversation.request_images_seed_failed", {
+      conversation_id: conversation.id,
+      err: String(e?.message || e),
+    });
+    return { skipped: true, error: true };
+  } finally {
+    if (ownConn) ownConn.release();
   }
 }
 
@@ -388,6 +590,8 @@ export async function listMessages(dispatchId, access, query = {}) {
   } else {
     throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
   }
+
+  await seedRequestImagesForConversation(conversation);
 
   const page = await msgRepo.listMessagesForConversation(conversation.id, query);
   const readMeta = await readMetaForConversation(conversation, access);

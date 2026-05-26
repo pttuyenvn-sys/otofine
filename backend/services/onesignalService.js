@@ -12,10 +12,13 @@ export async function sendPush({
             return;
         }
 
-        const finalUrl =
+        let finalUrl =
             url && String(url).trim()
                 ? String(url).trim()
                 : "https://otofine.com";
+        if (finalUrl.startsWith("/")) {
+            finalUrl = `https://otofine.com${finalUrl}`;
+        }
 
         const payload = {
             app_id: process.env.ONESIGNAL_APP_ID,

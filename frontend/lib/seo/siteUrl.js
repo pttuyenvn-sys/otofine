@@ -9,7 +9,7 @@ export function getSiteUrl() {
   if (explicit) return explicit;
   const vercel = process.env.VERCEL_URL;
   if (vercel) return `https://${vercel.replace(/\/+$/, "")}`;
-  return "http://localhost:3000";
+  return "https://otofine.com";
 }
 
 export function absoluteUrl(pathname = "/") {

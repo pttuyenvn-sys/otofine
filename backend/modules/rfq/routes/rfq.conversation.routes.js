@@ -9,6 +9,7 @@ import {
   rfqConvUnreadSummaryRateLimit,
 } from "../middlewares/rfqConversationRateLimit.middleware.js";
 import * as ctrl from "../controllers/rfq.conversation.controller.js";
+import { rfqMulterSingle } from "../middlewares/rfqMulter.middleware.js";
 
 /**
  * Conversation APIs — dispatchId is the canonical room anchor.
@@ -39,6 +40,13 @@ router.post(
   rfqConversationAccess,
   rfqConvMessageSendRateLimit,
   ctrl.postMessage,
+);
+router.post(
+  "/:dispatchId/upload-image",
+  rfqConversationAccess,
+  rfqConvMessageSendRateLimit,
+  rfqMulterSingle("file"),
+  ctrl.uploadMessageImage,
 );
 router.get(
   "/:dispatchId",

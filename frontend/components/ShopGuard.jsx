@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
 
 export default function ShopGuard({ children }) {
   const router = useRouter();
@@ -10,20 +11,21 @@ export default function ShopGuard({ children }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const authStr = localStorage.getItem("auth");
+    const loginUrl = buildShopLoginUrl(getCurrentShopReturnPath());
 
     if (!token || !authStr) {
-      router.replace("/shop/login");
+      router.replace(loginUrl);
       return;
     }
 
     try {
       const auth = JSON.parse(authStr);
       if (auth.role !== "shop") {
-        router.replace("/shop/login");
+        router.replace(loginUrl);
         return;
       }
     } catch {
-      router.replace("/shop/login");
+      router.replace(loginUrl);
       return;
     }
 

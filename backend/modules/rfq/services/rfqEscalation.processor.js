@@ -2,6 +2,7 @@ import { pool } from "../../../config/db.js";
 import * as jobRepo from "../repositories/rfqEscalationJob.repository.js";
 import { sendRfqZaloEscalation } from "../providers/zaloEscalation.provider.js";
 import { rfqLog } from "../utils/rfqLogger.js";
+import { buildShopActionUrl } from "../utils/rfqShopDeepLink.js";
 import { rfqCounterInc } from "./rfqObservability.service.js";
 
 function backoffSeconds(attempt) {
@@ -89,6 +90,7 @@ export async function processEscalationJob(jobId) {
     snippet,
     respondBy: row.respond_by ? new Date(row.respond_by).toISOString() : null,
     webNotifiedAt: row.web_notified_at ? new Date(row.web_notified_at).toISOString() : null,
+    shopActionUrl: buildShopActionUrl(row.id),
   });
 
   const maxAttempts = Math.max(1, Math.min(12, Number(process.env.RFQ_ESCALATION_MAX_ATTEMPTS || 5)));

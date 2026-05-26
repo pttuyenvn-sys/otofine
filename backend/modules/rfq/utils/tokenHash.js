@@ -19,3 +19,13 @@ export function hashOtpCode(code, phoneE164) {
   const pepper = rfqOtpSecret();
   return sha256Hex(`${pepper}:${phoneE164}:${String(code).trim()}`);
 }
+
+/** Buyer history portal session token (separate namespace from per-RFQ viewer tokens). */
+export function generateHistoryToken() {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+export function hashHistoryToken(rawToken) {
+  const pepper = rfqViewerSecret();
+  return sha256Hex(`${pepper}:history:${rawToken}`);
+}

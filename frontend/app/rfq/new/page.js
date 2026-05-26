@@ -1,17 +1,20 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { API_BASE } from "@/lib/config";
 import VehicleSelector from "@/components/vehicle/VehicleSelector";
 import RfqImageUpload from "@/components/rfq/RfqImageUpload";
+import RfqHistoryEntryLink from "@/components/rfq/RfqHistoryEntryLink";
 import { useRfqImageUpload, RFQ_IMAGE_SECTION_KEYS } from "@/hooks/useRfqImageUpload";
+import { saveHistoryLastPhone, getHistoryLastPhone } from "@/lib/rfq/rfqHistorySession";
 import {
   RFQ_MAX_CREATE_IMAGES,
   getUploadRejectMessage,
   validateRfqCreateForm,
 } from "@/lib/rfq/rfqCreateValidation";
+import { evaluateRfqCreateSubmitGate, logRfqCreateSubmitDebug } from "@/lib/rfq/rfqSubmitGate";
 
 const EMPTY_VEHICLE = { brand: "", model: "", year: "" };
 
@@ -26,6 +29,7 @@ export default function RfqNewPage() {
   const [touched, setTouched] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [uploadReject, setUploadReject] = useState({});
+  const [draftPending, setDraftPending] = useState(false);
 
   const phoneRef = useRef(null);
   const descRef = useRef(null);
@@ -45,6 +49,14 @@ export default function RfqNewPage() {
     [],
   );
 
+  useEffect(() => {
+    const stored =
+      getHistoryLastPhone() ||
+      (typeof window !== "undefined" ? sessionStorage.getItem("rfq_phone") : "") ||
+      "";
+    if (stored && !phone) setPhone(stored);
+  }, []);
+
   const ensurePublicId = useCallback(async () => {
     if (publicIdRef.current) return publicIdRef.current;
     if (draftPromiseRef.current) return draftPromiseRef.current;
@@ -61,6 +73,7 @@ export default function RfqNewPage() {
 
     const { phoneE164, partDescription: desc, vehicle: v } = check.normalized;
 
+    setDraftPending(true);
     draftPromiseRef.current = axios
       .post(
         `${API_BASE}/rfq/create`,
@@ -78,6 +91,7 @@ export default function RfqNewPage() {
         publicIdRef.current = pid;
         sessionStorage.setItem("rfq_public_id", pid);
         sessionStorage.setItem("rfq_phone", phone.trim());
+        saveHistoryLastPhone(phone.trim());
         if (res.data.devOtpCode) {
           sessionStorage.setItem("rfq_dev_otp", String(res.data.devOtpCode));
         }
@@ -85,6 +99,7 @@ export default function RfqNewPage() {
       })
       .finally(() => {
         draftPromiseRef.current = null;
+        setDraftPending(false);
       });
 
     return draftPromiseRef.current;
@@ -110,8 +125,19 @@ export default function RfqNewPage() {
     [phone, partDescription, vehicle, imageCount],
   );
 
+  const submitGate = useMemo(
+    () =>
+      evaluateRfqCreateSubmitGate({
+        busy,
+        validation,
+        uploadStatus: images.uploadStatus,
+        draftPending,
+      }),
+    [busy, validation, images.uploadStatus, draftPending],
+  );
+
   const showFieldErrors = submitAttempted || Object.keys(touched).length > 0;
-  const errors = showFieldErrors ? validation.errors : {};
+  const errors = showFieldErrors ? submitGate.errors : {};
 
   const canUploadImages = useMemo(() => {
     const base = validateRfqCreateForm({
@@ -122,9 +148,6 @@ export default function RfqNewPage() {
     });
     return base.valid;
   }, [phone, partDescription, vehicle]);
-
-  const canSubmit =
-    validation.valid && !busy && !images.hasUploading() && !images.hasErrors();
 
   function markTouched(field) {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -163,30 +186,40 @@ export default function RfqNewPage() {
 
   async function submit(e) {
     e.preventDefault();
-    setMsg("");
     setSubmitAttempted(true);
 
-    if (!validation.valid) {
-      scrollToFirstError(validation.errors);
+    const gate = evaluateRfqCreateSubmitGate({
+      busy,
+      validation: validateRfqCreateForm({ phone, partDescription, vehicle, imageCount }),
+      uploadStatus: images.uploadStatus,
+      draftPending,
+    });
+
+    logRfqCreateSubmitDebug("click", {
+      canSubmit: gate.canSubmit,
+      blockers: gate.blockers.map((b) => b.code),
+      uploadStatus: images.uploadStatus,
+      imageCount,
+      validationValid: gate.normalized != null,
+    });
+
+    if (!gate.canSubmit) {
+      const label = gate.primaryBlocker?.label || "Không thể tiếp tục — kiểm tra form.";
+      setMsg(label);
+      scrollToFirstError(gate.errors);
+      if (gate.primaryBlocker?.code === "upload_failed") {
+        imagesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return;
     }
 
-    if (images.hasUploading()) {
-      setMsg("Đang tải ảnh — vui lòng đợi hoặc xóa ảnh lỗi trước khi tiếp tục.");
-      scrollToFirstError({ images: "uploading" });
-      return;
-    }
-
-    if (images.hasErrors()) {
-      setMsg("Có ảnh tải lên thất bại — thử lại hoặc xóa ảnh lỗi.");
-      imagesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-
-    const { phoneE164, partDescription: desc, vehicle: v } = validation.normalized;
+    const { phoneE164, partDescription: desc, vehicle: v } = gate.normalized;
     const imageUrls = images.getUploadedUrls();
 
+    setMsg("");
     setBusy(true);
+    logRfqCreateSubmitDebug("posting", { imageUrls: imageUrls.length });
+
     try {
       const res = await axios.post(`${API_BASE}/rfq/create`, {
         phone: phoneE164,
@@ -198,14 +231,20 @@ export default function RfqNewPage() {
       publicIdRef.current = res.data.publicId;
       sessionStorage.setItem("rfq_public_id", res.data.publicId);
       sessionStorage.setItem("rfq_phone", phone.trim());
+      saveHistoryLastPhone(phone.trim());
       if (res.data.devOtpCode) {
         sessionStorage.setItem("rfq_dev_otp", String(res.data.devOtpCode));
       }
 
       await images.flushPending();
 
+      logRfqCreateSubmitDebug("redirect", { publicId: res.data.publicId });
       window.location.href = "/rfq/success";
     } catch (err) {
+      logRfqCreateSubmitDebug("error", {
+        status: err.response?.status,
+        code: err.response?.data?.code,
+      });
       const code = err.response?.data?.code;
       setMsg(
         err.response?.data?.message ||
@@ -217,14 +256,15 @@ export default function RfqNewPage() {
     }
   }
 
-  const uploadBlockedHint = canUploadImages
-    ? ""
-    : "Nhập đủ SĐT, mô tả (≥8 ký tự) và chọn xe trước khi tải ảnh.";
+  const submitBlockLabel = submitGate.primaryBlocker?.label || "";
 
   return (
-    <div className="card">
-      <h1>Hỏi giá phụ tùng</h1>
-      <p className="muted">Điền mô tả &amp; SĐT — OTP xác minh ngắn.</p>
+    <div className="rfq-new-page">
+      <div className="card rfq-new-page__card">
+        <div className="rfq-new-page__head">
+          <h1>Hỏi giá phụ tùng</h1>
+          <RfqHistoryEntryLink variant="secondary" className="rfq-new-page__history-link" source="rfq_new" />
+        </div>
       <form
         onSubmit={submit}
         noValidate
@@ -291,7 +331,6 @@ export default function RfqNewPage() {
             removeItem={images.removeItem}
             retryUpload={images.retryUpload}
             canUpload={canUploadImages}
-            uploadBlockedHint={uploadBlockedHint}
             maxPerSection={4}
             sectionRejectMessages={uploadReject}
           />
@@ -300,16 +339,33 @@ export default function RfqNewPage() {
               {errors.images}
             </p>
           ) : null}
+          {images.uploadStatus.hasUploading ? (
+            <p className="rfq-submit-block muted" role="status">
+              Đang tải {images.uploadStatus.pending + images.uploadStatus.uploading} ảnh…
+            </p>
+          ) : null}
         </div>
 
-        <button type="submit" disabled={!canSubmit}>
+        <button
+          type="submit"
+          className={!submitGate.canSubmit ? "rfq-submit-btn--blocked" : ""}
+          aria-disabled={!submitGate.canSubmit}
+          title={submitBlockLabel || undefined}
+        >
           {busy ? "Đang gửi…" : "Tiếp tục"}
         </button>
+        {!submitGate.canSubmit && submitBlockLabel ? (
+          <p className="rfq-submit-block rfq-field-error" role="alert">
+            {submitBlockLabel}
+          </p>
+        ) : null}
       </form>
       {msg ? <p className="rfq-form-msg" role="alert">{msg}</p> : null}
-      <p className="muted" style={{ marginTop: "1rem" }}>
-        <Link href="/">← Về trang chủ</Link>
-      </p>
+      </div>
+
+      <div className="rfq-new-page__sticky">
+        <RfqHistoryEntryLink variant="primary" sticky source="rfq_new_sticky" />
+      </div>
     </div>
   );
 }

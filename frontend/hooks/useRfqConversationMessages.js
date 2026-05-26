@@ -5,7 +5,7 @@ import {
   buyerConversationHeaders,
   fetchConversationMessages,
   fetchConversationUnreadSummary,
-  sendConversationTextMessage,
+  sendConversationMessage,
   shopConversationHeaders,
 } from "@/lib/rfq/rfqConversationApi";
 import {
@@ -27,7 +27,7 @@ export function useShopConversationMessages(dispatchId, refreshKey = 0) {
   const [error, setError] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const listRef = useRef(null);
-  const stickToBottomRef = useRef(true);
+  const stickToBottomRef = useRef(false);
   const headers = useMemo(() => shopConversationHeaders(), []);
 
   const load = useCallback(
@@ -45,7 +45,9 @@ export function useShopConversationMessages(dispatchId, refreshKey = 0) {
         const incoming = (data?.items || []).map((m) => ({ ...m, dispatchId }));
         setItems((prev) => (silent ? mergeSortedMessages(prev, incoming) : incoming));
         if (typeof data?.unread_count === "number") {
-          setUnreadCount(data.unread_count);
+          setUnreadCount((prev) =>
+            prev === data.unread_count ? prev : data.unread_count,
+          );
         }
       } catch {
         if (!silent) {
@@ -60,7 +62,6 @@ export function useShopConversationMessages(dispatchId, refreshKey = 0) {
   );
 
   useEffect(() => {
-    stickToBottomRef.current = true;
     void load({ silent: false });
   }, [load, refreshKey]);
 
@@ -106,14 +107,20 @@ export function useShopConversationMessages(dispatchId, refreshKey = 0) {
     enabled: Boolean(dispatchId),
     onMarked: (data) => {
       if (typeof data?.unread_count === "number") {
-        setUnreadCount(data.unread_count);
+        setUnreadCount((prev) =>
+          prev === data.unread_count ? prev : data.unread_count,
+        );
       }
     },
   });
 
-  const sendText = useCallback(
-    async (text) => {
-      const res = await sendConversationTextMessage(dispatchId, text, { headers });
+  const sendMessage = useCallback(
+    async (text, { attachmentIds = [] } = {}) => {
+      const res = await sendConversationMessage(
+        dispatchId,
+        { text, attachmentIds },
+        { headers },
+      );
       const msg = res?.message
         ? { ...res.message, dispatchId: Number(dispatchId) }
         : null;
@@ -134,47 +141,56 @@ export function useShopConversationMessages(dispatchId, refreshKey = 0) {
     error,
     unreadCount,
     reload: () => load({ silent: false }),
-    sendText,
+    sendText: sendMessage,
+    sendMessage,
     listRef,
     stickToBottomRef,
   };
 }
 
 /**
- * Buyer: merged timelines from quoted dispatches. Poll refreshes all threads.
+ * Buyer: merged timelines from all dispatch rooms. Poll refreshes all threads.
  */
-export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0) {
+export function useBuyerConversationMessages(
+  viewerToken,
+  dispatchOptions,
+  { markReadDispatchId = null } = {},
+) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [unreadByDispatch, setUnreadByDispatch] = useState({});
   const abortRef = useRef(false);
   const listRef = useRef(null);
-  const stickToBottomRef = useRef(true);
+  const stickToBottomRef = useRef(false);
   const headers = useMemo(() => buyerConversationHeaders(viewerToken), [viewerToken]);
 
-  const dispatchIds = useMemoDispatchIds(quotes);
+  const dispatchIds = useMemoDispatchIdsFromOptions(dispatchOptions);
 
   const shopNameByDispatchId = useCallback(() => {
     const map = {};
-    for (const q of quotes || []) {
-      if (q.dispatchId != null && q.shopName) {
-        map[q.dispatchId] = q.shopName;
+    for (const o of dispatchOptions || []) {
+      const id = Number(o.dispatchId);
+      if (Number.isFinite(id) && id > 0 && o.shopName) {
+        map[id] = o.shopName;
       }
     }
     return map;
-  }, [quotes]);
+  }, [dispatchOptions]);
 
   const applyUnreadFromPages = useCallback((pages) => {
     setUnreadByDispatch((prev) => {
       const next = { ...prev };
+      let changed = false;
       for (const p of pages) {
         const d = Number(p.dispatch_id);
-        if (Number.isFinite(d) && typeof p.unread_count === "number") {
+        if (!Number.isFinite(d) || typeof p.unread_count !== "number") continue;
+        if (next[d] !== p.unread_count) {
           next[d] = p.unread_count;
+          changed = true;
         }
       }
-      return next;
+      return changed ? next : prev;
     });
   }, []);
 
@@ -189,7 +205,15 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
       for (const row of data?.items || []) {
         next[Number(row.dispatch_id)] = Number(row.unread_count || 0);
       }
-      setUnreadByDispatch(next);
+      setUnreadByDispatch((prev) => {
+        const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+        for (const k of keys) {
+          if ((prev[k] ?? 0) !== (next[k] ?? 0)) {
+            return next;
+          }
+        }
+        return prev;
+      });
     } catch {
       /* keep prior counts */
     }
@@ -236,13 +260,12 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
 
   useEffect(() => {
     abortRef.current = false;
-    stickToBottomRef.current = true;
     void loadUnreadSummary();
     void load({ silent: false });
     return () => {
       abortRef.current = true;
     };
-  }, [load, loadUnreadSummary, refreshKey]);
+  }, [load, loadUnreadSummary]);
 
   useEffect(() => {
     if (!viewerToken || !dispatchIds.length) return undefined;
@@ -275,9 +298,15 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
     };
   }, [viewerToken, dispatchIds, load]);
 
+  const markReadItems = useMemo(() => {
+    if (!markReadDispatchId) return items;
+    const id = Number(markReadDispatchId);
+    return items.filter((m) => Number(m.dispatchId) === id);
+  }, [items, markReadDispatchId]);
+
   useBuyerConversationMarkRead({
     viewerToken,
-    items,
+    items: markReadItems,
     loading,
     listRef,
     stickToBottomRef,
@@ -287,19 +316,25 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
       if (!Array.isArray(results)) return;
       setUnreadByDispatch((prev) => {
         const next = { ...prev };
+        let changed = false;
         for (const { dispatchId: d, data } of results) {
-          if (typeof data?.unread_count === "number") {
+          if (typeof data?.unread_count === "number" && next[d] !== data.unread_count) {
             next[d] = data.unread_count;
+            changed = true;
           }
         }
-        return next;
+        return changed ? next : prev;
       });
     },
   });
 
-  const sendText = useCallback(
-    async (dispatchId, text) => {
-      const res = await sendConversationTextMessage(dispatchId, text, { headers });
+  const sendMessage = useCallback(
+    async (dispatchId, text, { attachmentIds = [] } = {}) => {
+      const res = await sendConversationMessage(
+        dispatchId,
+        { text, attachmentIds },
+        { headers },
+      );
       const msg = res?.message
         ? { ...res.message, dispatchId: Number(dispatchId) }
         : null;
@@ -313,7 +348,7 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
         await load({ silent: true });
       }
     },
-    [viewerToken, load, shopNameByDispatchId, headers],
+    [load, shopNameByDispatchId, headers],
   );
 
   const totalUnread = Object.values(unreadByDispatch).reduce((s, n) => s + Number(n || 0), 0);
@@ -325,22 +360,30 @@ export function useBuyerConversationMessages(viewerToken, quotes, refreshKey = 0
     unreadByDispatch,
     totalUnread,
     reload: () => load({ silent: false }),
-    sendText,
+    sendText: sendMessage,
+    sendMessage,
     dispatchIds,
     listRef,
     stickToBottomRef,
   };
 }
 
-function useMemoDispatchIds(quotes) {
-  const [ids, setIds] = useState([]);
-  useEffect(() => {
-    const set = new Set();
-    for (const q of quotes || []) {
-      const id = Number(q.dispatchId);
-      if (Number.isFinite(id) && id > 0) set.add(id);
+function useMemoDispatchIdsFromOptions(dispatchOptions) {
+  const sig = useMemo(() => {
+    const ids = [];
+    for (const o of dispatchOptions || []) {
+      const id = Number(o.dispatchId);
+      if (Number.isFinite(id) && id > 0) ids.push(id);
     }
-    setIds([...set]);
-  }, [quotes]);
-  return ids;
+    ids.sort((a, b) => a - b);
+    return ids.join(",");
+  }, [dispatchOptions]);
+
+  const idsRef = useRef([]);
+  const sigRef = useRef("");
+  if (sig !== sigRef.current) {
+    sigRef.current = sig;
+    idsRef.current = sig ? sig.split(",").map(Number) : [];
+  }
+  return idsRef.current;
 }
