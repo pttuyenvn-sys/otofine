@@ -26,6 +26,10 @@ import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
 import { isWildcardStorefrontHost } from "@/lib/shopsite/isWildcardStorefrontHost";
 import ShopWhyChooseUs from "@/components/shopsite/ShopWhyChooseUs";
+import ShopLiveActivityStrip from "@/components/shopsite/ShopLiveActivityStrip";
+import ShopTrustedSellerBlock from "@/components/shopsite/ShopTrustedSellerBlock";
+import ShopSocialProofPills from "@/components/shopsite/ShopSocialProofPills";
+import ShopGallery from "@/components/shopsite/ShopGallery";
 
 const FILTERS_FALLBACK = (
   <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
@@ -84,6 +88,18 @@ export default async function ShopTenantHomePage({ params }) {
 
   return (
     <div className="space-y-3">
+      {/* Live activity strip — sits between hero and filters so the
+          status signals (đang mở cửa / phản hồi ~15 phút / X+ SP /
+          chuyên hãng X) are the first thing the buyer reads after
+          the cover. Pure SSR — every chip derives from existing
+          shop fields (workingHoursShort, trust.quickResponse,
+          productCount, trust.topBrands). */}
+      <ShopLiveActivityStrip shop={shop} />
+
+      {/* Social proof pills under the live strip — historical /
+          tenure signals to complement the "right now" strip above. */}
+      <ShopSocialProofPills shop={shop} className="px-1 -mt-1" />
+
       {/* Mobile filter row (search + Lọc drawer) lives ABOVE the
           desktop filter row in the DOM, but only one is visible at
           a time thanks to `lg:hidden` / `hidden lg:block`. */}
@@ -143,6 +159,7 @@ export default async function ShopTenantHomePage({ params }) {
                     key={product.id}
                     product={product}
                     shopSlug={shop.slug}
+                    shopPhone={shop.phone || null}
                     /* First row only — give LCP-adjacent products a
                        fetchpriority hint so they paint with the hero
                        instead of waiting in the lazy queue. */
@@ -168,6 +185,18 @@ export default async function ShopTenantHomePage({ params }) {
       */}
       <ShopWhyChooseUs shop={shop} />
 
+      {/*
+        Phase: live commerce — image gallery aggregated from existing
+        seller content (cover + intro images + product images), with
+        de-dup against the visuals already claimed by the hero / about
+        slots. Skips render when fewer than 4 unique images exist.
+      */}
+      <ShopGallery
+        shop={shop}
+        products={(productsPage?.items || []).slice(0, 18)}
+        visuals={visuals}
+      />
+
       <ServiceFooter />
 
       {/*
@@ -191,32 +220,18 @@ export default async function ShopTenantHomePage({ params }) {
 }
 
 function AboutCard({ shop }) {
+  // Branding pass: drop the legacy seller-asserted 4-chip block
+  // ("Sản phẩm chính hãng / Giá cả cạnh tranh / Tư vấn / Giao toàn
+  // quốc") in favour of `ShopTrustedSellerBlock`, which derives
+  // every line from a REAL shop field (verified / address / phone /
+  // public shop / has products). Same vertical footprint, but the
+  // claims now mean something.
   return (
     <ShopSection title="Về chúng tôi" className="h-full">
       <p className="text-sm text-gray-700 leading-relaxed">
         {shop.shortDescription || `Shop ${shop.name} trên Otofine.`}
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {[
-          { key: "authentic", title: "Sản phẩm chính hãng" },
-          { key: "price", title: "Giá cả cạnh tranh" },
-          { key: "advice", title: "Tư vấn chuyên nghiệp" },
-          { key: "ship", title: "Giao hàng toàn quốc" },
-        ].map((item) => (
-          <div
-            key={item.key}
-            className="flex items-center gap-2 bg-red-50/60 rounded-xl px-3 py-2 text-xs text-gray-700"
-          >
-            <span
-              aria-hidden
-              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white text-[#e60012] shadow-sm border border-red-100"
-            >
-              ●
-            </span>
-            <span className="leading-tight">{item.title}</span>
-          </div>
-        ))}
-      </div>
+      <ShopTrustedSellerBlock shop={shop} />
     </ShopSection>
   );
 }

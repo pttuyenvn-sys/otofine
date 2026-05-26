@@ -7,6 +7,25 @@ import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnaly
 import ShopImage from "./ShopImage";
 
 /**
+ * Decoupled launcher for the page-level Quick-RFQ modal.
+ *
+ * The product card lives inside an `<a>` (for SEO + middle-click +
+ * cmd-click open-in-new-tab to keep working) so we can't drop a
+ * nested `<button>` that owns modal state. Instead the card
+ * dispatches a CustomEvent that a single page-level
+ * `<ShopQuickRfqLauncher>` (or any future listener) picks up. This
+ * keeps zero React context plumbing and zero per-card modal mounts.
+ */
+function openQuickRfqEvent(detail) {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent("shopsite:openQuickRfq", { detail }),
+    );
+  } catch {/* old WebView */}
+}
+
+/**
  * Vertical product card (Shopee-like).
  *
  * Click target: apex `/<slug>-<id>` (root-level canonical SEO URL).
@@ -32,7 +51,12 @@ import ShopImage from "./ShopImage";
  * The fitment line uses `line-clamp-1` + `truncate` so it never
  * pushes the price below the fold on narrow mobile widths.
  */
-export default function ShopProductCard({ product, shopSlug, priority = false }) {
+export default function ShopProductCard({
+  product,
+  shopSlug,
+  priority = false,
+  shopPhone = null,
+}) {
   if (!product) return null;
   // Pass the full product shape (name + brand + model + year + part
   // number) so the apex URL the visitor crosses to is already the
@@ -132,48 +156,133 @@ export default function ShopProductCard({ product, shopSlug, priority = false })
       </div>
 
       {/*
-        Mobile compression: card body padding drops from p-3 to p-2
-        on phones, with smaller text + tighter gaps. Title still
-        clamps at 2 lines; vehicle line still single-line truncated;
-        part-type pill uses smaller padding/font. Desktop (sm+)
-        keeps the original sizing — verified by sm:p-3 + sm:text-sm.
+        Mobile v2 hierarchy: image (above) → name (2-line) → price (bold) →
+        quick-contact row (CTA). The fitment line is desktop-only and
+        the legacy "Loại hàng" chip is also desktop-only so the
+        mobile card stays in the four-element hierarchy the user
+        spec'd. Desktop keeps the original richer layout.
       */}
       <div className="p-2 sm:p-3 flex-1 flex flex-col">
         <h3 className="text-[13px] sm:text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
           {product.name}
         </h3>
 
+        {/* Fitment line — desktop only. Mobile drops it per the
+            mobile-product-UX v2 hierarchy (image → name → price → CTA). */}
         {fitmentLine ? (
           <p
-            className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-gray-500 truncate"
+            className="hidden sm:block mt-1 text-[12px] text-gray-500 truncate"
             title={fitmentLine}
           >
             {fitmentLine}
           </p>
         ) : (
-          // Reserve a constant 1-line gap when the fitment is unknown so
-          // the price stays vertically aligned across the grid.
           <p
-            className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-transparent select-none"
+            className="hidden sm:block mt-1 text-[12px] text-transparent select-none"
             aria-hidden
           >
             &nbsp;
           </p>
         )}
 
-        <div className="mt-0.5 sm:mt-1 text-[#e60012] font-bold text-[14px] sm:text-base tabular-nums">
+        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
           {formatPrice(product.price)}
         </div>
+
+        {/* Part-type chip — desktop only; mobile suppresses to keep
+            the card visually quieter and let the CTA row dominate. */}
         {partTypeLabel && (
           <div
-            className="mt-1 sm:mt-1.5 inline-block self-start text-[10px] sm:text-[11px] text-gray-600 bg-gray-100 rounded px-1.5 sm:px-2 py-0.5 max-w-full truncate"
+            className="hidden sm:inline-block self-start mt-1.5 text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 max-w-full truncate"
             title={partTypeLabel}
           >
             {partTypeLabel}
           </div>
         )}
+
+        {/* Quick-contact mini row. Buttons live inside the parent
+            anchor so we MUST cancel the navigation in their handler.
+            Each button stops propagation + preventsDefault so a tap
+            on the CTA never accidentally navigates to the product
+            detail page. */}
+        <div className="mt-2 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openQuickRfqEvent({
+                source: "product_card",
+                shopSlug,
+                productId: product.productId || product.id || null,
+                part: product.name || "",
+                vehicle: fitmentLine || "",
+              });
+            }}
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-[#e60012] hover:bg-[#c1000f] text-white text-[11px] sm:text-[12px] font-semibold px-2 py-1.5 shadow-sm"
+            aria-label="Hỏi nhanh về sản phẩm"
+          >
+            <ChatIconMini />
+            Hỏi nhanh
+          </button>
+          {shopPhone && (
+            <a
+              href={`tel:${shopPhone}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof window !== "undefined") {
+                  trackShopsiteEvent(ShopsiteEvents.PHONE_CLICK, {
+                    shopSlug,
+                    source: "product_card",
+                  });
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 w-9 h-7 sm:h-[30px] shrink-0"
+              aria-label="Gọi shop"
+              title="Gọi shop"
+            >
+              <PhoneIconMini />
+            </a>
+          )}
+        </div>
       </div>
     </a>
+  );
+}
+
+function ChatIconMini() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
+function PhoneIconMini() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
   );
 }
 

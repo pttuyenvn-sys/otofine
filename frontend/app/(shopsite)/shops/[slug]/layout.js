@@ -7,6 +7,7 @@ import StorefrontAnalyticsForwarder from "@/components/shopsite/StorefrontAnalyt
 import StorefrontSellerShortcut from "@/components/shopsite/StorefrontSellerShortcut";
 import StorefrontOwnerStrip from "@/components/shopsite/StorefrontOwnerStrip";
 import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
+import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildShopJsonLd } from "@/lib/shopsite/buildShopJsonLd";
@@ -120,6 +121,14 @@ export default async function ShopTenantLayout({ children, params }) {
           unauthenticated visitors and for any seller who isn't the
           owner of THIS shop, so customer-facing UX stays untouched. */}
       <StorefrontSellerShortcut shopId={shop.id} />
+
+      {/* Phase: live commerce — floating "Tìm phụ tùng nhanh" pill
+          (desktop) + page-level Quick-RFQ modal. Mounted at the layout
+          level so the modal is reachable from any storefront subpage
+          (home, san-pham, gioi-thieu, lien-he). Product cards
+          dispatch `shopsite:openQuickRfq` to spawn the same modal
+          with pre-filled fields. */}
+      <ShopQuickRfqLauncher shop={{ id: shop.id, slug: shop.slug, name: shop.name }} />
 
       {/* Phase 5.5 — structured data for search engines. */}
       <ShopJsonLd payload={jsonLd} />
