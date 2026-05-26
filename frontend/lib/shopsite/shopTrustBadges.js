@@ -40,18 +40,16 @@ export function deriveShopTrustBadges(shop) {
     });
   }
 
-  // Catalog-scale badge — only surfaces when the shop has shipped a
-  // meaningful inventory. Bucketed at conservative tiers (10 / 50 /
-  // 200) so the chip says something concrete without disclosing exact
-  // numbers (avoids "fake-looking precision"). Sourced from the same
-  // `productCount` the directory + JSON-LD already use — no extra
-  // back-end work, and the number is REAL (not an estimate).
+  // Catalog-scale badge — the single source of truth for the
+  // "X+ sản phẩm" claim across the storefront. Bucketed at finer
+  // tiers (10/50/100/200/500/1000/2000/3000/5000) so a shop with
+  // 2800 SKUs shows "2.000+ sản phẩm" instead of a generic "200+".
+  // Other lower-section components do NOT show a competing number —
+  // they speak in wording only — so the hero number always wins as
+  // the canonical productCount surface.
   const productCount = Number(shop.productCount) || 0;
   if (productCount >= 10) {
-    let bucket;
-    if (productCount >= 200) bucket = "200+";
-    else if (productCount >= 50) bucket = "50+";
-    else bucket = "10+";
+    const bucket = bucketProductCount(productCount);
     badges.push({
       kind: "catalog",
       label: `${bucket} sản phẩm`,
@@ -82,4 +80,25 @@ export function deriveShopTrustBadges(shop) {
   }
 
   return badges;
+}
+
+/**
+ * Bucket the real productCount into the displayed "X+ sản phẩm"
+ * label. Steps are chosen so a typical 100-3000 SKU shop sees a
+ * label that meaningfully tracks reality (a 2800-SKU shop shows
+ * "2.000+", not "200+"). Used by the hero trust strip and is the
+ * canonical wording — no other storefront component renders a
+ * competing numeric productCount claim.
+ */
+export function bucketProductCount(n) {
+  const v = Number(n) || 0;
+  if (v >= 5000) return "5.000+";
+  if (v >= 3000) return "3.000+";
+  if (v >= 2000) return "2.000+";
+  if (v >= 1000) return "1.000+";
+  if (v >= 500) return "500+";
+  if (v >= 200) return "200+";
+  if (v >= 100) return "100+";
+  if (v >= 50) return "50+";
+  return "10+";
 }

@@ -133,6 +133,34 @@ export function buildUpdatePayload(body) {
     data.addressDetail = trimMax(body.addressDetail, MAX_TEXT_LEN);
   }
 
+  // Seller-declared business start year. Accepted under either the
+  // canonical column name (`founded_year`) or the camelCase alias
+  // (`foundedYear`) so the frontend can use whichever idiom is
+  // natural. NULL / empty string explicitly clears the field. Out
+  // of range → validation error (we clamp the "reasonable" window
+  // to 1900..currentYear to keep a sane storefront display).
+  if (
+    Object.prototype.hasOwnProperty.call(body, "founded_year") ||
+    Object.prototype.hasOwnProperty.call(body, "foundedYear")
+  ) {
+    const raw =
+      body.founded_year !== undefined ? body.founded_year : body.foundedYear;
+    if (raw == null || String(raw).trim() === "") {
+      data.founded_year = null;
+    } else {
+      const n = Number(raw);
+      const currentYear = new Date().getFullYear();
+      if (!Number.isFinite(n) || n < 1900 || n > currentYear) {
+        errors.push({
+          field: "founded_year",
+          message: `Năm hoạt động phải nằm trong khoảng 1900 - ${currentYear}`,
+        });
+      } else {
+        data.founded_year = Math.floor(n);
+      }
+    }
+  }
+
   return { data, errors };
 }
 

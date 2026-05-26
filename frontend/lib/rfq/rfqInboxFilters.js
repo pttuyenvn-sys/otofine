@@ -3,7 +3,9 @@ export const SHOP_INBOX_STATUS_FILTERS = [
   { id: "unread", label: "Chưa đọc" },
   { id: "waiting", label: "Chờ báo giá" },
   { id: "quoted", label: "Đã báo giá" },
-  { id: "expired", label: "Hết hạn / trễ" },
+  // Storefront-seller refine v2: shorten the longest label so the
+  // mobile chip row fits two compact rows without truncation.
+  { id: "expired", label: "Hết hạn" },
 ];
 
 export function buildInboxQueryParams({

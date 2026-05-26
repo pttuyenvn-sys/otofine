@@ -53,6 +53,11 @@ const PUBLIC_SHOP_COLUMNS = `
   s.map_embed_url,
   s.verified_at,
   s.published_at,
+  -- Seller-declared "operating since" year. Optional, nullable;
+  -- storefront consumers (toPublicDto + yearsFromFoundedOrDate) fall
+  -- back to s.createdAt when this is NULL so existing rows continue
+  -- to render the same value they did before migration 045.
+  s.founded_year,
   s.createdAt,
   s.updatedAt
 `;

@@ -14,6 +14,7 @@ const OWNER_SHOP_COLUMNS = `
   provinceId, districtId, wardId, addressDetail, working_hours,
   descriptionHtml, intro_html, salePolicy, warrantyPolicy,
   lat, lng, map_embed_url, verified_at, published_at,
+  founded_year,
   createdAt, updatedAt
 `;
 
@@ -76,6 +77,11 @@ const PATCHABLE_COLUMNS = [
   "working_hours",
   "map_embed_url",
   "addressDetail",
+  // Seller-declared business start year (`shops.founded_year`).
+  // Optional, nullable; the storefront years derivation falls back
+  // to `createdAt` when this is NULL. Validation lives in the
+  // service layer (clamped to 1900..currentYear).
+  "founded_year",
 ];
 
 export async function updatePublicPageConfig(shopId, data) {

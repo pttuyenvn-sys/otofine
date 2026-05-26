@@ -35,6 +35,62 @@ import { createPortal } from "react-dom";
 import "./ProductPopup.css";
 import useProductDraftAutosave from "../../hooks/useProductDraftAutosave";
 import { sellerToast } from "../ui/SellerToaster";
+import AutocompleteInput from "../ui/AutocompleteInput";
+
+/**
+ * Suggestion sources for the seller add/edit popup.
+ *
+ *   partName → `/api/product-categories/search?q=…` returns the
+ *              canonical "loại phụ tùng" dictionary
+ *              ("Lọc gió động cơ", "Lọc dầu", …). Public endpoint,
+ *              no auth needed; failures collapse silently.
+ *
+ *   origin   → `/api/products/shop/filters` already exists for the
+ *              seller's own catalogue distinct values; we
+ *              client-side filter the result by the typed prefix
+ *              so we don't hammer the backend per keystroke.
+ *
+ * Both are debounced and cached inside AutocompleteInput itself.
+ */
+async function fetchPartNameSuggestions(q) {
+  if (!q || q.length < 1) return [];
+  try {
+    const res = await axiosClient.get("/product-categories/search", {
+      params: { q },
+    });
+    const arr = Array.isArray(res.data) ? res.data : [];
+    return arr.slice(0, 8).map((c) => ({
+      value: c.canonical_name || c.category_name || "",
+      label: c.canonical_name || c.category_name || "",
+      hint: c.product_count > 0 ? `${c.product_count} SP` : undefined,
+    })).filter((it) => it.value);
+  } catch {
+    return [];
+  }
+}
+
+let _shopOriginsCache = null;
+async function fetchShopOrigins() {
+  if (_shopOriginsCache) return _shopOriginsCache;
+  try {
+    const res = await axiosClient.get("/products/shop/filters");
+    const list = Array.isArray(res.data?.origins) ? res.data.origins : [];
+    _shopOriginsCache = list;
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchOriginSuggestions(q) {
+  const all = await fetchShopOrigins();
+  const needle = (q || "").trim().toLowerCase();
+  if (!needle) return all.slice(0, 8).map((v) => ({ value: v }));
+  return all
+    .filter((v) => String(v).toLowerCase().includes(needle))
+    .slice(0, 8)
+    .map((v) => ({ value: v }));
+}
 
 const initialCarRow = () => ({
   brand: "",
@@ -536,9 +592,13 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
                 <div>
                   <label>Tên phụ tùng *</label>
-                  <input
+                  <AutocompleteInput
                     value={partName}
-                    onChange={(e) => setPartName(e.target.value)}
+                    onChange={setPartName}
+                    fetchSuggestions={fetchPartNameSuggestions}
+                    sourceKey="partName"
+                    placeholder="VD: Lọc gió động cơ"
+                    ariaLabel="Tên phụ tùng"
                   />
                 </div>
               </div>
@@ -564,9 +624,13 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
                 <div>
                   <label>Xuất xứ</label>
-                  <input
+                  <AutocompleteInput
                     value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
+                    onChange={setOrigin}
+                    fetchSuggestions={fetchOriginSuggestions}
+                    sourceKey="origin"
+                    placeholder="VD: OEM, Chính hãng, Aftermarket"
+                    ariaLabel="Xuất xứ"
                   />
                 </div>
               </div>

@@ -200,12 +200,34 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
         </div>
       </div>
 
-      {/* Mobile total + minimal pager — single tap previous / next. */}
-      <div className="lg:hidden flex items-center justify-between mb-2 text-[12px] text-gray-500">
+      {/* Mobile total + page-size selector — always visible whenever
+          the seller has any data, so they can change page size and
+          see "Tổng X sản phẩm · Trang Y/Z" at a glance. The legacy
+          mobile bar showed only the static total; without a page-size
+          control the seller could not surface more than 20 SKUs at a
+          time on phones. */}
+      <div className="lg:hidden flex items-center justify-between gap-2 mb-2 text-[12px] text-gray-500">
         <span>
           <b className="text-gray-700">{total.toLocaleString("vi-VN")}</b> sản phẩm
         </span>
-        <span>
+        <div className="flex items-center gap-1.5">
+          <label className="text-[12px] text-gray-500" htmlFor="prod-mobile-limit">Hiển thị</label>
+          <select
+            id="prod-mobile-limit"
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+            className="border border-gray-200 rounded px-1.5 py-0.5 text-[12px] bg-white text-gray-700"
+            aria-label="Số sản phẩm mỗi trang"
+          >
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
+        <span className="tabular-nums">
           Trang <b className="text-gray-700">{page}</b>/{totalPages}
         </span>
       </div>
@@ -265,13 +287,16 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
         </>
       )}
 
-      {/* Mobile pager — sits just below the list, simpler footprint. */}
-      {!loading && totalPages > 1 && (
+      {/* Mobile pager — sits just below the list. Always rendered
+          when the seller has any data so the "Trang X/Y" affordance
+          stays visible and the next-page button is one tap away.
+          Buttons disable themselves at the edges. */}
+      {!loading && data.length > 0 && (
         <div className="lg:hidden mt-3 flex items-center justify-between gap-2">
           <button
             type="button"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
+            disabled={page <= 1}
+            onClick={() => setPage(Math.max(1, page - 1))}
             className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-50"
           >
             ‹ Trước
@@ -281,8 +306,8 @@ export default function ProductList({ appliedFilters = {}, onDelete }) {
           </span>
           <button
             type="button"
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
+            disabled={page >= totalPages}
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
             className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-50"
           >
             Sau ›

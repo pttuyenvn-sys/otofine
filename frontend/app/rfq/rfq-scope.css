@@ -816,10 +816,17 @@
   }
 
   .rfq-scope .rfq-chip-row--inbox .rfq-chip--inbox {
-    height: 38px;
-    min-height: 38px;
-    padding: 0 16px;
-    font-size: 15px;
+    /* Mobile inbox chips compress so all five buckets fit on at most
+       two rows without horizontal scroll. */
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 999px;
+  }
+  .rfq-scope .rfq-chip-row--inbox {
+    gap: 6px;
+    margin-bottom: 10px;
   }
 
   .rfq-scope .rfq-sort-select {
@@ -4068,14 +4075,14 @@
 .rfq-scope .rfq-chip-row--inbox {
   gap: 8px;
   margin-bottom: 12px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.rfq-scope .rfq-chip-row--inbox::-webkit-scrollbar {
-  display: none;
+  /* Storefront-seller refine v2: drop the legacy horizontal scroll
+     so the seller sees ALL five status buckets at once. On wider
+     viewports the pills sit on one row; below the wrap threshold
+     they spill onto a second row instead of hiding behind the
+     scroll edge. The compact `--inbox` chip dimensions below keep
+     the second row short on phones (5 pills fit on two rows). */
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .rfq-scope .rfq-chip--inbox {

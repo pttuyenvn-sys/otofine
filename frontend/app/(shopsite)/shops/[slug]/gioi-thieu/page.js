@@ -125,13 +125,28 @@ function StatBox({ value, label }) {
 }
 
 function joinYears(shop) {
-  if (!shop.createdAt) return "—";
-  const created = new Date(shop.createdAt);
+  // Prefer the seller-declared `foundedYear` so an established business
+  // that just signed up to Otofine doesn't render the misleading "1+
+  // năm" derived from createdAt. Falls back to publishedAt → createdAt
+  // → "—". The trust.establishedYears value, when present, already
+  // implements the same precedence on the backend.
+  const currentYear = new Date().getFullYear();
+  if (Number.isFinite(Number(shop.foundedYear))) {
+    const fy = Math.floor(Number(shop.foundedYear));
+    if (fy >= 1900 && fy <= currentYear) {
+      const years = Math.max(1, currentYear - fy);
+      return `${years}+ năm`;
+    }
+  }
+  const tenureFromBackend = Number(shop?.trust?.establishedYears);
+  if (Number.isFinite(tenureFromBackend) && tenureFromBackend >= 1) {
+    return `${tenureFromBackend}+ năm`;
+  }
+  const source = shop.publishedAt || shop.createdAt;
+  if (!source) return "—";
+  const created = new Date(source);
   if (Number.isNaN(created.getTime())) return "—";
-  const years = Math.max(
-    1,
-    new Date().getFullYear() - created.getFullYear(),
-  );
+  const years = Math.max(1, currentYear - created.getFullYear());
   return `${years}+ năm`;
 }
 

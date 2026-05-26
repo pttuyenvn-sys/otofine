@@ -174,22 +174,29 @@ export default function ShopProductCard({
       </div>
 
       {/*
-        Mobile v2 hierarchy: image (above) → name (2-line) → price (bold) →
-        quick-contact row (CTA). The fitment line is desktop-only and
-        the legacy "Loại hàng" chip is also desktop-only so the
-        mobile card stays in the four-element hierarchy the user
-        spec'd. Desktop keeps the original richer layout.
+        Card hierarchy (storefront v3, mobile + desktop):
+          image → name (2-line) → price (bold) → fitment line → CTA.
+        The fitment line is restored on mobile per the user spec —
+        kept to a single truncated line so the card stays compact.
+        Desktop adds the legacy "Loại hàng" chip below the price as
+        an additional richer signal.
       */}
       <div className="p-2 sm:p-3 flex-1 flex flex-col">
         <h3 className="text-[13px] sm:text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        {/* Fitment line — desktop only. Mobile drops it per the
-            mobile-product-UX v2 hierarchy (image → name → price → CTA). */}
+        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
+          {formatPrice(product.price)}
+        </div>
+
+        {/* Fitment line — single truncated line on every breakpoint.
+            Mobile keeps a smaller font + tighter top margin so the card
+            height stays under control. The empty spacer when there is
+            no fitment is mobile-suppressed (avoids a phantom row). */}
         {fitmentLine ? (
           <p
-            className="hidden sm:block mt-1 text-[12px] text-gray-500 truncate"
+            className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-gray-500 truncate"
             title={fitmentLine}
           >
             {fitmentLine}
@@ -202,10 +209,6 @@ export default function ShopProductCard({
             &nbsp;
           </p>
         )}
-
-        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
-          {formatPrice(product.price)}
-        </div>
 
         {/* Part-type chip — desktop only; mobile suppresses to keep
             the card visually quieter and let the CTA row dominate. */}

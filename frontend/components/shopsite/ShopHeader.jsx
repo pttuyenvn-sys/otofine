@@ -242,35 +242,18 @@ export default function ShopHeader({ shop, badges }) {
         </div>
       </div>
 
-      {/* C. Mobile-only quick-search + short description.
-          The hero on mobile is intentionally minimal (name +
-          verified badge + cover). The search box that used to live
-          in the utility topbar is surfaced here so phone users
-          still get a one-tap entry into the products page. */}
-      <div className="sm:hidden bg-white rounded-2xl shadow-sm px-3 py-2.5 space-y-2">
-        {safeShort && (
+      {/* C. Mobile-only short description.
+          The duplicate "Tìm trong shop" hero input was removed: the
+          full search + filter bar lives directly below the hero
+          (ShopMobileFilters + ShopFilters) and was creating a
+          double search affordance on mobile. */}
+      {safeShort ? (
+        <div className="sm:hidden bg-white rounded-2xl shadow-sm px-3 py-2.5">
           <p className="text-xs text-gray-600 leading-snug line-clamp-2">
             {safeShort}
           </p>
-        )}
-        <form
-          action={`/shops/${shop.slug}/san-pham`}
-          method="get"
-          className="flex items-center bg-gray-50 rounded-xl px-2.5 py-1.5 ring-1 ring-gray-200 focus-within:ring-[#e60012]/40 focus-within:bg-white"
-          role="search"
-        >
-          <span aria-hidden className="text-gray-400 shrink-0 mr-1.5">
-            <SearchIcon />
-          </span>
-          <input
-            type="text"
-            name="q"
-            placeholder="Tìm trong shop…"
-            aria-label="Tìm sản phẩm trong shop"
-            className="flex-1 min-w-0 bg-transparent text-sm placeholder-gray-400 outline-none"
-          />
-        </form>
-      </div>
+        </div>
+      ) : null}
 
       {/* D. Trust badges (Phase 5.1) — graceful no-op when empty.
           Branding pass: trust strip + social icon row share the

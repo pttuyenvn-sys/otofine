@@ -62,6 +62,11 @@ function toPublicDto(row, extras = {}) {
     verifiedAt: row.verified_at || null,
     publishedAt: row.published_at || null,
     createdAt: row.createdAt || null,
+    // Seller-declared "operating since" year. Optional; storefront
+    // consumers prefer this over `createdAt` when computing
+    // "X+ năm kinh nghiệm" so a new platform listing for an
+    // established business does not show a misleading "1+ năm".
+    foundedYear: row.founded_year != null ? Number(row.founded_year) : null,
 
     productCount: extras.productCount ?? null,
 
@@ -72,11 +77,16 @@ function toPublicDto(row, extras = {}) {
      */
     trust: {
       verified: !!row.verified_at,
-      // Whole-year tenure, computed from `published_at` if the shop
-      // has actually gone live, else `createdAt`. Floor to integer; a
-      // brand-new shop returns 0 → frontend hides the "Hoạt động X năm"
-      // chip.
-      establishedYears: yearsSince(row.published_at || row.createdAt),
+      // Whole-year tenure. PREFERS the seller-declared `founded_year`
+      // (set via /shop/settings) so an established business that just
+      // joined Otofine renders the real number (e.g. "15+ năm") and
+      // not the "1+ năm" you'd get from `createdAt`. Falls back to
+      // `published_at` then `createdAt` when the seller has not
+      // declared a year.
+      establishedYears: yearsFromFoundedOrDate(
+        row.founded_year,
+        row.published_at || row.createdAt,
+      ),
       // Heuristic "responsive" signal: shop has both phone *and* a
       // direct messaging channel (zalo or facebook). Cheap proxy until
       // we have a real response-time SLO.
@@ -115,6 +125,21 @@ function yearsSince(dateLike) {
   const ms = Date.now() - t;
   if (ms <= 0) return 0;
   return Math.floor(ms / (365.25 * 24 * 60 * 60 * 1000));
+}
+
+/**
+ * Derive whole-year tenure with the seller-declared founding year
+ * taking precedence over the createdAt fallback. Clamped to the
+ * sane window 1900..currentYear so a typo in the form doesn't push
+ * "120+ năm" to the storefront.
+ */
+function yearsFromFoundedOrDate(foundedYearRaw, dateLike) {
+  const fy = Number(foundedYearRaw);
+  const currentYear = new Date().getFullYear();
+  if (Number.isFinite(fy) && fy >= 1900 && fy <= currentYear) {
+    return Math.max(0, currentYear - Math.floor(fy));
+  }
+  return yearsSince(dateLike);
 }
 
 function stripHtmlOneLine(html, limit = 160) {

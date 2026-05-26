@@ -70,16 +70,24 @@ function deriveReasons(shop) {
     });
   }
 
+  // Why-Choose-Us "catalogue" card — wording only. The numeric
+  // "X+ sản phẩm" claim lives on the hero strip; this card adds a
+  // qualitative cue ("catalogue đầy đủ", "kho trong hệ thống" copy)
+  // without re-stating a number that would conflict with the hero.
   const productCount = Number(shop.productCount) || 0;
   if (productCount >= 10) {
-    const bucket =
-      productCount >= 200 ? "200+" : productCount >= 50 ? "50+" : "10+";
     out.push({
       id: "catalog",
       tone: "indigo",
       icon: "📦",
-      title: `${bucket} sản phẩm sẵn kho`,
-      body: "Catalogue đầy đủ, có sẵn xuất kho ngay.",
+      title:
+        productCount >= 200
+          ? "Catalogue đa dạng"
+          : "Catalogue đang phát triển",
+      body:
+        productCount >= 200
+          ? "Hàng nghìn phụ tùng trong hệ thống kho, sẵn sàng xuất khi cần."
+          : "Catalogue đang được mở rộng nhanh, hỗ trợ đặt thêm khi cần.",
     });
   }
 

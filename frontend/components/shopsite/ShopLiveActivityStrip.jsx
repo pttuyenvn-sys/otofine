@@ -107,18 +107,26 @@ function deriveActivities(shop) {
     });
   }
 
+  // Catalogue chip — wording only. The numeric "X+ sản phẩm" claim
+  // is owned by the hero trust strip (ShopTrustBadges) to avoid
+  // double-counting across the storefront. We surface a softer
+  // "Kho hàng lớn · hàng nghìn phụ tùng" cue when the shop has a
+  // meaningful catalogue (≥ 100 SKUs); a smaller catalogue gets a
+  // softer "Kho hàng đa dạng" cue. Both are wording, not numbers.
   const productCount = Number(shop.productCount) || 0;
-  if (productCount >= 50) {
-    let bucket;
-    if (productCount >= 2000) bucket = "2.000+";
-    else if (productCount >= 1000) bucket = "1.000+";
-    else if (productCount >= 500) bucket = "500+";
-    else if (productCount >= 100) bucket = "100+";
-    else bucket = "50+";
+  if (productCount >= 100) {
     out.push({
       key: "catalog",
       tone: "info",
-      label: `${bucket} sản phẩm trên kệ`,
+      label: "Kho hàng lớn · hàng nghìn phụ tùng",
+      dot: false,
+      icon: "📦",
+    });
+  } else if (productCount >= 30) {
+    out.push({
+      key: "catalog",
+      tone: "info",
+      label: "Kho hàng đa dạng",
       dot: false,
       icon: "📦",
     });

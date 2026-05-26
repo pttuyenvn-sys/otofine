@@ -61,6 +61,11 @@ function toSellerDto(row) {
     mapEmbedUrl: row.map_embed_url,
     verifiedAt: row.verified_at,
     publishedAt: row.published_at,
+    // Optional self-declared "operating since" year — surfaced so the
+    // /shop/settings form can pre-fill the input. NULL → frontend
+    // renders an empty placeholder and the storefront falls back to
+    // `createdAt` for the "X+ năm" derivation.
+    foundedYear: row.founded_year != null ? Number(row.founded_year) : null,
     preview: buildPreviewUrl(row.slug, sellerStatus),
   };
 }

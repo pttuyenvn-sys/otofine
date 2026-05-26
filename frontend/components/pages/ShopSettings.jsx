@@ -325,6 +325,10 @@ const EMPTY_BASIC = {
 const EMPTY_PUBLIC = {
   slug: "", publicStatus: "draft", bio: "", introHtml: "",
   facebookUrl: "", zaloPhone: "", workingHours: "", mapEmbedUrl: "", addressDetail: "",
+  // Optional seller-declared "operating since" year. Stored on the
+  // shops table as `founded_year` (SMALLINT NULL). When empty the
+  // storefront derivation falls back to createdAt.
+  foundedYear: "",
 };
 
 // ---------------------------------------------------------------------------
@@ -446,6 +450,7 @@ export default function ShopSettings() {
         workingHours:  d.workingHours  || "",
         mapEmbedUrl:   d.mapEmbedUrl   || "",
         addressDetail: d.addressDetail || "",
+        foundedYear:   d.foundedYear != null ? String(d.foundedYear) : "",
       });
       setOriginalSlug(d.slug || "");
       setPreview(d.preview || null);
@@ -523,6 +528,9 @@ export default function ShopSettings() {
         working_hours: pub.workingHours,
         map_embed_url: pub.mapEmbedUrl,
         addressDetail: pub.addressDetail,
+        // Optional "Hoạt động từ năm" — empty string clears the
+        // field; the validator accepts numbers in 1900..currentYear.
+        founded_year:  pub.foundedYear === "" ? null : Number(pub.foundedYear),
       };
 
       const [basicRes, pubRes] = await Promise.allSettled([
@@ -894,10 +902,23 @@ export default function ShopSettings() {
               error={fieldErrors.working_hours}
             />
             <FieldText
+              label="Hoạt động từ năm"
+              value={pub.foundedYear}
+              onChange={(v) => setP("foundedYear", v.replace(/[^0-9]/g, "").slice(0, 4))}
+              placeholder="VD: 2010"
+              hint={
+                pub.foundedYear && /^\d{4}$/.test(pub.foundedYear)
+                  ? `→ Storefront sẽ hiển thị "${Math.max(0, new Date().getFullYear() - Number(pub.foundedYear))}+ năm kinh nghiệm"`
+                  : "Tuỳ chọn. Để trống thì storefront sẽ dùng ngày bạn tạo shop trên Otofine."
+              }
+              error={fieldErrors.founded_year}
+            />
+            <FieldText
               label="Google Maps embed URL"
               value={pub.mapEmbedUrl}
               onChange={(v) => setP("mapEmbedUrl", v)}
               placeholder="https://www.google.com/maps/embed?pb=…"
+              className="md:col-span-2"
               error={fieldErrors.map_embed_url}
             />
           </div>
