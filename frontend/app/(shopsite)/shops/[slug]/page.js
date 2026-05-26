@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import ShopImage from "@/components/shopsite/ShopImage";
 import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopMobileFilters from "@/components/shopsite/ShopMobileFilters";
 import ShopMobileCategories from "@/components/shopsite/ShopMobileCategories";
@@ -22,6 +23,7 @@ import {
   getShopCanonicalUrl,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
+import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
 
 const FILTERS_FALLBACK = (
   <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
@@ -62,6 +64,17 @@ export default async function ShopTenantHomePage({ params }) {
     slug: c.slug || String(c.id),
   }));
 
+  // Storefront visual diversity pass — resolve all hero/promo slots
+  // together so the same image never appears in two places. Cover is
+  // claimed first (it's the seller's deliberate brand image); the
+  // promo banner then pulls from intro images / product images /
+  // curated automotive fallback, automatically skipping anything the
+  // cover already claimed.
+  const visuals = buildStorefrontVisuals(shop, {
+    products: featured.map((p) => p.image).filter(Boolean),
+    introHtml: shop.introHtml,
+  });
+
   return (
     <div className="space-y-3">
       {/* Mobile filter row (search + Lọc drawer) lives ABOVE the
@@ -85,7 +98,11 @@ export default async function ShopTenantHomePage({ params }) {
           <AboutCard shop={shop} />
         </div>
         <div className="hidden lg:block lg:col-span-5">
-          <PromoBanner basePath={basePath} cover={shop.cover} />
+          <PromoBanner
+            basePath={basePath}
+            promoImage={visuals.homepagePromo}
+            promoFallback={visuals.fallback?.homepagePromo}
+          />
         </div>
         <div className="hidden lg:block lg:col-span-3">
           {/* Phase 5.1 — sticky on desktop so the buyer can always
@@ -178,15 +195,25 @@ function AboutCard({ shop }) {
   );
 }
 
-function PromoBanner({ basePath, cover }) {
+function PromoBanner({ basePath, promoImage, promoFallback }) {
+  // The promo image is resolved upstream via `buildStorefrontVisuals`
+  // so we're guaranteed not to be reusing `shop.cover` here. If the
+  // shop has neither uploaded promo nor intro/product imagery, the
+  // resolver lands on a curated automotive fallback bucket that is
+  // disjoint from the about-hero bucket — same shop, different image
+  // per slot. `promoFallback` is the curated rescue URL the resolver
+  // exposes so a broken seller-supplied primary doesn't leave the
+  // banner as a bare gradient.
   return (
     <div className="relative h-full min-h-[200px] rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white shadow-sm">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={cover || "https://images.unsplash.com/photo-1486496146582-9ffcd0b2b2b7?auto=format&fit=crop&w=1200&q=70"}
+      <ShopImage
+        src={promoImage}
+        fallbackSrc={promoFallback}
         alt=""
         aria-hidden
         className="absolute inset-0 w-full h-full object-cover opacity-60"
+        fallbackClassName="absolute inset-0 w-full h-full"
+        fallback={null}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/10" />
       <div className="relative h-full p-5 sm:p-6 flex flex-col justify-center">

@@ -4,8 +4,14 @@ import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
 import ShopIntroClamp from "@/components/shopsite/ShopIntroClamp";
 import ShopImage from "@/components/shopsite/ShopImage";
-import { fetchPublicShop, fetchPublicShopSafe, getShopCanonicalUrl } from "@/services/shopPublic.service";
+import {
+  fetchPublicShop,
+  fetchPublicShopSafe,
+  fetchPublicShopProductsSafe,
+  getShopCanonicalUrl,
+} from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
+import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -18,30 +24,56 @@ export async function generateMetadata({ params }) {
 
 export default async function ShopTenantAboutPage({ params }) {
   const { slug } = await params;
-  const shop = await fetchPublicShop(slug);
+  // Phase: storefront visual diversity. We fetch a small product page
+  // alongside the shop so the visual resolver can prefer real product
+  // photos before falling back to the curated automotive bucket. The
+  // call is `Safe`-suffixed so a transient products outage degrades
+  // gracefully (the resolver still has cover + intro + curated set).
+  const [shop, productsPage] = await Promise.all([
+    fetchPublicShop(slug),
+    fetchPublicShopProductsSafe(slug, { perPage: 4, sort: "newest" }),
+  ]);
   if (!shop) notFound();
 
   const intro = shop.introHtml || "";
+  const productImages = (productsPage?.items || [])
+    .map((p) => p.image)
+    .filter(Boolean);
+
+  // Resolves cover + homepagePromo + aboutHero in one pass so the
+  // about hero can't accidentally collide with the cover URL the
+  // header is already painting at the top of the page. The
+  // homepagePromo slot is computed but not rendered here — it still
+  // counts as "claimed", which is the point.
+  const visuals = buildStorefrontVisuals(shop, {
+    products: productImages,
+    introHtml: intro,
+  });
+  const aboutHero = visuals.aboutHero;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
       <div className="lg:col-span-8 space-y-3">
         <ShopSection title="Giới thiệu" bodyClassName="!p-0">
-          {shop.cover && (
-            // Mobile compression: gioi-thieu's cover repeated the
-            // hero. Halve the aspect ratio on phones (16:9 vs 16:6
-            // desktop) so the user reaches the actual intro text
-            // sooner.
+          {aboutHero && (
+            // Mobile compression: gioi-thieu's hero used to repeat the
+            // storefront cover. Now resolved through the visual
+            // resolver (second intro image → second product image →
+            // curated automotive fallback). Aspect ratio drops to
+            // 16:9 on phones (vs 16:6 desktop) so the hero stays under
+            // ~27% of viewport height and the intro text is reachable
+            // without a long scroll.
             <div className="relative aspect-[16/9] sm:aspect-[16/6] overflow-hidden bg-gray-100">
               <ShopImage
-                src={shop.cover}
+                src={aboutHero}
+                fallbackSrc={visuals.fallback?.aboutHero}
                 alt={`Cửa hàng ${shop.name}`}
                 className="absolute inset-0 w-full h-full object-cover"
                 fallbackClassName="absolute inset-0 w-full h-full"
               />
               <div
                 aria-hidden
-                className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"
+                className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"
               />
             </div>
           )}
