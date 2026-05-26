@@ -15,9 +15,14 @@ import {
   buildProductSeoUrl,
   extractProductIdFromSeoSlug,
 } from "@/lib/seo/productSeoUrl";
+import {
+  RECENT_VIEWED_KEY,
+  pushRecentlyViewed,
+  readRecentlyViewed,
+  excludeCurrent,
+} from "@/lib/shopsite/recentlyViewed";
+import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
 import "./ProductDetail.css";
-
-const RECENT_VIEWED_KEY = "otofine_recent_products_v1";
 
 const stripHtml = (html = "") =>
   html
@@ -51,6 +56,68 @@ const formatPrice = (value) => {
 };
 
 const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
+
+/**
+ * Open the storefront Quick-RFQ modal pre-filled with the current
+ * product + first matching fitment. The modal lives at the storefront
+ * layout level (`ShopQuickRfqLauncher`) and listens for the
+ * `shopsite:openQuickRfq` CustomEvent so this product detail page
+ * doesn't have to own a second copy.
+ *
+ * On the apex product detail route (`/<slug>-<id>`) the launcher is
+ * NOT mounted (only the shopsite layout mounts it). In that case the
+ * event has no listener — we fall back to the existing `/rfq/new`
+ * page so the buyer still has a path to send a request, with the
+ * product context carried in the URL.
+ *
+ * Detection: we wait one tick after dispatching the event; if the
+ * page is still here AND we're not under the shopsite layout (no
+ * `[data-shopsite-rfq-mount]` marker), we navigate.
+ */
+function openQuickRfqWithProduct(product, cars) {
+  if (typeof window === "undefined") return;
+  const title = (product?.shortDescription || product?.partName || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const firstCar = Array.isArray(cars) && cars[0] ? cars[0] : null;
+  const brand = firstCar?.hang_xe || firstCar?.brand || "";
+  const model = firstCar?.ten_xe || firstCar?.model || "";
+  const yr = firstCar?.year_from || firstCar?.yearFrom || "";
+  const detail = {
+    source: "product_detail_cta",
+    productId: product?.id || null,
+    part: title || product?.partNumber || "",
+    brand,
+    model,
+    year: yr ? String(yr) : "",
+    vehicle: [brand, model, yr].filter(Boolean).join(" "),
+  };
+  let delivered = false;
+  function markDelivered() { delivered = true; }
+  window.addEventListener("shopsite:openQuickRfq:ack", markDelivered, {
+    once: true,
+  });
+  try {
+    window.dispatchEvent(new CustomEvent("shopsite:openQuickRfq", { detail }));
+  } catch {/* old WebView */}
+  setTimeout(() => {
+    window.removeEventListener("shopsite:openQuickRfq:ack", markDelivered);
+    // Apex fallback — no launcher on this route. Navigate to /rfq/new
+    // and let the universal RFQ form handle it. We don't need to
+    // verify "mounted" — if the launcher was present it would have
+    // popped open by now and the buyer's already in the modal.
+    if (!delivered && !document.querySelector("[data-shopsite-rfq-mount]")) {
+      const q = new URLSearchParams();
+      if (detail.part) q.set("part", detail.part);
+      if (detail.brand) q.set("brand", detail.brand);
+      if (detail.model) q.set("model", detail.model);
+      if (detail.year) q.set("year", detail.year);
+      window.location.href = `/rfq/new${q.toString() ? `?${q.toString()}` : ""}`;
+    }
+  }, 80);
+}
 
 function productHref(slug, id, item) {
   // Root-level canonical: `/<slug>-<id>`. With the full item shape
@@ -335,19 +402,16 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                 res.product?.price ||
                 res.product?.price_text,
             ),
+            // Persist the owning shop so the storefront recently-viewed
+            // strip can filter "viewed within this shop only" without
+            // hitting the network. Falls back to null for resilience.
+            shopId: res.shop?.id ?? res.product?.shop_id ?? null,
+            shopSlug: res.shop?.slug || null,
+            shopName: res.shop?.name || null,
             at: Date.now(),
           };
-          const raw = localStorage.getItem(RECENT_VIEWED_KEY);
-          const prev = JSON.parse(raw || "[]");
-          const arr = Array.isArray(prev) ? prev : [];
-          const next = [entry, ...arr.filter((x) => x && x.id !== pid)].slice(
-            0,
-            12,
-          );
-          localStorage.setItem(RECENT_VIEWED_KEY, JSON.stringify(next));
-          setRecentViewed(
-            next.filter((x) => x && x.id !== pid).slice(0, 12),
-          );
+          const next = pushRecentlyViewed(entry);
+          setRecentViewed(excludeCurrent(next, pid).slice(0, 12));
         } catch {
           /* ignore */
         }
@@ -386,18 +450,10 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
   }, [data?.product?.id, data?.related]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(RECENT_VIEWED_KEY);
-      const arr = JSON.parse(raw || "[]");
-      if (!Array.isArray(arr)) return;
-      setRecentViewed(
-        arr
-          .filter((x) => x && !isCurrentListEntry(x, routeId))
-          .slice(0, 12),
-      );
-    } catch {
-      /* ignore */
-    }
+    const arr = readRecentlyViewed();
+    setRecentViewed(
+      arr.filter((x) => x && !isCurrentListEntry(x, routeId)).slice(0, 12),
+    );
   }, [routeId]);
 
   const product = data?.product || {};
@@ -636,6 +692,21 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                   </span>
                   Zalo
                 </a>
+                {/* Conversion engine — "Hỏi nhanh" RFQ. Opens the
+                    storefront Quick-RFQ modal pre-filled with the
+                    current product + fitment. The modal lives at the
+                    layout level and listens for this CustomEvent so
+                    we don't re-mount it per detail page. */}
+                <button
+                  type="button"
+                  className="cta-btn cta-btn--ghost"
+                  onClick={() => openQuickRfqWithProduct(product, cars)}
+                >
+                  <span className="cta-ico" aria-hidden>
+                    📦
+                  </span>
+                  Hỏi nhanh
+                </button>
                 <button
                   type="button"
                   className="cta-btn cta-btn--ghost"
@@ -940,15 +1011,39 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
             <span className="m-cta-ico">💬</span>
             Zalo
           </a>
+          {/* Conversion engine — "Hỏi nhanh" replaces the legacy
+              "Liên hệ" modal opener on mobile. The Quick RFQ flow is
+              a friction-free way to start a conversation that lands
+              in the seller's inbox immediately, vs. the old contact
+              form modal which only surfaced contact info. */}
           <button
             type="button"
             className="m-cta m-cta--contact"
-            onClick={() => setContactOpen(true)}
+            onClick={() => openQuickRfqWithProduct(product, cars)}
+            aria-label="Hỏi nhanh về sản phẩm này"
           >
-            <span className="m-cta-ico">✉️</span>
-            Liên hệ
+            <span className="m-cta-ico">📦</span>
+            Hỏi nhanh
           </button>
         </nav>
+
+        {/* Mount the Quick-RFQ modal (modal-only, no floating
+            button) so the apex `/<slug>-<id>` detail page can open
+            the same in-place RFQ flow the shopsite product cards
+            use. Without this mount, the "Hỏi nhanh" CTA falls
+            back to a full-page `/rfq/new` navigation, which is a
+            slower experience. The shopsite layout still mounts its
+            own launcher with the floating button visible. */}
+        {shop?.slug && (
+          <ShopQuickRfqLauncher
+            hideButton
+            shop={{
+              id: shop.id ?? null,
+              slug: shop.slug,
+              name: shop.name || "",
+            }}
+          />
+        )}
       </div>
     </div>
   );

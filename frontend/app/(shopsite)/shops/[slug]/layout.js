@@ -8,6 +8,7 @@ import StorefrontSellerShortcut from "@/components/shopsite/StorefrontSellerShor
 import StorefrontOwnerStrip from "@/components/shopsite/StorefrontOwnerStrip";
 import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
+import ShopContactMiniDrawer from "@/components/shopsite/ShopContactMiniDrawer";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildShopJsonLd } from "@/lib/shopsite/buildShopJsonLd";
@@ -129,6 +130,26 @@ export default async function ShopTenantLayout({ children, params }) {
           dispatch `shopsite:openQuickRfq` to spawn the same modal
           with pre-filled fields. */}
       <ShopQuickRfqLauncher shop={{ id: shop.id, slug: shop.slug, name: shop.name }} />
+
+      {/* Phase: conversion engine — mount-once mobile contact drawer.
+          Any CTA in the tree (floating bottom bar, product card, the
+          return-visitor banner, etc.) opens it by dispatching
+          `shopsite:openContactDrawer`. Body bundle is lazy-loaded the
+          first time the drawer is opened. */}
+      <ShopContactMiniDrawer
+        shop={{
+          slug: shop.slug,
+          name: shop.name,
+          phone: shop.phone || "",
+          zalo: resolveShopZalo(shop, { phoneFallback: true }),
+          facebook: shop.facebook || null,
+          address: shop.address || "",
+          addressDetail: shop.addressDetail || "",
+          province: shop.province || "",
+          lat: typeof shop.lat === "number" ? shop.lat : null,
+          lng: typeof shop.lng === "number" ? shop.lng : null,
+        }}
+      />
 
       {/* Phase 5.5 — structured data for search engines. */}
       <ShopJsonLd payload={jsonLd} />

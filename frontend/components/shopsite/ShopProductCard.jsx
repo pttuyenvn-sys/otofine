@@ -3,6 +3,10 @@
 import { formatPrice } from "@/data/shop-demo";
 import { apexProductUrl } from "@/lib/apexOrigin";
 import { deriveProductTrustBadge } from "@/lib/shopsite/productTrust";
+import {
+  deriveProductInventorySignals,
+  INVENTORY_SIGNAL_TONES,
+} from "@/lib/shopsite/productInventorySignals";
 import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
 import ShopImage from "./ShopImage";
 
@@ -77,6 +81,12 @@ export default function ShopProductCard({
   // Phase 5.1 — optional trust pill (Chính hãng / OEM / Aftermarket)
   // derived from the seller-provided `origin` string. null → not shown.
   const trustBadge = deriveProductTrustBadge(product);
+  // Conversion engine — "Mới đăng" / "Cập nhật hôm nay" inventory
+  // signal. Pure derivation from createdAt/updatedAt; the helper
+  // returns [] when the data is missing so cards without timestamps
+  // render exactly as before (no fake "recently updated" claim).
+  const inventorySignals = deriveProductInventorySignals(product);
+  const primarySignal = inventorySignals[0] || null;
 
   const handleClick = () => {
     trackShopsiteEvent(ShopsiteEvents.PRODUCT_CLICK, {
@@ -106,6 +116,14 @@ export default function ShopProductCard({
             title={trustBadge.label}
           >
             {trustBadge.label}
+          </span>
+        )}
+        {primarySignal && (
+          <span
+            className={`absolute ${trustBadge ? "top-9" : "top-2"} left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm ring-1 backdrop-blur-sm ${INVENTORY_SIGNAL_TONES[primarySignal.tone] || INVENTORY_SIGNAL_TONES.gray}`}
+            title={primarySignal.label}
+          >
+            {primarySignal.label}
           </span>
         )}
         {/*

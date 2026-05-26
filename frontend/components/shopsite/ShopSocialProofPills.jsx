@@ -17,6 +17,20 @@
  *                                  year old (otherwise the chip
  *                                  would say the current year and
  *                                  feel new-shop-defensive).
+ *   - "Đã hoạt động X năm"      ← derived from the same year; only
+ *                                  renders when years >= 2 so it
+ *                                  doesn't collide with the "từ
+ *                                  năm" chip on a fresh shop.
+ *   - "Yêu thích bởi gara"      ← only when `productCount >= 100`,
+ *                                  i.e. a catalog scaled enough that
+ *                                  garages reorder from it.
+ *   - "Hỗ trợ toàn quốc"        ← only when the shop has either a
+ *                                  province + zalo/facebook (we
+ *                                  treat the chat channel as a
+ *                                  proxy for cross-province
+ *                                  shipping support), OR explicitly
+ *                                  marks itself as nationwide via
+ *                                  `trust.nationwideSupport`.
  *   - "Chuyên A / B"            ← top 2 entries of `trust.topBrands`.
  *
  * Returns `null` when none of the signals can be derived. Never
@@ -64,10 +78,47 @@ export default function ShopSocialProofPills({ shop, className = "" }) {
 
   const year = deriveYearOpened(shop);
   if (year) {
+    const yearsActive = new Date().getFullYear() - year;
+    if (yearsActive >= 2) {
+      pills.push({
+        key: "tenure",
+        icon: "🏷️",
+        label: `Đã hoạt động ${yearsActive} năm`,
+      });
+    } else {
+      pills.push({
+        key: "since",
+        icon: "📅",
+        label: `Hoạt động từ ${year}`,
+      });
+    }
+  }
+
+  const productCountNum = Number(shop.productCount) || 0;
+  if (productCountNum >= 100) {
     pills.push({
-      key: "since",
-      icon: "📅",
-      label: `Hoạt động từ ${year}`,
+      key: "garage_favorite",
+      icon: "🔧",
+      label: "Yêu thích bởi gara",
+    });
+  }
+
+  const phone = (shop.phone || "").trim();
+  const zalo = (shop.zalo || "").trim();
+  const facebook =
+    typeof shop.facebook === "string"
+      ? shop.facebook.trim()
+      : shop.facebook && shop.facebook.url
+        ? String(shop.facebook.url).trim()
+        : "";
+  const nationwide =
+    !!shop?.trust?.nationwideSupport ||
+    (phone && (zalo || facebook));
+  if (nationwide) {
+    pills.push({
+      key: "nationwide",
+      icon: "🚚",
+      label: "Hỗ trợ toàn quốc",
     });
   }
 

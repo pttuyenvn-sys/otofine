@@ -92,6 +92,13 @@ export default function ShopFloatingMobileCTA({ shop }) {
   // since the apex home already exposes that flow.
   if (!phone && !zalo) return null;
 
+  function openContactDrawer() {
+    if (typeof window === "undefined") return;
+    try {
+      window.dispatchEvent(new CustomEvent("shopsite:openContactDrawer"));
+    } catch {/* old WebView */}
+  }
+
   return (
     <div
       className={`sm:hidden fixed inset-x-0 bottom-0 z-40 px-3 transition-transform duration-200 ease-out ${visible ? "translate-y-0" : "translate-y-[120%]"}`}
@@ -109,16 +116,27 @@ export default function ShopFloatingMobileCTA({ shop }) {
             icon={<PhoneIcon />}
           />
         )}
-        {zalo && (
-          <CTAButton
-            href={`https://zalo.me/${zalo}`}
-            tone="neutral"
-            label="Zalo"
-            onClick={() => trackShopsiteEvent(ShopsiteEvents.ZALO_CLICK, meta)}
-            icon={<ChatIcon />}
-            external
-          />
-        )}
+        {/* Conversion engine — collapse the secondary Zalo + RFQ
+            buttons into a single "Liên hệ" launcher that opens the
+            contact mini drawer. The drawer lists every channel
+            (zalo / RFQ / maps / facebook) so the buyer never gets
+            redirected before they've decided how to reach out. The
+            primary "Gọi ngay" stays direct because tapping a phone
+            number is the one action that always benefits from a
+            single tap. */}
+        <CTAButton
+          asButton
+          tone="neutral"
+          label="Liên hệ"
+          onClick={() => {
+            trackShopsiteEvent(
+              ShopsiteEvents.RFQ_CTA_CLICK || "rfq_cta_click",
+              { ...meta, source: "mobile_cta_drawer" },
+            );
+            openContactDrawer();
+          }}
+          icon={<ChatIcon />}
+        />
         <CTAButton
           href={rfqHref}
           tone="neutral"
@@ -133,13 +151,25 @@ export default function ShopFloatingMobileCTA({ shop }) {
   );
 }
 
-function CTAButton({ href, tone, label, onClick, icon, external }) {
+function CTAButton({ href, tone, label, onClick, icon, external, asButton }) {
   const base =
     "flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl text-sm font-semibold py-2.5 transition-all active:scale-[0.97] min-h-[44px]";
   const palette =
     tone === "primary"
       ? "bg-[#e60012] text-white hover:bg-[#c1000f] shadow"
       : "bg-gray-100 text-gray-800 hover:bg-gray-200";
+  if (asButton) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${base} ${palette}`}
+      >
+        <span aria-hidden>{icon}</span>
+        <span>{label}</span>
+      </button>
+    );
+  }
   return (
     <a
       href={href}

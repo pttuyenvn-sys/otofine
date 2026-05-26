@@ -30,6 +30,8 @@ import ShopLiveActivityStrip from "@/components/shopsite/ShopLiveActivityStrip";
 import ShopTrustedSellerBlock from "@/components/shopsite/ShopTrustedSellerBlock";
 import ShopSocialProofPills from "@/components/shopsite/ShopSocialProofPills";
 import ShopGallery from "@/components/shopsite/ShopGallery";
+import ShopReturnVisitorBanner from "@/components/shopsite/ShopReturnVisitorBanner";
+import ShopRecentlyViewed from "@/components/shopsite/ShopRecentlyViewed";
 
 const FILTERS_FALLBACK = (
   <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
@@ -99,6 +101,17 @@ export default async function ShopTenantHomePage({ params }) {
       {/* Social proof pills under the live strip — historical /
           tenure signals to complement the "right now" strip above. */}
       <ShopSocialProofPills shop={shop} className="px-1 -mt-1" />
+
+      {/* Conversion engine — return-visitor banner. Pure client
+          island: renders nothing on first visit and nothing on
+          server. When a buyer comes back >30 min after their last
+          session it surfaces the "Chào mừng quay lại" greeting
+          with shortcuts to the recently-viewed strip + Quick RFQ. */}
+      <ShopReturnVisitorBanner
+        shopId={shop.id}
+        shopName={shop.name}
+        shopSlug={shop.slug}
+      />
 
       {/* Mobile filter row (search + Lọc drawer) lives ABOVE the
           desktop filter row in the DOM, but only one is visible at
@@ -175,6 +188,19 @@ export default async function ShopTenantHomePage({ params }) {
             <ShopSidebar categories={categories} basePath={basePath} />
           </Suspense>
         </div>
+      </div>
+
+      {/*
+        Conversion engine — "Bạn vừa xem" recently-viewed strip.
+        Pure client island that reads from the same localStorage
+        slot ProductDetail.jsx writes to (`recentlyViewed` helper).
+        SSR HTML is empty; the strip only paints after mount AND
+        only when the buyer has at least one viewed product (no
+        empty "ghost" slot for first-time visitors). Anchor id
+        matches the return-visitor banner's "Xem lại sản phẩm" link.
+      */}
+      <div id="recently-viewed">
+        <ShopRecentlyViewed />
       </div>
 
       {/*

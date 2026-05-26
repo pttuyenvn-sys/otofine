@@ -29,7 +29,7 @@ const ShopQuickRfqModal = dynamic(() => import("./ShopQuickRfqModal"), {
  * `POST /api/rfq/create` endpoint and then redirects the user to
  * `/rfq/success` for OTP confirmation.
  */
-export default function ShopQuickRfqLauncher({ shop }) {
+export default function ShopQuickRfqLauncher({ shop, hideButton = false }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(true);
   const [prefill, setPrefill] = useState({ source: "floating_launcher" });
@@ -68,33 +68,45 @@ export default function ShopQuickRfqLauncher({ shop }) {
         source: next.source || "external",
         part: next.part || "",
         vehicle: next.vehicle || "",
+        brand: next.brand || "",
+        model: next.model || "",
+        year: next.year || "",
+        productId: next.productId || null,
       });
       setOpen(true);
+      // Ack pattern — listeners (e.g. the product-detail page on apex)
+      // can fall back to navigating to /rfq/new when no launcher is
+      // mounted. The ack confirms we DID open the in-place modal.
+      try {
+        window.dispatchEvent(new CustomEvent("shopsite:openQuickRfq:ack"));
+      } catch {/* old WebView */}
     }
     window.addEventListener("shopsite:openQuickRfq", onOpen);
     return () => window.removeEventListener("shopsite:openQuickRfq", onOpen);
   }, []);
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setPrefill({ source: "floating_launcher" });
-          setOpen(true);
-        }}
-        aria-label="Tìm phụ tùng nhanh"
-        className={`hidden sm:inline-flex fixed right-5 bottom-5 z-40 items-center gap-2 rounded-full bg-[#e60012] hover:bg-[#c1000f] text-white text-sm font-bold px-4 py-3 shadow-xl ring-2 ring-white/40 transition-all duration-200 ${visible ? "translate-y-0 opacity-100" : "translate-y-[140%] opacity-0"}`}
-      >
-        <span aria-hidden>📦</span>
-        Tìm phụ tùng nhanh
-      </button>
+    <div data-shopsite-rfq-mount>
+      {!hideButton && (
+        <button
+          type="button"
+          onClick={() => {
+            setPrefill({ source: "floating_launcher" });
+            setOpen(true);
+          }}
+          aria-label="Tìm phụ tùng nhanh"
+          className={`hidden sm:inline-flex fixed right-5 bottom-5 z-40 items-center gap-2 rounded-full bg-[#e60012] hover:bg-[#c1000f] text-white text-sm font-bold px-4 py-3 shadow-xl ring-2 ring-white/40 transition-all duration-200 ${visible ? "translate-y-0 opacity-100" : "translate-y-[140%] opacity-0"}`}
+        >
+          <span aria-hidden>📦</span>
+          Tìm phụ tùng nhanh
+        </button>
+      )}
       <ShopQuickRfqModal
         open={open}
         onClose={() => setOpen(false)}
         shop={shop}
         prefill={prefill}
       />
-    </>
+    </div>
   );
 }

@@ -1,3 +1,5 @@
+import { deriveShopResponseScore } from "@/lib/shopsite/responseSpeedScore";
+
 /**
  * "Đang hoạt động" — live-feeling activity strip.
  *
@@ -18,8 +20,10 @@
  *      offset is the safe default for VN sellers). Shows
  *      "● Đang mở cửa" or "○ Ngoài giờ — gửi báo giá 24/7" as a
  *      neutral fallback.
- *   2. Response speed — `trust.quickResponse` → "Phản hồi trong ~15
- *      phút". Skipped when the shop only has 1 channel.
+ *   2. Response speed — `deriveShopResponseScore` returns a tiered
+ *      label (Rất nhanh / Trong ngày / Liên hệ qua điện thoại)
+ *      based on verified + channel count. Omitted when no contact
+ *      channel is configured.
  *   3. Catalog scale — `productCount` bucketed at 100/500/1k/2k.
  *   4. Top brand specialty — top entry of `trust.topBrands[]`.
  *
@@ -91,14 +95,15 @@ function deriveActivities(shop) {
     });
   }
 
-  const channels = [shop.phone, shop.zalo, shop.facebook].filter(Boolean).length;
-  if (shop.trust?.quickResponse || channels >= 2) {
+  const score = deriveShopResponseScore(shop);
+  if (score) {
+    const toneByTier = { fast: "ok", same_day: "ok", normal: "neutral" };
     out.push({
       key: "response",
-      tone: "ok",
-      label: "Phản hồi trong ~15 phút",
+      tone: toneByTier[score.tier] || "neutral",
+      label: `Phản hồi · ${score.label}`,
       dot: false,
-      icon: "⚡",
+      icon: score.glyph,
     });
   }
 
