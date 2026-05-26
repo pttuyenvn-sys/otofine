@@ -44,6 +44,8 @@
     "migrate:rfq:conversation-first": "node scripts/run-rfq-migration.js 034_rfq_conversation_first.sql",
     "migrate:admin:foundation": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql",
     "migrate:admin:foundation:dry": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql --dry-run",
+    "migrate:admin:ff": "node scripts/run-admin-migration.js --file 055_admin_feature_flags.sql",
+    "migrate:admin:ff:dry": "node scripts/run-admin-migration.js --file 055_admin_feature_flags.sql --dry-run",
     "worker:rfq-escalation": "node jobs/rfqEscalation.worker.js",
     "worker:rfq-buyer-reminder": "node jobs/rfqBuyerReminder.worker.js",
     "cron:rfq-buyer-reminder": "node jobs/rfqBuyerReminder.cron.js",
