@@ -2,6 +2,7 @@
 
 // Bảng SP shop: Xem (form) + Xóa
 import "./Product.css";
+import ProductHeatChip from "./ProductHeatChip";
 
 const stripHtml = (html) => {
   const div = document.createElement("div");
@@ -80,7 +81,12 @@ export default function ProductTable({
                   </div>
                 </td>
                 <td>{p.partNumber}</td>
-                <td>{p.partName}</td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span>{p.partName}</span>
+                    <ProductHeatChip productId={p.id} />
+                  </div>
+                </td>
                 <td className="text-center">{p.stock}</td>
                 <td className="text-right">
                   {Number(p.price || 0).toLocaleString("vi-VN")}

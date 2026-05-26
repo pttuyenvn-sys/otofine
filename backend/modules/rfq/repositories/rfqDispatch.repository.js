@@ -161,7 +161,66 @@ export async function listInboxForShop(shopId, opts = {}) {
              WHERE conv.dispatch_id = d.id
              ORDER BY m.id DESC
              LIMIT 1
-           ) AS last_message_sender_type
+           ) AS last_message_sender_type,
+           /*
+            * Sales-intelligence enrichment (additive, seller-only).
+            * Four scalar subselects derive the buyer-history signals
+            * the inbox UI needs to flag HOT/WARM rows. All keyed off
+            * rfq_requests.guest_phone_e164 so anonymous storefront
+            * RFQs are correlated without a customer_profile_id, and
+            * the IS NOT NULL guard prevents two unrelated NULL-phone
+            * buyers from being treated as the same person.
+            *
+            *   buyer_prior_rfq_count    -> count of prior dispatches
+            *   buyer_prior_last_rfq_at  -> newest prior dispatch time
+            *   buyer_prior_quotes_count -> prior dispatches with quote
+            *   buyer_prior_today        -> any prior dispatch today
+            *
+            * No new tables / indexes required.
+            */
+           (
+             SELECT COUNT(*) FROM rfq_dispatches d2
+             INNER JOIN rfq_requests r2 ON r2.id = d2.rfq_request_id
+             WHERE d2.shop_id = d.shop_id
+               AND d2.id <> d.id
+               AND r2.guest_phone_e164 IS NOT NULL
+               AND r2.guest_phone_e164 = r.guest_phone_e164
+               AND r2.deleted_at IS NULL
+               AND COALESCE(r2.spam_flag, 0) = 0
+           ) AS buyer_prior_rfq_count,
+           (
+             SELECT MAX(d3.created_at) FROM rfq_dispatches d3
+             INNER JOIN rfq_requests r3 ON r3.id = d3.rfq_request_id
+             WHERE d3.shop_id = d.shop_id
+               AND d3.id <> d.id
+               AND r3.guest_phone_e164 IS NOT NULL
+               AND r3.guest_phone_e164 = r.guest_phone_e164
+               AND r3.deleted_at IS NULL
+               AND COALESCE(r3.spam_flag, 0) = 0
+           ) AS buyer_prior_last_rfq_at,
+           (
+             SELECT COUNT(DISTINCT d4.id) FROM rfq_dispatches d4
+             INNER JOIN rfq_requests r4 ON r4.id = d4.rfq_request_id
+             INNER JOIN rfq_quotes q4
+               ON q4.dispatch_id = d4.id
+              AND q4.deleted_at IS NULL
+              AND q4.status = 'submitted'
+             WHERE d4.shop_id = d.shop_id
+               AND d4.id <> d.id
+               AND r4.guest_phone_e164 IS NOT NULL
+               AND r4.guest_phone_e164 = r.guest_phone_e164
+               AND r4.deleted_at IS NULL
+           ) AS buyer_prior_quotes_count,
+           (
+             SELECT MIN(1) FROM rfq_dispatches d5
+             INNER JOIN rfq_requests r5 ON r5.id = d5.rfq_request_id
+             WHERE d5.shop_id = d.shop_id
+               AND d5.id <> d.id
+               AND r5.guest_phone_e164 IS NOT NULL
+               AND r5.guest_phone_e164 = r.guest_phone_e164
+               AND r5.deleted_at IS NULL
+               AND d5.created_at >= CURDATE()
+           ) AS buyer_prior_today
     FROM rfq_dispatches d
     INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
     WHERE ${where.join(" AND ")}
@@ -245,7 +304,53 @@ export async function markFirstShopMessageAt(conn, dispatchId) {
 export async function findDispatchForShop(dispatchId, shopId) {
   const [[row]] = await pool.query(
     `SELECT d.*, r.public_id, r.part_description, r.status AS rfq_status, r.vehicle_json,
-            r.images_json, r.created_at AS rfq_created_at, r.expires_at AS rfq_expires_at
+            r.images_json, r.created_at AS rfq_created_at, r.expires_at AS rfq_expires_at,
+            /* Sales-intelligence enrichment — see listInboxForShop above.
+             * Mirror the same four subselects so the chat pane sees
+             * the same buyer-history signals as the inbox row. */
+            (
+              SELECT COUNT(*) FROM rfq_dispatches d2
+              INNER JOIN rfq_requests r2 ON r2.id = d2.rfq_request_id
+              WHERE d2.shop_id = d.shop_id
+                AND d2.id <> d.id
+                AND r2.guest_phone_e164 IS NOT NULL
+                AND r2.guest_phone_e164 = r.guest_phone_e164
+                AND r2.deleted_at IS NULL
+                AND COALESCE(r2.spam_flag, 0) = 0
+            ) AS buyer_prior_rfq_count,
+            (
+              SELECT MAX(d3.created_at) FROM rfq_dispatches d3
+              INNER JOIN rfq_requests r3 ON r3.id = d3.rfq_request_id
+              WHERE d3.shop_id = d.shop_id
+                AND d3.id <> d.id
+                AND r3.guest_phone_e164 IS NOT NULL
+                AND r3.guest_phone_e164 = r.guest_phone_e164
+                AND r3.deleted_at IS NULL
+                AND COALESCE(r3.spam_flag, 0) = 0
+            ) AS buyer_prior_last_rfq_at,
+            (
+              SELECT COUNT(DISTINCT d4.id) FROM rfq_dispatches d4
+              INNER JOIN rfq_requests r4 ON r4.id = d4.rfq_request_id
+              INNER JOIN rfq_quotes q4
+                ON q4.dispatch_id = d4.id
+               AND q4.deleted_at IS NULL
+               AND q4.status = 'submitted'
+              WHERE d4.shop_id = d.shop_id
+                AND d4.id <> d.id
+                AND r4.guest_phone_e164 IS NOT NULL
+                AND r4.guest_phone_e164 = r.guest_phone_e164
+                AND r4.deleted_at IS NULL
+            ) AS buyer_prior_quotes_count,
+            (
+              SELECT MIN(1) FROM rfq_dispatches d5
+              INNER JOIN rfq_requests r5 ON r5.id = d5.rfq_request_id
+              WHERE d5.shop_id = d.shop_id
+                AND d5.id <> d.id
+                AND r5.guest_phone_e164 IS NOT NULL
+                AND r5.guest_phone_e164 = r.guest_phone_e164
+                AND r5.deleted_at IS NULL
+                AND d5.created_at >= CURDATE()
+            ) AS buyer_prior_today
      FROM rfq_dispatches d
      INNER JOIN rfq_requests r ON r.id = d.rfq_request_id
      WHERE d.id = ? AND d.shop_id = ? AND r.deleted_at IS NULL AND COALESCE(r.spam_flag, 0) = 0

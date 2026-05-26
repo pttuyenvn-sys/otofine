@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { updateProductStock } from "../../../services/product.api";
+import ProductHeatChip from "../../products/ProductHeatChip";
 import { sellerToast } from "../../ui/SellerToaster";
 import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
 
@@ -233,6 +234,11 @@ export default function ProductMobileCard({
           {product.partNumber && fitmentLine && <span className="mx-1.5">·</span>}
           {fitmentLine}
         </p>
+
+        {/* Product interest heat chip — silent when below threshold. */}
+        <div className="mt-1">
+          <ProductHeatChip productId={product.id} />
+        </div>
 
         <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
           <span className="text-[13px] font-bold text-[#e60012] tabular-nums">

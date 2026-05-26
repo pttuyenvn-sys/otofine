@@ -4454,6 +4454,76 @@
   color: #1d4ed8;
 }
 
+/*
+ * Sales-intelligence pills + signals — see lib/rfq/buyerIntent.js.
+ * Visual tier:
+ *   intent-hot   → strong red (urgency)
+ *   intent-warm  → amber (attention)
+ *   signal--hot  → red chip variant for "Vừa nhắn" / "Quay lại hôm nay"
+ *   signal--warm → amber chip variant for "Quay lại sau X ngày"
+ * Cold tier is hidden by the row component itself.
+ */
+.rfq-scope .rfq-inbox-row__pill--intent-hot {
+  background: #fee2e2;
+  color: #b91c1c;
+  max-width: none;
+}
+
+.rfq-scope .rfq-inbox-row__pill--intent-warm {
+  background: #fef3c7;
+  color: #92400e;
+  max-width: none;
+}
+
+.rfq-scope .rfq-inbox-row__signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.rfq-scope .rfq-inbox-row__signal {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.rfq-scope .rfq-inbox-row__signal--hot {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rfq-scope .rfq-inbox-row__signal--warm {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Subtle left-edge accent so HOT rows pop in a long list without
+ * shouting at the seller. WARM stays neutral — only HOT gets the
+ * border treatment. */
+.rfq-scope .rfq-shop-buyer-list__row--intent-hot {
+  position: relative;
+}
+
+.rfq-scope .rfq-shop-buyer-list__row--intent-hot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 3px 0 0 3px;
+  pointer-events: none;
+}
+
 .rfq-scope .rfq-shop-chat-header {
   flex-shrink: 0;
   margin: 0 0 0.35rem;
@@ -4461,6 +4531,50 @@
   border-radius: 10px;
   background: rgba(248, 250, 252, 0.95);
   border: 1px solid #e2e8f0;
+}
+
+/*
+ * Sales-intelligence "buyer intent" panel embedded inside the chat
+ * header. Quiet by default — only renders when the buyer is HOT or
+ * WARM. Reasons are surfaced as a small bullet list so the seller
+ * can scan them in one beat before sending their first reply.
+ */
+.rfq-scope .rfq-shop-chat-header__intent {
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.rfq-scope .rfq-shop-chat-header__intent--hot {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.rfq-scope .rfq-shop-chat-header__intent--warm {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.rfq-scope .rfq-shop-chat-header__intent-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.rfq-scope .rfq-shop-chat-header__intent-list {
+  margin: 0.3rem 0 0;
+  padding: 0 0 0 1.1rem;
+  list-style: disc;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #374151;
+}
+
+.rfq-scope .rfq-shop-chat-header__intent-list li {
+  margin: 0;
 }
 
 .rfq-scope .rfq-shop-chat-header__back {

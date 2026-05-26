@@ -50,6 +50,16 @@ export function mapInboxDispatchRow(row, messageUnreadCount = 0) {
     needs_shop_response: !hasQuote && !isTerminalDispatch(row, row.rfq_status),
     image_count: parseImageCount(row.images_json),
     last_message_preview: formatInboxLastMessagePreview(row),
+    // Sales-intelligence enrichment — see listInboxForShop SELECT.
+    // Normalized to plain numbers + ISO timestamps so the seller UI
+    // can render badges without re-parsing. Buyer phone itself is
+    // never leaked: only counts and times.
+    buyer_prior_rfq_count: Number(row.buyer_prior_rfq_count || 0),
+    buyer_prior_last_rfq_at: row.buyer_prior_last_rfq_at
+      ? new Date(row.buyer_prior_last_rfq_at).toISOString()
+      : null,
+    buyer_prior_quotes_count: Number(row.buyer_prior_quotes_count || 0),
+    buyer_prior_today: Number(row.buyer_prior_today || 0) > 0,
   };
 }
 

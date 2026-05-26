@@ -10,6 +10,7 @@ import RfqMessageComposer from "@/components/rfq/RfqMessageComposer";
 import RfqShopDispatchSummary from "@/components/rfq/RfqShopDispatchSummary";
 import { useShopConversationMessages } from "@/hooks/useRfqConversationMessages";
 import { shopConversationHeaders } from "@/lib/rfq/rfqConversationApi";
+import { sellerQuickRepliesForDispatch } from "@/lib/rfq/sellerQuickReplies";
 
 const LINE_OPTIONS = [
   { value: "oem", label: "Chính hãng (OEM)" },
@@ -264,6 +265,7 @@ export default function RfqShopInboxChatPane({ dispatchId }) {
         placeholder="Nhắn tin cho khách hàng…"
         sticky
         hideHints
+        quickReplies={sellerQuickRepliesForDispatch(d)}
       />
     </div>
   );

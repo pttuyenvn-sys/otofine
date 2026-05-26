@@ -32,6 +32,14 @@ export function inboxRowFingerprint(row) {
     row.has_submitted_quote ?? "",
     row.last_message_preview ?? "",
     row.needs_shop_response ?? "",
+    // Sales-intelligence fields — without these in the fingerprint
+    // the inbox poller would silently swallow buyer-history changes
+    // (e.g. the buyer's prior_rfq_count ticking up when they file
+    // another RFQ today) and the HOT pill would never refresh.
+    row.buyer_prior_rfq_count ?? 0,
+    normalizeInboxTs(row.buyer_prior_last_rfq_at),
+    row.buyer_prior_quotes_count ?? 0,
+    row.buyer_prior_today ? 1 : 0,
   ].join(":");
 }
 

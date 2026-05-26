@@ -12,6 +12,7 @@ import {
   inboxRowUnread,
 } from "@/lib/rfq/rfqShopInboxRow";
 import { inboxRowFingerprint } from "@/lib/rfq/rfqInboxListStable";
+import { BUYER_INTENT_TIER_META, deriveBuyerIntent } from "@/lib/rfq/buyerIntent";
 
 const RfqShopBuyerRow = memo(
   function RfqShopBuyerRow({ row, active, useLinks, onSelect }) {
@@ -25,11 +26,18 @@ const RfqShopBuyerRow = memo(
     const pill = buildInboxRowStatusPill(row);
     const time = useMemo(() => formatInboxRelativeTime(row.updated_at), [row.updated_at]);
     const hasImages = Number(row.image_count ?? 0) > 0;
+    // Sales-intelligence: derive priority tier + buyer signals once
+    // per row from the same row payload the rest of this component
+    // already reads. The derivation is pure so memoising on row
+    // identity is sufficient (the outer React.memo guards rerender).
+    const intent = useMemo(() => deriveBuyerIntent(row), [row]);
+    const tierMeta = BUYER_INTENT_TIER_META[intent.tier] || null;
 
     const className = [
       "rfq-shop-buyer-list__row",
       active ? "rfq-shop-buyer-list__row--active" : "",
       unread ? "rfq-shop-buyer-list__row--unread" : "",
+      `rfq-shop-buyer-list__row--intent-${intent.tier}`,
     ]
       .filter(Boolean)
       .join(" ");
@@ -39,6 +47,15 @@ const RfqShopBuyerRow = memo(
         <div className="rfq-inbox-row__head">
           <span className="rfq-inbox-row__part">{part}</span>
           <span className="rfq-inbox-row__head-meta">
+            {tierMeta && intent.tier !== "cold" ? (
+              <span
+                className={`rfq-inbox-row__pill rfq-inbox-row__pill--intent-${intent.tier}`}
+                title={tierMeta.title}
+              >
+                <span aria-hidden style={{ marginRight: 3 }}>{tierMeta.glyph}</span>
+                {tierMeta.label}
+              </span>
+            ) : null}
             {pill ? (
               <span className={`rfq-inbox-row__pill rfq-inbox-row__pill--${pill.tone}`}>
                 {pill.label}
@@ -49,6 +66,21 @@ const RfqShopBuyerRow = memo(
         </div>
 
         {vehicle ? <span className="rfq-inbox-row__vehicle">{vehicle}</span> : null}
+
+        {intent.badges.length > 0 ? (
+          <div className="rfq-inbox-row__signals" aria-label="Tín hiệu khách hàng">
+            {intent.badges.map((b) => (
+              <span
+                key={b.key}
+                className={`rfq-inbox-row__signal rfq-inbox-row__signal--${b.tone}`}
+                title={b.title || b.label}
+              >
+                <span aria-hidden style={{ marginRight: 2 }}>{b.glyph}</span>
+                {b.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         {message ? (
           <div className="rfq-inbox-row__preview">

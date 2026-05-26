@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "@/lib/config";
+import { deriveTodayRecommendations } from "@/lib/rfq/buyerIntent";
 
 function compactNumber(n) {
   const v = Number(n);
@@ -140,6 +141,30 @@ export default function ShopMetricsOverview() {
           value={showValue(cardsToday.rfqReceivedToday)}
           loading={loading}
         />
+        {/*
+         * Sales-intelligence pills. Rendered eagerly (no waterfall —
+         * they ride the same `/api/shop/metrics/overview` payload as
+         * everything else). Hidden when the backend payload omits
+         * the keys, so older API versions render the same row as
+         * before without layout regression.
+         */}
+        {hasKey(cardsToday, "hotRfqsToday") ? (
+          <TodayPill
+            icon="🔥"
+            label="RFQ nóng"
+            value={showValue(cardsToday.hotRfqsToday)}
+            loading={loading}
+            tone={Number(cardsToday.hotRfqsToday) > 0 ? "hot" : "info"}
+          />
+        ) : null}
+        {hasKey(cardsToday, "returningBuyersToday") ? (
+          <TodayPill
+            icon="🔁"
+            label="Khách quay lại"
+            value={showValue(cardsToday.returningBuyersToday)}
+            loading={loading}
+          />
+        ) : null}
         <TodayPill
           icon="📞"
           label="Lượt CTA"
@@ -160,6 +185,8 @@ export default function ShopMetricsOverview() {
           tone="warn"
         />
       </div>
+
+      <SmartRecommendations cardsToday={cardsToday} loading={loading} error={error} />
 
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-semibold text-gray-900">
@@ -208,10 +235,9 @@ export default function ShopMetricsOverview() {
  * second full grid.
  */
 function TodayPill({ icon, label, value, loading, tone = "info" }) {
-  const toneCls =
-    tone === "warn"
-      ? "border-amber-100 bg-amber-50"
-      : "border-gray-100 bg-white";
+  let toneCls = "border-gray-100 bg-white";
+  if (tone === "warn") toneCls = "border-amber-100 bg-amber-50";
+  if (tone === "hot") toneCls = "border-red-200 bg-red-50";
   return (
     <div
       className={
@@ -234,5 +260,55 @@ function TodayPill({ icon, label, value, loading, tone = "info" }) {
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Helper: are we allowed to render this pill? We only render new
+ * pills when the backend payload includes the key. This lets the
+ * frontend roll out independently from a backend version bump
+ * without showing "—" placeholders.
+ */
+function hasKey(obj, key) {
+  return obj && Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+/**
+ * Auto-recommendations card — "AI hint" surface fed by the same
+ * `/api/shop/metrics/overview` payload. The derivation is pure
+ * (`deriveTodayRecommendations` in `lib/rfq/buyerIntent.js`) so the
+ * server and the client never disagree.
+ *
+ * Renders nothing when there are zero recommendations — the seller
+ * already has too many "empty state" cards on the dashboard. We do
+ * not render a "no recommendations" placeholder.
+ *
+ * Also hidden during the initial load skeleton: blinking a card
+ * in/out as the payload arrives looks broken.
+ */
+function SmartRecommendations({ cardsToday, loading, error }) {
+  if (loading || error) return null;
+  const recs = deriveTodayRecommendations(cardsToday);
+  if (!recs.length) return null;
+  return (
+    <section
+      aria-label="Gợi ý cho hôm nay"
+      className="mb-3 sm:mb-4 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2.5 sm:px-4 sm:py-3"
+    >
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span aria-hidden className="text-[14px]">💡</span>
+        <h3 className="text-[12px] font-semibold text-emerald-900 uppercase tracking-wide">
+          Gợi ý cho hôm nay
+        </h3>
+      </div>
+      <ul className="space-y-1 text-[12px] sm:text-[13px] text-emerald-900/90 leading-snug">
+        {recs.map((r) => (
+          <li key={r} className="flex gap-1.5">
+            <span aria-hidden className="text-emerald-600 shrink-0">›</span>
+            <span>{r}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
