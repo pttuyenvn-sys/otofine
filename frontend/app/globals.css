@@ -718,6 +718,213 @@ html {
 }
 
 /* -------------------------------------------------------------------- */
+/* Storefront Owner Status Strip (owner-only top bar).                   */
+/*                                                                       */
+/* A slim sticky bar that only renders for the authenticated owner of   */
+/* the current storefront. Customer-facing renders are untouched: the   */
+/* SSR tree never emits this markup. Designed to scan in <1s — clear    */
+/* identity badge, today's metrics as 3 compact pills, single CTA.      */
+/* -------------------------------------------------------------------- */
+
+.storefront-owner-strip {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: linear-gradient(180deg, #0b1320 0%, #111a2c 100%);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.storefront-owner-strip__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px;
+  min-height: 40px;
+}
+
+.storefront-owner-strip__lead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.storefront-owner-strip__badge {
+  background: #e60012;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.storefront-owner-strip__title {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.storefront-owner-strip__title-text {
+  font-weight: 600;
+}
+
+.storefront-owner-strip__email {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storefront-owner-strip__metrics {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.storefront-owner-strip__metrics::-webkit-scrollbar {
+  display: none;
+}
+
+.storefront-owner-strip__metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.storefront-owner-strip__metric:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.storefront-owner-strip__metric-label {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+}
+
+.storefront-owner-strip__metric-value {
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.storefront-owner-strip__metric--warn {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.storefront-owner-strip__metric--warn .storefront-owner-strip__metric-label {
+  color: rgba(255, 240, 200, 0.85);
+}
+
+.storefront-owner-strip__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.storefront-owner-strip__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  color: #0b1320;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.storefront-owner-strip__cta:hover {
+  background: #f0f3f8;
+  transform: translateY(-1px);
+}
+
+.storefront-owner-strip__dismiss {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  border: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.storefront-owner-strip__dismiss:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .storefront-owner-strip__inner {
+    padding: 6px 10px;
+    gap: 8px;
+    min-height: 38px;
+  }
+  .storefront-owner-strip__lead {
+    flex: 0 0 auto;
+  }
+  .storefront-owner-strip__title-text {
+    display: none;
+  }
+  .storefront-owner-strip__email {
+    display: none;
+  }
+  .storefront-owner-strip__metrics {
+    justify-content: flex-start;
+    gap: 5px;
+  }
+  .storefront-owner-strip__metric {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .storefront-owner-strip__metric-label {
+    font-size: 10px;
+  }
+  .storefront-owner-strip__cta {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  .storefront-owner-strip__cta > span:nth-child(2) {
+    display: none;
+  }
+  .storefront-owner-strip__dismiss {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* -------------------------------------------------------------------- */
 /* Storefront → Seller shortcut (ownership-gated chip + dropdown).       */
 /*                                                                       */
 /* Customers never see this — it renders null when the visitor isn't     */

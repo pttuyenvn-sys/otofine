@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSellerStorefrontUrl from "@/hooks/useSellerStorefrontUrl";
+import { clearOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
 
 function Row({ href, icon, title, subtitle, danger = false, onClick, external = false }) {
   const content = (
@@ -86,6 +87,11 @@ export default function ShopAccount() {
   function handleLogout() {
     try {
       localStorage.clear();
+      // Also drop the cross-subdomain owner cookie so wildcard
+      // subdomains stop showing the admin chip the next time the
+      // logged-out seller (or another visitor on the same device)
+      // browses to their public storefront.
+      clearOwnerCookie();
       // Broadcast so the Topbar / bottom-nav re-read state without a
       // full page reload — matches the legacy pattern.
       window.dispatchEvent(new Event("auth-changed"));

@@ -11,6 +11,7 @@ import PasswordInput from "../PasswordInput";
 import { API_BASE } from "@/lib/config";
 import ShopPushPrompt from "@/components/push/ShopPushPrompt";
 import { getShopLoginDestinationFromSearch } from "@/lib/auth/safeShopRedirect";
+import { writeOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
 
 export default function ShopLogin() {
   const router = useRouter();
@@ -39,6 +40,12 @@ export default function ShopLogin() {
       if (res.data.refreshToken) {
         localStorage.setItem("refreshToken", res.data.refreshToken);
       }
+      // Mirror the access token into a cross-subdomain cookie so the
+      // storefront admin switcher (top owner strip + chip) can detect
+      // ownership when the seller visits their own wildcard subdomain
+      // (e.g. https://<slug>.otofine.com). The backend uses Bearer
+      // auth — this cookie is purely UX-shared-state.
+      writeOwnerCookie(res.data.token);
 
       const sellerShopPk = res.data.shop?.id;
 

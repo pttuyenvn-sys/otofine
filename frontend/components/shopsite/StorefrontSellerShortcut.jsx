@@ -25,8 +25,9 @@
  * renders this chip; it mounts only after hydration.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { jwtDecode } from "jwt-decode";
+import { useEffect, useMemo, useRef, useState } from "react";
+import useStorefrontOwnerState from "@/hooks/useStorefrontOwnerState";
+import { apexUrl } from "@/lib/apexOrigin";
 
 const MENU_ITEMS = [
   { key: "shop",     icon: "🏪", label: "Shop",       href: "/shop/settings" },
@@ -36,36 +37,36 @@ const MENU_ITEMS = [
   { key: "account",  icon: "👤", label: "Tài khoản",  href: "/shop/account" },
 ];
 
-function readOwnerState(shopId) {
-  try {
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
-    if (!token) return { isOwner: false };
-    const decoded = jwtDecode(token);
-    if (!decoded || decoded.role !== "shop") return { isOwner: false };
-    if (!decoded.shopId || !shopId) return { isOwner: false };
-    return { isOwner: String(decoded.shopId) === String(shopId) };
-  } catch {
-    return { isOwner: false };
-  }
+/**
+ * When the storefront is being viewed on its wildcard subdomain
+ * (`<slug>.otofine.com`), the seller-workspace routes (`/shop/*`,
+ * `/rfq/shop/*`) don't exist on that origin — they live on the apex.
+ * Rewrite the menu hrefs through `apexUrl()` so the owner lands on the
+ * canonical workspace host (and ShopGuard finds its token in the
+ * apex's localStorage). On the apex we leave the hrefs relative.
+ */
+function isApexHost() {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname.toLowerCase();
+  if (!host) return true;
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "otofine.com" || host === "www.otofine.com") return true;
+  return false;
 }
 
 export default function StorefrontSellerShortcut({ shopId, sellerCenterHref = "/shop/settings" }) {
-  const [isOwner, setIsOwner] = useState(false);
+  const { isOwner } = useStorefrontOwnerState(shopId);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  useEffect(() => {
-    function recompute() {
-      setIsOwner(readOwnerState(shopId).isOwner);
-    }
-    recompute();
-    window.addEventListener("storage", recompute);
-    window.addEventListener("auth-changed", recompute);
-    return () => {
-      window.removeEventListener("storage", recompute);
-      window.removeEventListener("auth-changed", recompute);
-    };
-  }, [shopId]);
+  const resolvedItems = useMemo(() => {
+    if (isApexHost()) return MENU_ITEMS;
+    return MENU_ITEMS.map((it) => ({ ...it, href: apexUrl(it.href) }));
+  }, []);
+  const resolvedPrimary = useMemo(
+    () => (isApexHost() ? sellerCenterHref : apexUrl(sellerCenterHref)),
+    [sellerCenterHref],
+  );
 
   useEffect(() => {
     if (!open) return undefined;
@@ -116,7 +117,7 @@ export default function StorefrontSellerShortcut({ shopId, sellerCenterHref = "/
             </span>
           </div>
           <ul className="storefront-seller-shortcut__list">
-            {MENU_ITEMS.map((it) => (
+            {resolvedItems.map((it) => (
               <li key={it.key}>
                 <a
                   href={it.href}
@@ -131,7 +132,7 @@ export default function StorefrontSellerShortcut({ shopId, sellerCenterHref = "/
             ))}
           </ul>
           <a
-            href={sellerCenterHref}
+            href={resolvedPrimary}
             className="storefront-seller-shortcut__primary"
             onClick={() => setOpen(false)}
           >

@@ -34,6 +34,7 @@ const KIND_STYLES = {
   response: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   tenure:   "bg-amber-50 text-amber-700 ring-amber-200",
   brand:    "bg-gray-100 text-gray-700 ring-gray-200",
+  catalog:  "bg-indigo-50 text-indigo-700 ring-indigo-200",
 };
 
 function Badge({ kind, title, children }) {
@@ -56,6 +57,7 @@ function Dot({ kind }) {
     response: "bg-emerald-500",
     tenure:   "bg-amber-500",
     brand:    "bg-gray-400",
+    catalog:  "bg-indigo-500",
   }[kind] || "bg-gray-400";
   return <span aria-hidden className={`inline-block w-1.5 h-1.5 rounded-full ${color}`} />;
 }

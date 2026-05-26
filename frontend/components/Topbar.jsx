@@ -24,6 +24,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { clearOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
 
 export default function Topbar() {
   const [open, setOpen] = useState(false);
@@ -79,6 +80,7 @@ export default function Topbar() {
 
   function handleLogout() {
     localStorage.clear();
+    clearOwnerCookie();
     setAuth(null);
     setOpen(false);
 

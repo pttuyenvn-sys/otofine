@@ -53,5 +53,24 @@ export function deriveShopTrustBadges(shop) {
     });
   }
 
+  // Catalog-scale badge — only surfaces when the shop has shipped a
+  // meaningful inventory. We bucket at conservative tiers (10 / 50 /
+  // 200) so the chip says something concrete without disclosing exact
+  // numbers (avoids "fake-looking precision"). Sourced from the same
+  // `productCount` the directory + JSON-LD already use — no extra
+  // back-end work, and the number is REAL (not an estimate).
+  const productCount = Number(shop.productCount) || 0;
+  if (productCount >= 10) {
+    let bucket;
+    if (productCount >= 200) bucket = "200+";
+    else if (productCount >= 50) bucket = "50+";
+    else bucket = "10+";
+    badges.push({
+      kind: "catalog",
+      label: `${bucket} sản phẩm`,
+      title: `Kho hàng đang có ${productCount.toLocaleString("vi-VN")} sản phẩm`,
+    });
+  }
+
   return badges;
 }

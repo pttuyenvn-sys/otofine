@@ -5,6 +5,7 @@ import ShopFloatingMobileCTA from "@/components/shopsite/ShopFloatingMobileCTA";
 import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
 import StorefrontAnalyticsForwarder from "@/components/shopsite/StorefrontAnalyticsForwarder";
 import StorefrontSellerShortcut from "@/components/shopsite/StorefrontSellerShortcut";
+import StorefrontOwnerStrip from "@/components/shopsite/StorefrontOwnerStrip";
 import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
@@ -81,6 +82,10 @@ export default async function ShopTenantLayout({ children, params }) {
 
   return (
     <>
+      {/* Owner-only status strip — invisible to anonymous visitors
+          and to sellers of OTHER shops. Renders client-side after
+          hydration so SSR stays customer-first. */}
+      <StorefrontOwnerStrip shopId={shop.id} shopName={shop.name} />
       <ShopHeader shop={mapToHeaderShape(shop)} badges={badges} />
       <ShopTabs basePath={basePath} />
       {/*

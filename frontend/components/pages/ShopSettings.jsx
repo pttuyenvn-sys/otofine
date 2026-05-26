@@ -104,21 +104,43 @@ function useSlugStatus(slug, originalSlug) {
 // Small sub-components
 // ---------------------------------------------------------------------------
 
-function SectionCard({ id, title, subtitle, children }) {
+function SectionCard({ id, title, subtitle, children, previewHref, previewLabel }) {
   // Mobile-first compression — phones get tighter chrome (`p-3` body,
   // `px-3 py-2.5` header) and a shorter subtitle font so the form
   // scrolls faster between sections; desktop is unchanged from the
   // original sm:* / lg:* values.
+  //
+  // Optional `previewHref` renders a compact "Xem storefront" pill in
+  // the section header so the seller can sanity-check a change on the
+  // live storefront tab while editing the relevant block (branding,
+  // intro, contact). The pill is intentionally tertiary visually — it
+  // never competes with the section title.
   return (
     <section
       id={id}
       className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-20"
     >
-      <div className="px-3 py-2.5 sm:px-5 sm:py-4 border-b border-gray-100">
-        <h2 className="text-[14px] sm:text-base font-semibold text-gray-900 leading-tight">{title}</h2>
-        {subtitle && (
-          <p className="text-[11px] sm:text-sm text-gray-500 mt-0.5 leading-snug">{subtitle}</p>
-        )}
+      <div className="px-3 py-2.5 sm:px-5 sm:py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[14px] sm:text-base font-semibold text-gray-900 leading-tight">{title}</h2>
+          {subtitle && (
+            <p className="text-[11px] sm:text-sm text-gray-500 mt-0.5 leading-snug">{subtitle}</p>
+          )}
+        </div>
+        {previewHref ? (
+          <a
+            href={previewHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 text-[10.5px] sm:text-[11px] font-semibold whitespace-nowrap transition-colors"
+            title={`Mở ${previewHref}`}
+          >
+            <span aria-hidden>🌐</span>
+            <span className="hidden sm:inline">{previewLabel || "Xem storefront"}</span>
+            <span className="sm:hidden">Xem</span>
+            <span aria-hidden className="opacity-70">↗</span>
+          </a>
+        ) : null}
       </div>
       <div className="p-3 sm:p-5 lg:p-6">{children}</div>
     </section>
@@ -690,6 +712,8 @@ export default function ShopSettings() {
           id="public"
           title="B. Storefront công khai"
           subtitle="Cấu hình URL subdomain và trạng thái trang public của shop."
+          previewHref={preview?.subdomain}
+          previewLabel="Mở trang chủ"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -741,6 +765,8 @@ export default function ShopSettings() {
           id="branding"
           title="C. Hình ảnh thương hiệu"
           subtitle="Ảnh đại diện và ảnh bìa xuất hiện trên header của storefront. Tỉ lệ trong panel này phản ánh đúng tỉ lệ hiển thị thật cho khách hàng."
+          previewHref={preview?.subdomain}
+          previewLabel="Xem header"
         >
           {/*
             UX polish — branding section visual balance.
@@ -797,6 +823,8 @@ export default function ShopSettings() {
           id="intro"
           title="D. Giới thiệu doanh nghiệp"
           subtitle="Trang giới thiệu là phần nội dung quan trọng nhất trên storefront — nơi shop thể hiện thương hiệu, năng lực và lý do để khách hàng tin chọn."
+          previewHref={preview?.subdomain ? `${preview.subdomain.replace(/\/$/, "")}/gioi-thieu` : null}
+          previewLabel="Xem giới thiệu"
         >
           <div className="space-y-5">
             <FieldTextarea
@@ -831,6 +859,8 @@ export default function ShopSettings() {
           id="contact"
           title="E. Liên hệ & mạng xã hội"
           subtitle="Thông tin liên lạc hiển thị trên trang storefront và tab Liên hệ."
+          previewHref={preview?.subdomain ? `${preview.subdomain.replace(/\/$/, "")}/lien-he` : null}
+          previewLabel="Xem liên hệ"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <FieldText
