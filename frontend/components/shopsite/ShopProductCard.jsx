@@ -32,7 +32,7 @@ import ShopImage from "./ShopImage";
  * The fitment line uses `line-clamp-1` + `truncate` so it never
  * pushes the price below the fold on narrow mobile widths.
  */
-export default function ShopProductCard({ product, shopSlug }) {
+export default function ShopProductCard({ product, shopSlug, priority = false }) {
   if (!product) return null;
   // Pass the full product shape (name + brand + model + year + part
   // number) so the apex URL the visitor crosses to is already the
@@ -66,7 +66,7 @@ export default function ShopProductCard({ product, shopSlug }) {
       href={href}
       rel="noopener"
       onClick={handleClick}
-      className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-md transition-all"
+      className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150"
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         <ShopImage
@@ -74,6 +74,7 @@ export default function ShopProductCard({ product, shopSlug }) {
           alt={product.name || "Sản phẩm"}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           fallbackClassName="h-full w-full"
+          priority={priority}
         />
         {trustBadge && (
           <span
@@ -83,6 +84,31 @@ export default function ShopProductCard({ product, shopSlug }) {
             {trustBadge.label}
           </span>
         )}
+        {/*
+          Desktop hover quick-info: a one-line "Xem chi tiết →" pill
+          that slides up over the image bottom on hover, giving the
+          buyer a clear affordance the card is clickable WITHOUT
+          inventing fake stock/shipping data. Hidden on touch / <sm
+          (tap is the affordance there).
+        */}
+        <span
+          aria-hidden
+          className="hidden sm:inline-flex absolute inset-x-0 bottom-0 items-center justify-center gap-1 py-1.5 text-[11px] font-semibold text-white bg-gradient-to-t from-black/75 via-black/55 to-transparent opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150"
+        >
+          Xem chi tiết
+          <svg
+            viewBox="0 0 24 24"
+            width="11"
+            height="11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </span>
         <button
           type="button"
           aria-label={`Lưu sản phẩm ${product.name || ""}`.trim()}

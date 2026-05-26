@@ -1,6 +1,7 @@
 import ShopTrustBadges from "./ShopTrustBadges";
 import ShopShareMenu from "./ShopShareMenu";
 import ShopImage from "./ShopImage";
+import ShopSocialButtons from "./ShopSocialButtons";
 
 /**
  * Top of the shop public site:
@@ -83,10 +84,14 @@ export default function ShopHeader({ shop, badges }) {
           ~225px of viewport (16:7 of a 390px-wide column). Halved
           to 16:11 on mobile (~245px → ~155px after avatar/CTA
           row fits inside it) so the user reaches actionable
-          content above the fold. Desktop stays at the wider
-          cinematic 16:5 ratio. */}
+          content above the fold.
+
+          Branding pass: desktop ratio compressed from 16:5 →
+          16:4.5 (~10% shorter) so the hero stops eating ~40px of
+          fold space without losing cinematic feel. The CTAs +
+          avatar still fit comfortably in the new height. */}
       <div className="relative rounded-2xl overflow-hidden shadow-sm">
-        <div className="relative aspect-[16/11] sm:aspect-[16/5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
+        <div className="relative aspect-[16/11] sm:aspect-[16/4.5] bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700">
           {shop.cover ? (
             <ShopImage
               src={shop.cover}
@@ -211,13 +216,13 @@ export default function ShopHeader({ shop, badges }) {
                   hero so users on wide screens have an immediate
                   click target without scrolling. */}
               {(safePhone || safeZalo) && (
-                <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0 sm:w-auto">
+                <div className="hidden sm:flex items-center gap-2 lg:gap-3 shrink-0 sm:w-auto">
                   {safeZalo && (
                     <a
                       href={`https://zalo.me/${safeZalo}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 bg-white text-gray-800 hover:bg-gray-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow transition-all"
+                      className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 hover:bg-gray-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 px-4 lg:px-5 py-2.5 rounded-xl text-sm lg:text-[15px] font-semibold shadow-lg ring-1 ring-black/5 transition-all"
                     >
                       <ChatIcon /> Nhắn tin
                     </a>
@@ -225,7 +230,7 @@ export default function ShopHeader({ shop, badges }) {
                   {safePhone && (
                     <a
                       href={`tel:${safePhone}`}
-                      className="inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-3 sm:px-4 py-2 rounded-xl text-sm font-medium shadow-md transition-all"
+                      className="inline-flex items-center justify-center gap-2 bg-[#e60012] hover:bg-[#c1000f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white px-4 lg:px-5 py-2.5 rounded-xl text-sm lg:text-[15px] font-bold shadow-xl ring-1 ring-white/10 transition-all"
                     >
                       <PhoneIcon /> Gọi ngay
                     </a>
@@ -267,10 +272,25 @@ export default function ShopHeader({ shop, badges }) {
         </form>
       </div>
 
-      {/* D. Trust badges (Phase 5.1) — graceful no-op when empty. */}
-      {Array.isArray(badges) && badges.length > 0 && (
-        <ShopTrustBadges badges={badges} className="px-1" />
-      )}
+      {/* D. Trust badges (Phase 5.1) — graceful no-op when empty.
+          Branding pass: trust strip + social icon row share the
+          same row on desktop so the header stays in one
+          breathable band, and stack vertically on mobile so the
+          social icons remain reachable without horizontal scroll. */}
+      {(Array.isArray(badges) && badges.length > 0) ||
+      shop.phone ||
+      shop.zalo ||
+      shop.facebook ||
+      shop.address ? (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1">
+          {Array.isArray(badges) && badges.length > 0 ? (
+            <ShopTrustBadges badges={badges} className="!px-0 flex-1 min-w-0" />
+          ) : (
+            <span aria-hidden />
+          )}
+          <ShopSocialButtons shop={shop} className="sm:justify-end shrink-0" />
+        </div>
+      ) : null}
     </div>
   );
 }

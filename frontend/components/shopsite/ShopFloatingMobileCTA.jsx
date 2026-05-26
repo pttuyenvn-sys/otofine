@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
 
 /**
@@ -35,6 +36,43 @@ import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnaly
  * estate without losing reachability).
  */
 export default function ShopFloatingMobileCTA({ shop }) {
+  // Branding pass — scroll-direction aware visibility. The bar still
+  // sticks at the bottom, but slides out of view when the buyer is
+  // actively scrolling DOWN inside the product grid (so it doesn't
+  // cover the row they're trying to read) and slides back in on
+  // scroll-up. Above the fold + at the page bottom the bar is
+  // always visible. This is the standard "browse vs act" pattern
+  // every commerce app on a phone uses.
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    let lastY = window.scrollY || 0;
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        const y = window.scrollY || 0;
+        const delta = y - lastY;
+        const doc = document.documentElement;
+        const atBottom =
+          y + window.innerHeight >= (doc?.scrollHeight || 0) - 80;
+        const aboveHeroEnd = y < 320; // hero is roughly 200-280px on mobile
+        if (aboveHeroEnd || atBottom) {
+          setVisible(true);
+        } else if (delta > 8) {
+          setVisible(false);
+        } else if (delta < -6) {
+          setVisible(true);
+        }
+        lastY = y;
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (!shop) return null;
   const phone = (shop.phone || "").replace(/\s/g, "");
   const zalo = (shop.zalo || phone || "").replace(/\s/g, "");
@@ -56,7 +94,7 @@ export default function ShopFloatingMobileCTA({ shop }) {
 
   return (
     <div
-      className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-3"
+      className={`sm:hidden fixed inset-x-0 bottom-0 z-40 px-3 transition-transform duration-200 ease-out ${visible ? "translate-y-0" : "translate-y-[120%]"}`}
       style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
       role="region"
       aria-label="Liên hệ shop nhanh"

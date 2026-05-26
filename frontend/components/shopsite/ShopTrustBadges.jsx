@@ -52,12 +52,32 @@ function Badge({ kind, title, children }) {
 }
 
 function Dot({ kind }) {
-  const color = {
-    verified: "bg-blue-500",
-    response: "bg-emerald-500",
-    tenure:   "bg-amber-500",
-    brand:    "bg-gray-400",
-    catalog:  "bg-indigo-500",
-  }[kind] || "bg-gray-400";
-  return <span aria-hidden className={`inline-block w-1.5 h-1.5 rounded-full ${color}`} />;
+  // Branding pass — semantic glyphs land more "business website" than
+  // colored dots. Falls back to a dot for unknown kinds so future
+  // badge types don't render a raw glyph slot. Kept inside a
+  // fixed-width inline-flex so chip widths don't jitter when the
+  // glyph is wider than 1ch.
+  const glyph = {
+    verified: "✓",
+    response: "⚡",
+    catalog:  "📦",
+    tenure:   "★",
+    brand:    "●",
+  }[kind];
+  if (!glyph) {
+    return (
+      <span
+        aria-hidden
+        className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className="inline-flex items-center justify-center w-3 h-3 text-[10px] leading-none"
+    >
+      {glyph}
+    </span>
+  );
 }

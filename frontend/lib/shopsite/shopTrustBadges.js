@@ -15,6 +15,15 @@ export function deriveShopTrustBadges(shop) {
   const trust = shop.trust || {};
   const badges = [];
 
+  // Branding pass — three priority chips lead so the mobile
+  // horizontal-scroll cut-off always shows the most reassuring
+  // signals first:
+  //   1. verified  ✓
+  //   2. response  ⚡
+  //   3. catalog   📦
+  // The tenure + per-brand chips trail because they're context, not
+  // commitment.
+
   if (trust.verified || shop.verified) {
     badges.push({
       kind: "verified",
@@ -28,6 +37,25 @@ export function deriveShopTrustBadges(shop) {
       kind: "response",
       label: "Phản hồi nhanh",
       title: "Shop có nhiều kênh liên hệ trực tiếp",
+    });
+  }
+
+  // Catalog-scale badge — only surfaces when the shop has shipped a
+  // meaningful inventory. Bucketed at conservative tiers (10 / 50 /
+  // 200) so the chip says something concrete without disclosing exact
+  // numbers (avoids "fake-looking precision"). Sourced from the same
+  // `productCount` the directory + JSON-LD already use — no extra
+  // back-end work, and the number is REAL (not an estimate).
+  const productCount = Number(shop.productCount) || 0;
+  if (productCount >= 10) {
+    let bucket;
+    if (productCount >= 200) bucket = "200+";
+    else if (productCount >= 50) bucket = "50+";
+    else bucket = "10+";
+    badges.push({
+      kind: "catalog",
+      label: `${bucket} sản phẩm`,
+      title: `Kho hàng đang có ${productCount.toLocaleString("vi-VN")} sản phẩm`,
     });
   }
 
@@ -50,25 +78,6 @@ export function deriveShopTrustBadges(shop) {
       kind: "brand",
       label: `Chuyên ${brandName}`,
       title: `Shop có nhiều sản phẩm cho ${brandName}`,
-    });
-  }
-
-  // Catalog-scale badge — only surfaces when the shop has shipped a
-  // meaningful inventory. We bucket at conservative tiers (10 / 50 /
-  // 200) so the chip says something concrete without disclosing exact
-  // numbers (avoids "fake-looking precision"). Sourced from the same
-  // `productCount` the directory + JSON-LD already use — no extra
-  // back-end work, and the number is REAL (not an estimate).
-  const productCount = Number(shop.productCount) || 0;
-  if (productCount >= 10) {
-    let bucket;
-    if (productCount >= 200) bucket = "200+";
-    else if (productCount >= 50) bucket = "50+";
-    else bucket = "10+";
-    badges.push({
-      kind: "catalog",
-      label: `${bucket} sản phẩm`,
-      title: `Kho hàng đang có ${productCount.toLocaleString("vi-VN")} sản phẩm`,
     });
   }
 

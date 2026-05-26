@@ -24,6 +24,8 @@ import {
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
+import { isWildcardStorefrontHost } from "@/lib/shopsite/isWildcardStorefrontHost";
+import ShopWhyChooseUs from "@/components/shopsite/ShopWhyChooseUs";
 
 const FILTERS_FALLBACK = (
   <div className="bg-white rounded-2xl shadow-sm h-[72px] animate-pulse" />
@@ -57,6 +59,11 @@ export default async function ShopTenantHomePage({ params }) {
   if (!shop) notFound();
 
   const basePath = await getShopBasePath(shop.slug);
+  // Branded-storefront mode: when the visitor is on
+  // `<slug>.otofine.com` we hide cross-shop discovery widgets so the
+  // page feels like the seller's own website, not a marketplace
+  // funnel back to competitors. Apex `/shops/<slug>` keeps them.
+  const isBrandedSubdomain = await isWildcardStorefrontHost();
   const featured = (productsPage?.items || []).slice(0, 5);
   const categories = (categoriesPayload?.items || []).slice(0, 7).map((c, i) => ({
     id: c.id ?? i,
@@ -131,8 +138,16 @@ export default async function ShopTenantHomePage({ params }) {
               <EmptyState message="Shop chưa có sản phẩm nào." />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                {featured.map((product) => (
-                  <ShopProductCard key={product.id} product={product} shopSlug={shop.slug} />
+                {featured.map((product, idx) => (
+                  <ShopProductCard
+                    key={product.id}
+                    product={product}
+                    shopSlug={shop.slug}
+                    /* First row only — give LCP-adjacent products a
+                       fetchpriority hint so they paint with the hero
+                       instead of waiting in the lazy queue. */
+                    priority={idx < 3}
+                  />
                 ))}
               </div>
             )}
@@ -145,21 +160,32 @@ export default async function ShopTenantHomePage({ params }) {
         </div>
       </div>
 
+      {/*
+        Phase: branded ownership — auto-generated "Vì sao khách chọn
+        chúng tôi" trust section. SSR-pure, derives every chip from
+        existing shop fields (verified / response signals / product
+        count / years active). Renders on apex AND subdomain.
+      */}
+      <ShopWhyChooseUs shop={shop} />
+
       <ServiceFooter />
 
       {/*
-        Phase 7.1 — related shops (server component, SSR-rendered).
-        Always renders something (falls back to a "Khám phá shop khác"
-        link to /shops when there are no related shops in the
-        catalogue), so the page never has a dead empty section.
+        Phase 7.1 — related shops, marketplace-only.
+        Hidden on wildcard storefront subdomains so the seller's
+        branded URL doesn't funnel traffic to competitors. The
+        section still ships SSR on apex `/shops/<slug>` where the
+        marketplace discovery loop is the whole point.
       */}
-      <Suspense
-        fallback={
-          <div className="bg-white rounded-2xl shadow-sm h-[240px] animate-pulse" />
-        }
-      >
-        <RelatedShops slug={shop.slug} limit={6} />
-      </Suspense>
+      {!isBrandedSubdomain && (
+        <Suspense
+          fallback={
+            <div className="bg-white rounded-2xl shadow-sm h-[240px] animate-pulse" />
+          }
+        >
+          <RelatedShops slug={shop.slug} limit={6} />
+        </Suspense>
+      )}
     </div>
   );
 }
