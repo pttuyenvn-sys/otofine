@@ -174,26 +174,27 @@ export default function ShopProductCard({
       </div>
 
       {/*
-        Card hierarchy (storefront v3, mobile + desktop):
-          image → name (2-line) → price (bold) → fitment line → CTA.
-        The fitment line is restored on mobile per the user spec —
-        kept to a single truncated line so the card stays compact.
-        Desktop adds the legacy "Loại hàng" chip below the price as
-        an additional richer signal.
+        Card hierarchy (storefront v4, mobile + desktop):
+          image → name (2-line) → fitment line → price (bold) → CTA.
+        Putting the fitment line immediately under the title lets
+        the buyer confirm "this fits my car" before their eye reaches
+        the price — the canonical marketplace-parts hierarchy. The
+        fitment line stays compact (single truncated line, ~1 px
+        smaller than the title, muted gray) so it never competes with
+        the price's visual weight. Desktop appends the legacy "Loại
+        hàng" chip after the price as an additional context signal.
       */}
       <div className="p-2 sm:p-3 flex-1 flex flex-col">
         <h3 className="text-[13px] sm:text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
-          {formatPrice(product.price)}
-        </div>
-
         {/* Fitment line — single truncated line on every breakpoint.
-            Mobile keeps a smaller font + tighter top margin so the card
-            height stays under control. The empty spacer when there is
-            no fitment is mobile-suppressed (avoids a phantom row). */}
+            Sits directly under the title so the buyer can confirm
+            applicability before reading the price. When there is no
+            fitment data we render a transparent spacer on desktop to
+            keep card heights consistent across the grid; mobile drops
+            the spacer entirely so empty-fitment cards stay compact. */}
         {fitmentLine ? (
           <p
             className="mt-0.5 sm:mt-1 text-[11px] sm:text-[12px] text-gray-500 truncate"
@@ -209,6 +210,10 @@ export default function ShopProductCard({
             &nbsp;
           </p>
         )}
+
+        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
+          {formatPrice(product.price)}
+        </div>
 
         {/* Part-type chip — desktop only; mobile suppresses to keep
             the card visually quieter and let the CTA row dominate. */}
