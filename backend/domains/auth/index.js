@@ -8,7 +8,13 @@ export {
   shopLogout,
 } from "./controllers/shopAuth.controller.js";
 
-export { adminLogin, adminForgotPassword } from "./controllers/adminAuth.controller.js";
+export {
+  adminLogin,
+  adminForgotPassword,
+  // Slice 5: new session governance handlers
+  adminRefresh,
+  adminLogout,
+} from "./controllers/adminAuth.controller.js";
 
 export {
   requireAuth,

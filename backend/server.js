@@ -51,7 +51,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 import pushRoutes from "./routes/push.routes.js";
-import { platformRouter } from "./modules/admin/index.js";
+import { platformRouter, rbacRouter, enforcementRouter } from "./modules/admin/index.js";
 app.use("/api/push", pushRoutes);
 
 const defaultOrigins = [
@@ -211,6 +211,8 @@ app.use("/api/admin/rfq", requireAuth, requireAdmin, rfqAdminRoutes);
 
 mountRfqRoutes(app);
 app.use("/api/admin/platform", platformRouter);
+app.use("/api/admin/rbac", rbacRouter);
+app.use("/api/admin/enforcement", enforcementRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

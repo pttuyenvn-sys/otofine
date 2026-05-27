@@ -11,4 +11,7 @@ export {
   shopLogout,
   adminLogin,
   adminForgotPassword,
+  // Slice 5: admin session governance handlers
+  adminRefresh,
+  adminLogout,
 } from "../domains/auth/index.js";

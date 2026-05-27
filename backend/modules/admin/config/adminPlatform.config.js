@@ -33,6 +33,8 @@ export const FLAG_KEY_MAP = {
   ADMIN_SELLER_CRM_ENABLED:               "sellerCrmEnabled",
   ADMIN_PAYMENTS_ENABLED:                 "paymentsEnabled",
   ADMIN_SUBSCRIPTION_ENFORCEMENT_ENABLED: "subscriptionEnforcementEnabled",
+  // Slice 5: Admin Session Governance
+  ADMIN_SESSION_GOVERNANCE_ENABLED:       "sessionGovernanceEnabled",
 };
 
 /**
@@ -59,4 +61,6 @@ export const adminPlatformConfig = Object.freeze({
   sellerCrmEnabled:             process.env.ADMIN_SELLER_CRM_ENABLED === "true",
   paymentsEnabled:              process.env.ADMIN_PAYMENTS_ENABLED === "true",
   subscriptionEnforcementEnabled: process.env.ADMIN_SUBSCRIPTION_ENFORCEMENT_ENABLED === "true",
+  // Slice 5: Admin Session Governance (ENV fallback — never cached in Redis)
+  sessionGovernanceEnabled:     process.env.ADMIN_SESSION_GOVERNANCE_ENABLED === "true",
 });

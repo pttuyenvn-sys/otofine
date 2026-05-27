@@ -9,6 +9,9 @@ import {
   changePassword,
   shopRefreshToken,
   shopLogout,
+  // Slice 5: admin session governance
+  adminRefresh,
+  adminLogout,
 } from "../controllers/authController.js";
 import {
   requireAuth,
@@ -40,5 +43,8 @@ router.post("/shop-logout", shopLogout);
 /* ================= ADMIN AUTH ================= */
 router.post("/admin-login", shopLoginRateLimit, adminLogin);
 router.post("/admin-forgot-password", shopForgotRateLimit, adminForgotPassword);
+// Slice 5: session governance endpoints (additive)
+router.post("/admin-refresh", shopLoginRateLimit, adminRefresh);
+router.post("/admin-logout", requireAuth, adminLogout);
 
 export default router;

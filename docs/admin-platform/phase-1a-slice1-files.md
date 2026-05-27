@@ -1,3 +1,95 @@
+# Phase 1A Slice 1 — Implementation Files
+
+> **Scope:** schema_migrations table + migration runner only  
+> **Files to create:**
+> - `backend/migrations/051_schema_migrations.sql`
+> - `backend/scripts/run-admin-migration.js`
+> - `backend/migrations/051_schema_migrations.rollback.sql`
+>
+> **package.json entry to add:**
+> - `"migrate:admin:foundation": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql"`
+> - `"migrate:admin:foundation:dry": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql --dry-run"`
+>
+> **No other files are touched.**
+
+---
+
+## File 1: `backend/migrations/051_schema_migrations.sql`
+
+```sql
+-- =====================================================================
+-- Migration 051 — Schema migrations tracking table
+-- =====================================================================
+--
+-- ADDITIVE ONLY. Creates a single new table.
+-- No existing tables are modified.
+-- Idempotent: CREATE TABLE IF NOT EXISTS is safe to re-run.
+--
+-- Purpose:
+--   Provides a persistent record of which migration files have been
+--   applied to this database, along with their SHA-256 checksum at
+--   the time of application. The run-admin-migration.js runner reads
+--   this table to skip already-applied files and to detect checksum
+--   drift (file modified after being applied).
+--
+-- Columns:
+--   id          — auto-increment surrogate key
+--   filename    — basename of the SQL file (e.g. "051_schema_migrations.sql")
+--                 unique; acts as the idempotency key
+--   applied_at  — wall-clock timestamp at apply time (UTC, ms precision)
+--   checksum    — SHA-256 hex digest of the SQL file contents at apply time
+--                 NULL is permitted for files applied before checksums were added
+--   applied_by  — optional free-text label (e.g. "admin-runner v1", "manual")
+--
+-- Rollback: see 051_schema_migrations.rollback.sql
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  id          INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+  filename    VARCHAR(255)   NOT NULL,
+  applied_at  DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  checksum    CHAR(64)       NULL     COMMENT 'SHA-256 hex of file contents at apply time',
+  applied_by  VARCHAR(100)   NULL     COMMENT 'Runner label or "manual"',
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_schema_migrations_filename (filename)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Tracks applied SQL migrations with checksums for drift detection';
+```
+
+---
+
+## File 2: `backend/migrations/051_schema_migrations.rollback.sql`
+
+```sql
+-- =====================================================================
+-- Rollback for Migration 051 — schema_migrations
+-- =====================================================================
+--
+-- WARNING: Only run this if you are rolling back the entire
+-- admin foundation. Once other admin migrations (052+) are applied,
+-- this table cannot be dropped without first rolling back all
+-- dependent migrations.
+--
+-- Safe to run if: only migration 051 has been applied and no other
+-- admin_ tables exist.
+--
+-- Pre-flight check before running:
+--   SELECT COUNT(*) FROM schema_migrations;
+--   -- If count > 1, other migrations are tracked here. Do NOT drop.
+--   -- If count = 1 (only '051_schema_migrations.sql' row), safe to drop.
+--
+-- =====================================================================
+
+DROP TABLE IF EXISTS schema_migrations;
+```
+
+---
+
+## File 3: `backend/scripts/run-admin-migration.js`
+
+```js
 #!/usr/bin/env node
 /**
  * Admin Foundation migration runner.
@@ -53,8 +145,6 @@ const ADMIN_MIGRATION_FILES = [
   "054_admin_audit_log.sql",
   "055_admin_feature_flags.sql",
   "056_admin_job_queue.sql",
-  "057_admin_sessions.sql",   // Slice 5: Admin Session Governance
-  "058_admin_enforcement.sql",  // Slice 6: Seller Enforcement & Moderation
 ];
 
 // ---------------------------------------------------------------------------
@@ -245,6 +335,7 @@ async function main() {
   }
 
   if (DRY_RUN) {
+    // In dry-run mode, just print what would happen without a DB connection.
     for (const filename of filesToProcess) {
       const fullPath = path.join(MIGRATIONS_DIR, filename);
       const sql = fs.readFileSync(fullPath, "utf8");
@@ -272,6 +363,7 @@ async function main() {
       if (alreadyApplied.has(filename)) {
         const recorded = alreadyApplied.get(filename);
 
+        // Checksum drift check: warn if file changed after being applied.
         if (recorded.checksum && recorded.checksum !== checksum) {
           console.warn(
             `${tag} DRIFT WARNING: ${filename}\n` +
@@ -307,7 +399,7 @@ async function main() {
       `${tag} ATTENTION: ${driftWarnings} drift warning(s). ` +
         `Review the warnings above before applying further migrations.`,
     );
-    process.exit(2);
+    process.exit(2); // distinct exit code: warnings present, not a hard failure
   }
 
   process.exit(0);
@@ -317,3 +409,74 @@ main().catch((err) => {
   console.error("[admin-migration] FATAL:", err.message);
   process.exit(1);
 });
+```
+
+---
+
+## package.json entry (additive — append to `"scripts"` block)
+
+```json
+"migrate:admin:foundation": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql",
+"migrate:admin:foundation:dry": "node scripts/run-admin-migration.js --file 051_schema_migrations.sql --dry-run"
+```
+
+> **Slice 1 note:** Both scripts explicitly target `051_schema_migrations.sql` because migrations
+> 052–056 are not yet deployed. When all 6 files are on disk (Slice 2+), update to
+> `node scripts/run-admin-migration.js` without `--file` to enable run-all mode.
+
+---
+
+## Verification queries (run after applying 051)
+
+```sql
+-- 1. Confirm table was created
+SHOW TABLES LIKE 'schema_migrations';
+-- Expected: 1 row
+
+-- 2. Confirm structure
+DESCRIBE schema_migrations;
+-- Expected columns: id, filename, applied_at, checksum, applied_by
+
+-- 3. Confirm the runner recorded itself
+SELECT id, filename, checksum, applied_by, applied_at
+FROM schema_migrations;
+-- Expected: 1 row with filename = '051_schema_migrations.sql'
+
+-- 4. Regression: no existing tables altered
+-- (Run counts from pre-deploy baseline in §1.5 of runbook)
+SELECT COUNT(*) FROM products;
+SELECT COUNT(*) FROM shops;
+```
+
+---
+
+## Exact execution commands
+
+```bash
+# Step 1: Dry run first — verify file list and checksums without touching DB
+cd /var/www/otofine/backend
+node scripts/run-admin-migration.js --dry-run
+
+# Step 2: Apply only migration 051
+node scripts/run-admin-migration.js --file 051_schema_migrations.sql
+
+# Step 3: Verify
+mysql -u{DB_USER} -p{DB_PASSWORD} {DB_NAME} \
+  -e "SELECT id, filename, LEFT(checksum,16) AS chk, applied_by, applied_at FROM schema_migrations;"
+
+# Step 4: Idempotency check — re-run should SKIP, not fail
+node scripts/run-admin-migration.js --file 051_schema_migrations.sql
+# Expected output: [admin-migration] SKIP (already applied): 051_schema_migrations.sql
+
+# Step 5: Drift detection check — modify file, re-run, confirm warning
+# (Do NOT actually modify in production — test only on dev DB)
+```
+
+---
+
+## Rollback command
+
+```bash
+mysql -u{DB_USER} -p{DB_PASSWORD} {DB_NAME} \
+  < /var/www/otofine/backend/migrations/051_schema_migrations.rollback.sql
+```
