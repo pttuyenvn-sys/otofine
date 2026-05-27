@@ -118,10 +118,28 @@ export async function updateCase(req, res) {
 export async function suspendShop(req, res) {
   try {
     const caseId = Number(req.params.id);
-    const { shopId, suspension_type, category, reason, expires_at, suspend_login } = req.body;
+    const {
+      shopId,
+      suspension_type,
+      category,
+      reason,
+      expires_at: rawExpiresAt,
+      duration_days,
+      suspend_login,
+    } = req.body;
 
     if (!shopId) {
       return res.status(400).json({ error: "shopId is required" });
+    }
+
+    // Backend is the authoritative source for suspension timing.
+    // duration_days (semantic value from UI) takes precedence over a raw
+    // expires_at string. This keeps timestamp arithmetic out of the frontend.
+    let expires_at = rawExpiresAt ?? null;
+    if (duration_days && Number(duration_days) > 0) {
+      const expiry = new Date();
+      expiry.setUTCDate(expiry.getUTCDate() + Number(duration_days));
+      expires_at = expiry.toISOString().slice(0, 19).replace("T", " ");
     }
 
     const result = await suspensionService.suspendShop(

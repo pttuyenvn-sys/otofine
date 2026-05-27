@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS admin_shop_suspensions (
   -- Suspension parameters
   suspension_type  ENUM('temporary', 'permanent') NOT NULL DEFAULT 'temporary',
   category         VARCHAR(64)       NULL,
-  reason           TEXT              NOT NULL DEFAULT '',
+  reason           TEXT              NOT NULL,
 
   -- Preserves the shop's public_status at time of suspension so reinstatement
   -- can restore to original state (not unconditionally set 'public').

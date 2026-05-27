@@ -5,12 +5,15 @@ import { pool } from "../config/db.js";
  */
 export async function getAllShops(req, res) {
   const [rows] = await pool.query(`
-    SELECT 
-      id, shopId, name, email, phone,
-      status, createdAt, approvedAt, approvedByAdminId
-    FROM shop_accounts
-    WHERE status != 'deleted'
-    ORDER BY createdAt DESC
+    SELECT
+      sa.id, sa.shopId, sa.name, sa.email, sa.phone,
+      sa.status, sa.createdAt, sa.approvedAt, sa.approvedByAdminId,
+      s.id AS governanceShopId,
+      s.public_status AS shopPublicStatus
+    FROM shop_accounts sa
+    LEFT JOIN shops s ON s.accountId = sa.id
+    WHERE sa.status != 'deleted'
+    ORDER BY sa.createdAt DESC
   `);
 
   res.json(rows);
