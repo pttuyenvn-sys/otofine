@@ -1,6 +1,7 @@
 import { pool } from "../config/db.js";
 import { generateCategorySeoContent } from "../services/categorySeoComposer.js";
 import * as productListService from "../services/productList.service.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 /**
  * Get category SEO content with product data
  * @param {Object} req - Express request object
@@ -77,6 +78,7 @@ export async function getCategorySeoContent(req, res) {
  */
 export async function getCategoriesWithCounts(req, res) {
   try {
+    const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
     const [categories] = await pool.query(`
       SELECT 
         p.partName as category,
@@ -86,9 +88,10 @@ export async function getCategoriesWithCounts(req, res) {
         AVG(p.price) as avgPrice,
         GROUP_CONCAT(DISTINCT p.brand ORDER BY p.brand) as brands
       FROM products p
+      INNER JOIN shops s ON s.id = p.shopId
       WHERE p.partName IS NOT NULL 
-        AND TRIM(p.partName) <> ''
-        AND p.status = 'active'
+      AND TRIM(p.partName) <> ''
+        ${vis.sql}
       GROUP BY p.partName
       HAVING productCount > 0
       ORDER BY productCount DESC
@@ -130,19 +133,27 @@ export async function getRelatedCategories(req, res) {
       return res.status(400).json({ error: "Category parameter is required" });
     }
 
+    const visP1Obj = await buildPublicProductWhereClause({ aliasP: "p1", aliasS: "s1" });
+    const visP2Obj = await buildPublicProductWhereClause({ aliasP: "p2", aliasS: "s2" });
+    const visP1 = visP1Obj.sql;
+    const visP2 = visP2Obj.sql;
+
     // Get categories that frequently appear together in the same car models
     const [relatedCategories] = await pool.query(`
       SELECT 
         p2.partName as relatedCategory,
         COUNT(*) as cooccurrenceCount,
-        COUNT(DISTINCT pa.carModelId) as modelCount
+        COUNT(DISTINCT pa1.carModelId) as modelCount
       FROM products p1
+      INNER JOIN shops s1 ON s1.id = p1.shopId
       JOIN product_car_applications pa1 ON p1.id = pa1.productId
       JOIN product_car_applications pa2 ON pa1.carModelId = pa2.carModelId
       JOIN products p2 ON pa2.productId = p2.id
+      INNER JOIN shops s2 ON s2.id = p2.shopId
       WHERE p1.partName = ? 
         AND p2.partName != ? 
-        AND p2.status = 'active'
+        ${visP1}
+        ${visP2}
       GROUP BY p2.partName
       HAVING cooccurrenceCount >= 3
       ORDER BY cooccurrenceCount DESC, modelCount DESC
@@ -231,6 +242,8 @@ export async function getCategoryMetadata(req, res) {
       return res.status(400).json({ error: "Category parameter is required" });
     }
 
+    const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+
     // Get basic category info
     const [categoryInfo] = await pool.query(`
       SELECT 
@@ -243,8 +256,9 @@ export async function getCategoryMetadata(req, res) {
         MIN(p.updatedAt) as oldestProduct,
         MAX(p.updatedAt) as newestProduct
       FROM products p
+      INNER JOIN shops s ON s.id = p.shopId
       WHERE p.partName = ? 
-        AND p.status = 'active'
+        ${vis.sql}
       GROUP BY p.partName
     `, [category]);
 

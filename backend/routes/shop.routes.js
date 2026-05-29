@@ -8,6 +8,7 @@ import {
   updateMyShop,
   uploadEditorImage,
 } from "../controllers/shop.controller.js";
+import { listShopNotifications, markNotificationRead } from "../controllers/shopNotifications.controller.js";
 
 const router = express.Router();
 
@@ -44,5 +45,8 @@ router.post(
   uploadShop.single("file"),
   uploadEditorImage
 );
+
+router.get("/notifications", requireAuth, requireShop, listShopNotifications);
+router.post("/notifications/:id/read", requireAuth, requireShop, markNotificationRead);
 
 export default router;

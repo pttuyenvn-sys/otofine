@@ -1,6 +1,7 @@
 import { pool } from "../config/db.js";
 import { getRelatedProductsForDetail } from "../services/productRelated.service.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { isProductPubliclyVisible, buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 function resolveProductIdParam(raw) {
   const s = String(raw ?? "").trim();
@@ -30,6 +31,7 @@ export const getProductDetail = async (req, res) => {
     }
 
     let rows;
+    const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
     if (typeof resolved === "number") {
       [rows] = await pool.query(
         `
@@ -49,13 +51,14 @@ export const getProductDetail = async (req, res) => {
 
       FROM products p
 
-      LEFT JOIN shops s 
+      INNER JOIN shops s 
         ON s.id = p.shopId
 
       LEFT JOIN address a
         ON a.id = s.wardId
 
       WHERE p.id = ?
+      ${vis.sql}
       `,
         [resolved],
       );
@@ -85,13 +88,14 @@ export const getProductDetail = async (req, res) => {
 
         FROM products p
 
-        LEFT JOIN shops s 
+        INNER JOIN shops s 
           ON s.id = p.shopId
 
         LEFT JOIN address a
           ON a.id = s.wardId
 
         WHERE ${col} = ?
+        ${vis.sql}
         `,
         [resolved.slug],
       );

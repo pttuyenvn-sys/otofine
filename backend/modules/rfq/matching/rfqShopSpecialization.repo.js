@@ -1,4 +1,5 @@
 import { pool } from "../../../config/db.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Phase 8.1 — RFQ supplier matching: shop specialization repository.
@@ -69,12 +70,15 @@ export async function loadShopBaseRows(shopIds) {
  */
 export async function loadShopProductCounts(shopIds) {
   if (!shopIds.length) return new Map();
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const ph = shopIds.map(() => "?").join(",");
   const [rows] = await pool.query(
-    `SELECT shopId, COUNT(*) AS n
-       FROM products
-      WHERE shopId IN (${ph})
-      GROUP BY shopId`,
+    `SELECT p.shopId, COUNT(*) AS n
+       FROM products p
+      WHERE p.shopId IN (${ph})
+      ${productOnlyVis}
+      GROUP BY p.shopId`,
     shopIds,
   );
   const m = new Map();
@@ -115,6 +119,9 @@ export async function loadShopVehicleSpecialization(shopIds, vehicle) {
   if (vehicle.model) selectParams.push(vehicle.model);
   if (Number.isFinite(vehicle.year)) selectParams.push(vehicle.year, vehicle.year);
 
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
+
   const [rows] = await pool.query(
     `SELECT
         p.shopId AS id,
@@ -126,6 +133,7 @@ export async function loadShopVehicleSpecialization(shopIds, vehicle) {
        JOIN car_models cm ON cm.id = pca.carModelId
       WHERE cm.hang_xe = ?
         AND p.shopId IN (${ph})
+        ${productOnlyVis}
       GROUP BY p.shopId`,
     [...selectParams, vehicle.brand, ...shopIds],
   );
@@ -162,6 +170,8 @@ export async function loadShopPartSpecialization(shopIds, part) {
   // SELECT-clause placeholders bind first. categoryTags is the only
   // signal that lives inside the SELECT; system_groups + shopIds are
   // WHERE-side.
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const [rows] = await pool.query(
     `SELECT
         p.shopId AS id,
@@ -171,6 +181,7 @@ export async function loadShopPartSpecialization(shopIds, part) {
        JOIN part_knowledge pk ON pk.id = p.part_knowledge_id
       WHERE p.shopId IN (${idPh})
         AND pk.system_group IN (${sgPh})
+        ${productOnlyVis}
       GROUP BY p.shopId`,
     [...(part.categoryTags || []), ...shopIds, ...part.systemGroups],
   );
@@ -192,6 +203,8 @@ export async function loadShopPartSpecialization(shopIds, part) {
  */
 export async function loadShopBrandSpecialization(shopIds, totalCounts) {
   if (!shopIds.length) return new Map();
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const ph = shopIds.map(() => "?").join(",");
   const [rows] = await pool.query(
     `SELECT
@@ -203,6 +216,7 @@ export async function loadShopBrandSpecialization(shopIds, totalCounts) {
        JOIN car_models cm ON cm.id = pca.carModelId
       WHERE p.shopId IN (${ph})
         AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+        ${productOnlyVis}
       GROUP BY p.shopId, cm.hang_xe
       ORDER BY p.shopId ASC, cnt DESC, brand ASC`,
     shopIds,

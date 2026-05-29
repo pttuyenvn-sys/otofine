@@ -1,5 +1,10 @@
 import { pool } from "../config/db.js";
 import * as productService from "../services/product.service.js";
+import {
+  getShopGovernanceStats,
+  getSellerProductTimeline,
+  resubmitProductForReview,
+} from "../modules/products/services/sellerProductGovernance.service.js";
 import { syncProductListViewByProductId } from "../services/productListViewSync.service.js";
 import { queueUpsertProductInTypesense } from "../services/typesenseRealtimeSync.service.js";
 import { invalidateListCache } from "../services/listCache.service.js";
@@ -7,6 +12,7 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.js";
 import { importImagesBatch } from "../services/productImage.service.js";
 import { processSingleImage } from "../services/productImage.service.js";
+// risk flags evaluation is best-effort, imported dynamically where used
 
 /* =========================
    GET ALL PRODUCTS
@@ -468,6 +474,15 @@ export const addProduct = async (req, res) => {
       }
     }
 
+    // Best-effort: evaluate product risk flags for new product
+    try {
+      const { evaluateAndStoreFlags } = await import("../../modules/governance/services/riskFlags.service.js");
+      // eslint-disable-next-line no-await-in-loop
+      await evaluateAndStoreFlags(productId);
+    } catch (e) {
+      console.error("evaluateAndStoreFlags (create) failed:", e);
+    }
+
     await syncProductListViewByProductId(productId).catch(() => { });
     queueUpsertProductInTypesense(productId);
 
@@ -548,6 +563,7 @@ export const getProductsByShop = async (req, res) => {
     const model = req.query.model || "";
     const origin = req.query.origin || "";
     const keyword = req.query.keyword || "";
+    const lifecycle = req.query.lifecycle || "";
 
     const { items, total } = await productService.getProductsByShop(shopId, {
       page,
@@ -556,6 +572,7 @@ export const getProductsByShop = async (req, res) => {
       model,
       origin,
       keyword,
+      lifecycle,
     });
 
     res.json({
@@ -600,5 +617,60 @@ export const importImages = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getShopGovernanceStatsHandler = async (req, res) => {
+  try {
+    const shopId = req.shop.id;
+    const stats = await getShopGovernanceStats(shopId);
+    res.json(stats);
+  } catch (err) {
+    console.error("getShopGovernanceStats error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getSellerProductTimelineHandler = async (req, res) => {
+  try {
+    const shopId = req.shop.id;
+    const productId = Number(req.params.id);
+    if (!Number.isFinite(productId) || productId <= 0) {
+      return res.status(400).json({ message: "invalid product id" });
+    }
+    const data = await getSellerProductTimeline(productId, shopId);
+    if (!data) return res.status(404).json({ message: "product not found" });
+    return res.json(data);
+  } catch (err) {
+    console.error("getSellerProductTimeline error:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const resubmitProductForReviewHandler = async (req, res) => {
+  try {
+    const shopId = req.shop.id;
+    const productId = Number(req.params.id);
+    if (!Number.isFinite(productId) || productId <= 0) {
+      return res.status(400).json({ message: "invalid product id" });
+    }
+    const note = typeof req.body?.note === "string" ? req.body.note.trim() : "";
+    const result = await resubmitProductForReview(productId, shopId, { note });
+    if (!result.ok) {
+      if (result.error === "not_found") return res.status(404).json({ message: "product not found" });
+      if (result.error === "product_deleted") return res.status(400).json({ message: "product is deleted" });
+      if (result.error === "invalid_status") {
+        return res.status(400).json({ message: "cannot resubmit from current status", status: result.currentStatus });
+      }
+      return res.status(400).json({ message: result.error });
+    }
+    return res.json({
+      ok: true,
+      moderationStatus: result.moderationStatus,
+      alreadyPending: result.alreadyPending || false,
+    });
+  } catch (err) {
+    console.error("resubmitProductForReview error:", err);
+    return res.status(500).json({ message: err.message });
   }
 };

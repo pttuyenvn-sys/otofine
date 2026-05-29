@@ -1,28 +1,18 @@
 "use client";
 
 /**
- * Seller products page.
- *
- * Mobile UX pass:
- *   - Desktop toolbar is unchanged (Thêm + Import Ảnh + Import Sản
- *     phẩm + Kết xuất Excel inline).
- *   - Mobile (< lg) compresses to `[ + Thêm ] [ ⋮ ]` where the kebab
- *     opens a bottom-sheet hosting the three secondary actions. This
- *     preserves every action; nothing is removed.
- *   - Filter row swaps to a compact search input + filter sheet via
- *     `ProductFilterMobile`.
- *
- * No business logic / API changes — the popup components, axios
- * client, export pipeline, and reload-products event bus are all
- * untouched.
+ * Seller products page — modern seller dashboard layout.
+ * Business logic / APIs unchanged; display polish only.
  */
 
 import { useState } from "react";
 
 import ProductList from "./ProductList";
-import ProductFilter from "../../products/ProductFilter";
+import SellerProductToolbar from "../../products/SellerProductToolbar";
 import ProductFilterMobile from "../../products/ProductFilterMobile";
 import ProductsActionsSheet from "./ProductsActionsSheet";
+import SellerProductGovernanceTabs from "../../products/SellerProductGovernanceTabs";
+import { LIFECYCLE_TABS } from "@/lib/seller/sellerProductGovernance";
 
 import AddProductPopup from "../../popup/AddProductPopup";
 import ImportImagePopup from "../../popup/ImportImagePopup";
@@ -40,6 +30,9 @@ const defaultAppliedFilters = () => ({
 
 export default function ShopProducts() {
   const [appliedFilters, setAppliedFilters] = useState(defaultAppliedFilters);
+  const [lifecycle, setLifecycle] = useState("all");
+  const [governanceStats, setGovernanceStats] = useState({});
+  const [listLimit, setListLimit] = useState(20);
 
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showImportImagePopup, setShowImportImagePopup] = useState(false);
@@ -51,7 +44,7 @@ export default function ShopProducts() {
   };
 
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Bạn chắc chắn muốn xóa sản phẩm này?")) return;
+    if (!window.confirm("Bạn chắc chắn muốn ẩn sản phẩm này?")) return;
     await axiosClient.delete(`/products/${id}`);
     triggerReloadProducts();
   };
@@ -118,47 +111,37 @@ export default function ShopProducts() {
     },
   ];
 
-  return (
-    <div className="AdminChitiet">
-      {/* Desktop toolbar — unchanged from the legacy layout. */}
-      <div className="AdminTieude hidden lg:flex">
-        <h2 className="TieudeText">Sản phẩm</h2>
+  const mobileTabs = LIFECYCLE_TABS.map((t) =>
+    t.key === "rejected" ? { ...t, label: "Từ chối" } : t.key === "hidden" ? { ...t, label: "Ẩn" } : t,
+  );
 
-        <div className="TieudeButtons">
-          <button className="btn btn-add" onClick={() => setShowAddPopup(true)}>
+  return (
+    <div className="AdminChitiet seller-products-page">
+      <div className="seller-dash-header hidden lg:flex">
+        <div>
+          <h2 className="seller-dash-header-title">Sản phẩm</h2>
+          <p className="seller-dash-header-sub">Quản lý danh mục và trạng thái kiểm duyệt</p>
+        </div>
+
+        <div className="seller-dash-header-actions">
+          <button type="button" className="seller-dash-btn seller-dash-btn--primary" onClick={() => setShowAddPopup(true)}>
             + Thêm mới
           </button>
-
-          <button
-            className="btn btn-import-img"
-            onClick={() => setShowImportImagePopup(true)}
-          >
-            + Import Ảnh
+          <button type="button" className="seller-dash-btn seller-dash-btn--ghost" onClick={() => setShowImportImagePopup(true)}>
+            Import ảnh
           </button>
-
-          <button
-            className="btn btn-import-product"
-            onClick={() => setShowImportProductPopup(true)}
-          >
-            + Import Sản phẩm
+          <button type="button" className="seller-dash-btn seller-dash-btn--ghost" onClick={() => setShowImportProductPopup(true)}>
+            Import SP
           </button>
-
-          <button
-            className="btn btn-export"
-            onClick={handleExportExcel}
-            disabled={exporting}
-          >
-            {exporting ? "Đang xuất..." : "Kết xuất Excel"}
+          <button type="button" className="seller-dash-btn seller-dash-btn--ghost" onClick={handleExportExcel} disabled={exporting}>
+            {exporting ? "Đang xuất…" : "Xuất Excel"}
           </button>
         </div>
       </div>
 
-      {/* Mobile toolbar — primary CTA + overflow menu. */}
       <div className="lg:hidden flex items-center gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold text-gray-900 truncate">
-            Sản phẩm
-          </h2>
+          <h2 className="text-base font-semibold text-gray-900 truncate">Sản phẩm</h2>
         </div>
         <button
           type="button"
@@ -178,12 +161,35 @@ export default function ShopProducts() {
         </button>
       </div>
 
-      {/* Filters — desktop and mobile renderers each scope themselves
-          with hidden/lg:hidden so only one mounts at a time. */}
-      <ProductFilter onSearch={setAppliedFilters} />
-      <ProductFilterMobile onSearch={setAppliedFilters} />
+      <SellerProductToolbar
+        appliedFilters={appliedFilters}
+        onFiltersChange={setAppliedFilters}
+        lifecycle={lifecycle}
+        onLifecycleChange={setLifecycle}
+        stats={governanceStats}
+        limit={listLimit}
+        onLimitChange={setListLimit}
+      />
 
-      <ProductList appliedFilters={appliedFilters} onDelete={handleDeleteProduct} />
+      <div className="lg:hidden px-0.5 mb-2">
+        <ProductFilterMobile onSearch={setAppliedFilters} />
+        <SellerProductGovernanceTabs
+          value={lifecycle}
+          onChange={setLifecycle}
+          stats={governanceStats}
+          tabs={mobileTabs}
+        />
+      </div>
+
+      <ProductList
+        appliedFilters={appliedFilters}
+        lifecycle={lifecycle}
+        limit={listLimit}
+        onLimitChange={setListLimit}
+        governanceStats={governanceStats}
+        onGovernanceStats={setGovernanceStats}
+        onDelete={handleDeleteProduct}
+      />
 
       <ProductsActionsSheet
         open={showActionsSheet}

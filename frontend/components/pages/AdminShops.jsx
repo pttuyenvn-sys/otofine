@@ -3,17 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getShops, updateShopStatus, deleteShop } from "../../api/adminApi";
+import { getEnforcementCases, reinstateShopOnCase } from "@/lib/adminApi";
+import ShopSuspendModal from "@/components/admin/ShopSuspendModal";
 
 export default function AdminShops() {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // ── Governance state (Slice 7) ──────────────────────────────────────────────
+  // suspendModal: drives the ShopSuspendModal visibility
+  const [suspendModal, setSuspendModal] = useState({ open: false, shopId: null, shopName: "" });
+  // reinstating: shopId currently going through the reinstate flow (inline spinner)
+  const [reinstating, setReinstating] = useState(null);
+  // actionError: surface governance-specific errors above the table
+  const [actionError, setActionError] = useState("");
+  // ────────────────────────────────────────────────────────────────────────────
+
   async function load() {
     try {
       setLoading(true);
       const res = await getShops();
-      console.log("ADMIN SHOPS:", res.data);
-      setShops(res.data || []);
+      const data = res.data || [];
+      // Diagnostic: log first shop's keys and governance field so mismatches are visible.
+      if (data.length) {
+        console.log("[AdminShops] sample shop keys:", Object.keys(data[0]));
+        console.log("[AdminShops] sample governanceShopId:", data[0].governanceShopId, "| accountStatus:", data[0].status, "| shopPublicStatus:", data[0].shopPublicStatus);
+      }
+      setShops(data);
     } catch (e) {
       console.error("LOAD SHOPS FAIL", e);
       setShops([]);
@@ -45,6 +61,81 @@ export default function AdminShops() {
     load();
   }
 
+  // ── Governance: open the suspend modal ─────────────────────────────────────
+  function openSuspendModal(shop) {
+    setActionError("");
+    // governanceShopId is shops.id (integer) — required by enforcement backend.
+    // shop.shopId is a UUID string from shop_accounts and must NOT be used here.
+    setSuspendModal({ open: true, shopId: shop.governanceShopId, shopName: shop.name });
+  }
+
+  // Called by ShopSuspendModal after a successful (or already-suspended) result
+  function handleSuspendSuccess() {
+    setSuspendModal({ open: false, shopId: null, shopName: "" });
+    load();
+  }
+
+  // ── Governance: reinstate a suspended shop ──────────────────────────────────
+  async function handleReinstate(shop) {
+    if (!window.confirm(`Khôi phục shop "${shop.name}" khỏi đình chỉ?`)) return;
+
+    setActionError("");
+    // governanceShopId is shops.id (integer) — required by enforcement backend.
+    setReinstating(shop.governanceShopId);
+
+    try {
+      // Query ALL cases for this shop — do NOT filter by status=open.
+      // Active suspensions may exist under non-open cases (pending_review,
+      // resolved, appealed). Using the latest case satisfies audit integrity
+      // while remaining robust to workflow state.
+      const casesRes = await getEnforcementCases({
+        target_type: "shop",
+        target_id: shop.governanceShopId,
+      });
+      const cases = casesRes.data?.cases || [];
+
+      if (cases.length === 0) {
+        setActionError(
+          `Shop "${shop.name}": Không tìm thấy enforcement case. ` +
+            "Vui lòng xử lý tại trang Enforcement Cases.",
+        );
+        return;
+      }
+
+      // Cases are returned ordered by created_at DESC from the API.
+      // Use the latest case — its ID is required by the route, not the service.
+      const caseId = cases[0].id;
+
+      const result = await reinstateShopOnCase(caseId, {
+        shopId: shop.governanceShopId,
+        lift_reason: "Admin reinstatement via shop management list",
+      });
+
+      // notSuspended: true is a valid 200 response — shop was already reinstated.
+      // Sync UI regardless to guarantee consistency.
+      if (result.data?.notSuspended) {
+        console.info("[reinstate] notSuspended — shop was already out of suspension.");
+      }
+
+      load();
+    } catch (err) {
+      const httpStatus = err?.response?.status;
+      if (httpStatus === 404) {
+        setActionError(
+          "Tính năng quản trị chưa được kích hoạt (ADMIN_MODERATION_ENABLED). Liên hệ quản trị viên hệ thống.",
+        );
+      } else {
+        setActionError(
+          err?.response?.data?.error ||
+            err.message ||
+            `Không thể khôi phục shop "${shop.name}".`,
+        );
+      }
+    } finally {
+      setReinstating(null);
+    }
+  }
+
   useEffect(() => {
     load();
   }, []);
@@ -53,6 +144,7 @@ export default function AdminShops() {
     pending: "Chờ duyệt",
     active: "Đang hoạt động",
     blocked: "Đã khóa",
+    suspended: "Đình chỉ (Governance)",
   };
 
   return (
@@ -64,6 +156,41 @@ export default function AdminShops() {
 
       {loading && <p>Đang tải dữ liệu...</p>}
 
+      {/* Governance action error banner */}
+      {actionError && (
+        <div
+          style={{
+            background: "#fee2e2",
+            color: "#991b1b",
+            padding: "12px 16px",
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 14,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <span style={{ lineHeight: 1.5 }}>{actionError}</span>
+          <button
+            onClick={() => setActionError("")}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 18,
+              color: "#991b1b",
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <table className="table">
         <thead>
           <tr>
@@ -71,13 +198,14 @@ export default function AdminShops() {
             <th>Email</th>
             <th>Trạng thái</th>
             <th>Hành động</th>
+            <th>Governance</th>
           </tr>
         </thead>
 
         <tbody>
           {shops.length === 0 && !loading && (
             <tr>
-              <td colSpan={4} style={{ textAlign: "center" }}>
+              <td colSpan={5} style={{ textAlign: "center" }}>
                 Không có shop
               </td>
             </tr>
@@ -111,10 +239,71 @@ export default function AdminShops() {
                   </>
                 )}
               </td>
+
+              {/* ── Governance column (Slice 7) ─────────────────────────── */}
+              {/* shopPublicStatus = shops.public_status (governance source of truth).
+                  sa.status (login-account field) may stay "active" even when the
+                  governance catalog is suspended, so we drive this column from the
+                  shops table directly. */}
+              <td>
+                {s.governanceShopId != null && (
+                  s.shopPublicStatus === "suspended" ? (
+                    /* Reinstate — shop is governance-suspended */
+                    reinstating === s.governanceShopId ? (
+                      <span style={{ fontSize: 13, color: "#6b7280" }}>Đang xử lý...</span>
+                    ) : (
+                      <button
+                        onClick={() => handleReinstate(s)}
+                        style={{
+                          background: "#059669",
+                          color: "white",
+                          border: "none",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Khôi phục
+                      </button>
+                    )
+                  ) : (
+                    /* Suspend — shop is not governance-suspended (active, pending, blocked) */
+                    <button
+                      onClick={() => openSuspendModal(s)}
+                      style={{
+                        background: "#7c3aed",
+                        color: "white",
+                        border: "none",
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Đình chỉ
+                    </button>
+                  )
+                )}
+              </td>
+              {/* ────────────────────────────────────────────────────────── */}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Governance: Suspension modal */}
+      {suspendModal.open && (
+        <ShopSuspendModal
+          target={suspendModal}
+          onClose={() => setSuspendModal({ open: false, shopId: null, shopName: "" })}
+          onSuccess={handleSuspendSuccess}
+        />
+      )}
     </div>
   );
 }

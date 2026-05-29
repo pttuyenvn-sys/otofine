@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { adminApi } from "@/lib/adminApi";
+import { getAdminAuth, getAdminToken } from "@/lib/auth/storage";
 import Link from "next/link";
 import { API_BASE } from "@/lib/config";
 
@@ -10,24 +12,19 @@ export default function RfqAdminHealthPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const auth = localStorage.getItem("auth");
+    const token = getAdminToken();
+    const auth = getAdminAuth();
     if (!token) {
       setMsg("Đăng nhập admin (/admin/login) để xem.");
       return;
     }
-    let role = null;
-    try {
-      role = auth ? JSON.parse(auth).role : null;
-    } catch {
-      /* ignore */
-    }
+    let role = auth?.role ?? null;
     if (role !== "admin") {
       setMsg("Cần tài khoản admin (JWT role=admin).");
       return;
     }
-    axios
-      .get(`${API_BASE}/admin/rfq/health`, { headers: { Authorization: `Bearer ${token}` } })
+    adminApi
+      .get("/admin/rfq/health")
       .then((res) => setData(res.data))
       .catch(() => setMsg("403/404 — RFQ_MODULE_ENABLED hoặc quyền admin."));
   }, []);

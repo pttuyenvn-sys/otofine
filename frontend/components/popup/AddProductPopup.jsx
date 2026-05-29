@@ -36,6 +36,11 @@ import "./ProductPopup.css";
 import useProductDraftAutosave from "../../hooks/useProductDraftAutosave";
 import { sellerToast } from "../ui/SellerToaster";
 import AutocompleteInput from "../ui/AutocompleteInput";
+import SellerProductRejectBanner from "../products/SellerProductRejectBanner";
+import SellerProductTimeline from "../products/SellerProductTimeline";
+import { SellerLifecycleBadge } from "../products/SellerProductStatusBadges";
+import { flushProductDraft, getCarChipLabel, isCarRowComplete } from "./addProductPopupUi";
+import "../pages/products/Product.css";
 
 /**
  * Suggestion sources for the seller add/edit popup.
@@ -112,7 +117,13 @@ const WIZARD_STEPS = [
   { id: 5, label: "Xác nhận" },
 ];
 
-export default function AddProductPopup({ onClose, onSuccess, product }) {
+export default function AddProductPopup({
+  onClose,
+  onSuccess,
+  product,
+  onResubmit,
+  resubmitting = false,
+}) {
   const [partNumber, setPartNumber] = useState("");
   const [partName, setPartName] = useState("");
   const [origin, setOrigin] = useState("");
@@ -258,7 +269,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
   useEffect(() => {
     axiosClient.get("/car/brands").then((res) => {
-      setBrands(res.data || []);
+      setBrands(Array.isArray(res.data) ? res.data : []);
     });
   }, []);
 
@@ -276,7 +287,8 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     setWidth(product.width || "");
     setHeight(product.height || "");
 
-    const rows = (product.cars || []).map((c) => ({
+    const prodCars = Array.isArray(product?.cars) ? product.cars : [];
+    const rows = prodCars.map((c) => ({
       brand: c.brand || "",
       carModelId: c.carModelId || "",
       year_from: c.year_from || "",
@@ -291,29 +303,27 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
     setCarRows(rows.length ? rows : [initialCarRow()]);
 
+    // Load attributes for rows with carModelId (defensive)
     const loadAttributes = async () => {
+      const targets = (rows || []).map((row) => (row && row.carModelId ? row.carModelId : null));
       const results = await Promise.all(
-        rows.map((row) => {
-          if (!row.carModelId) return null;
-          return axiosClient.get("/car/attributes", {
-            params: { carModelId: row.carModelId },
-          });
+        targets.map((cmId) => {
+          if (!cmId) return null;
+          return axiosClient.get("/car/attributes", { params: { carModelId: cmId } }).catch(() => null);
         }),
       );
-
-      const newOptions = results.map((res) => res?.data || {});
+      const newOptions = (results || []).map((res) => (res && res.data ? res.data : {}));
       setAttrOptions(newOptions);
     };
-
     loadAttributes();
 
-    rows.forEach((row, idx) => {
-      if (row.brand) {
+    (rows || []).forEach((row, idx) => {
+      if (row && row.brand) {
         loadModels(idx, row.brand);
       }
     });
 
-    setExistingImages(product.images || []);
+    setExistingImages(Array.isArray(product?.images) ? product.images : []);
     setShortDescription(product.shortDescription || "");
     setDescription(product.fullDescription || "");
 
@@ -344,7 +354,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
     setModelsByRow((prev) => {
       const clone = [...prev];
-      clone[idx] = res.data || [];
+      clone[idx] = Array.isArray(res.data) ? res.data : [];
       return clone;
     });
   };
@@ -455,7 +465,7 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
       formData.append("cars", JSON.stringify(cars));
       formData.append("deletedImages", JSON.stringify(deletedImages));
 
-      images.forEach((img) => {
+      (images || []).forEach((img) => {
         formData.append("images", img);
       });
 
@@ -486,21 +496,78 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
     setOpenDetails((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
+  function handleSaveDraft() {
+    try {
+      flushProductDraft(product?.id || null, draftSnapshot);
+      sellerToast.success("Đã lưu nháp");
+    } catch {
+      sellerToast.error("Không thể lưu nháp");
+    }
+  }
+
+  const imageCount = (images || []).length + (existingImages || []).length;
+
   return createPortal(
     <div className="AddProductOverlay">
       <div
-        className="AddProductForm"
+        className="AddProductForm AddProductForm--editor"
         data-step={step}
         data-mode={WIZARD_STEPS.length >= step ? "wizard" : "full"}
       >
-        <div className="PopupHeader">
-          <h2>{product ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
+        <header className="PopupHeader PopupHeader--sticky">
+          <div className="PopupHeader__main">
+            <h2 className="PopupHeader__title">
+              {product ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm"}
+            </h2>
+            {product ? (
+              <div className="PopupHeader__badge">
+                <SellerLifecycleBadge product={product} />
+              </div>
+            ) : null}
+            {savedAt ? (
+              <span className="PopupHeader__draft" aria-live="polite">
+                ✓ Đã lưu nháp
+              </span>
+            ) : null}
+          </div>
           <div className="PopupHeaderActions">
+            <button type="button" className="btnDraft" onClick={handleSaveDraft}>
+              Lưu nháp
+            </button>
+            <button
+              type="button"
+              className="btnSubmit btnSubmit--header hidden lg:inline-flex"
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? "Đang lưu…" : product ? "Đăng sản phẩm" : "Đăng sản phẩm"}
+            </button>
             <button type="button" className="btnClose" onClick={onClose}>
               Đóng
             </button>
           </div>
-        </div>
+        </header>
+
+        <div className="AddProductFormBody">
+        {product && product.sellerLifecycle === "rejected" ? (
+          <div className="PopupGovernanceAlert">
+            <SellerProductRejectBanner
+              product={product}
+              onResubmit={onResubmit}
+              resubmitting={resubmitting}
+            />
+          </div>
+        ) : null}
+
+        {product ? (
+          <details className="PopupTimelineFold">
+            <summary>Lịch sử kiểm duyệt</summary>
+            <SellerProductTimeline
+              key={`${product.id}-${product.sellerLifecycle || product.moderationStatus || ""}`}
+              productId={product.id}
+            />
+          </details>
+        ) : null}
 
         {/* Mobile-only wizard progress dots + autosave indicator. The
             legacy desktop layout ignores both — `.WizardProgress` and
@@ -576,54 +643,36 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
 
         <div className="FormGrid">
           <div className="LeftCol">
-            <section
-              className="ProductFormSection"
-              data-wizard-step="1"
-            >
-              <h3 className="ProductFormSection__title">Thông tin cơ bản</h3>
-              <div className="Row2">
-                <div>
-                  <label>Mã phụ tùng *</label>
-                  <input
-                    value={partNumber}
-                    onChange={(e) => setPartNumber(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Tên phụ tùng *</label>
-                  <AutocompleteInput
-                    value={partName}
-                    onChange={setPartName}
-                    fetchSuggestions={fetchPartNameSuggestions}
-                    sourceKey="partName"
-                    placeholder="VD: Lọc gió động cơ"
-                    ariaLabel="Tên phụ tùng"
-                  />
-                </div>
+            <section className="FormCard" data-wizard-step="1">
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">1. Thông tin cơ bản</h3>
+                <p className="FormCard__hint">Mã và tên phụ tùng giúp khách tìm đúng sản phẩm.</p>
               </div>
-
-              <div className="Row3 Row3--money">
-                <div>
-                  <label>Giá bán</label>
-                  <input
-                    inputMode="numeric"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                  />
+              <div className="FormCard__body">
+                <div className="FieldGrid FieldGrid--2">
+                  <div className="Field">
+                    <label htmlFor="ap-part-number">Mã phụ tùng *</label>
+                    <input
+                      id="ap-part-number"
+                      value={partNumber}
+                      onChange={(e) => setPartNumber(e.target.value)}
+                      placeholder="VD: 1234567890"
+                    />
+                  </div>
+                  <div className="Field">
+                    <label htmlFor="ap-part-name">Tên phụ tùng *</label>
+                    <AutocompleteInput
+                      value={partName}
+                      onChange={setPartName}
+                      fetchSuggestions={fetchPartNameSuggestions}
+                      sourceKey="partName"
+                      placeholder="VD: Lọc gió động cơ"
+                      ariaLabel="Tên phụ tùng"
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label>Tồn kho</label>
-                  <input
-                    inputMode="numeric"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Xuất xứ</label>
+                <div className="Field">
+                  <label htmlFor="ap-origin">Xuất xứ</label>
                   <AutocompleteInput
                     value={origin}
                     onChange={setOrigin}
@@ -636,34 +685,107 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               </div>
             </section>
 
-            <section
-              className="ProductFormSection ProductFormSection--mobileImages lg:hidden"
-              data-wizard-step="2"
-            >
-              <h3 className="ProductFormSection__title">Ảnh sản phẩm</h3>
-              <ImagePicker
-                cameraFirst
-                images={images}
-                existingImages={existingImages}
-                onAddImages={(files) => setImages([...images, ...files])}
-                onRemoveNewImage={(i) => {
-                  const clone = [...images];
-                  clone.splice(i, 1);
-                  setImages(clone);
-                }}
-                onRemoveExistingImage={(img, i) => {
-                  const clone = [...existingImages];
-                  setDeletedImages((prev) => [...prev, img.id]);
-                  clone.splice(i, 1);
-                  setExistingImages(clone);
-                }}
-              />
+            <section className="FormCard" data-wizard-step="1">
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">3. Giá &amp; tồn kho</h3>
+                <p className="FormCard__hint">Giá bán và số lượng tồn kho hiện tại.</p>
+              </div>
+              <div className="FormCard__body">
+                <div className="FieldGrid FieldGrid--2">
+                  <div className="Field">
+                    <label htmlFor="ap-price">Giá bán (₫)</label>
+                    <input
+                      id="ap-price"
+                      inputMode="numeric"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="Field">
+                    <label htmlFor="ap-stock">Tồn kho</label>
+                    <input
+                      id="ap-stock"
+                      inputMode="numeric"
+                      value={stock}
+                      onChange={(e) => setStock(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
             </section>
 
-            <section className="ProductFormSection" data-wizard-step="3">
-              <h3 className="ProductFormSection__title">Áp dụng cho xe</h3>
+            <section
+              className="FormCard FormCard--mobileImages lg:hidden"
+              data-wizard-step="2"
+            >
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">5. Hình ảnh sản phẩm</h3>
+                <p className="FormCard__hint">Tối thiểu 3 ảnh rõ nét, nền sáng.</p>
+              </div>
+              <div className="FormCard__body">
+                <ImagePicker
+                  cameraFirst
+                  panelMode
+                  images={images}
+                  existingImages={existingImages}
+                  onAddImages={(files) => setImages([...(images || []), ...files])}
+                  onRemoveNewImage={(i) => {
+                    const clone = [...(images || [])];
+                    clone.splice(i, 1);
+                    setImages(clone);
+                  }}
+                  onRemoveExistingImage={(img, i) => {
+                    const clone = [...(existingImages || [])];
+                    setDeletedImages((prev) => [...(prev || []), img.id]);
+                    clone.splice(i, 1);
+                    setExistingImages(clone);
+                  }}
+                />
+              </div>
+            </section>
 
-              {carRows.map((r, idx) => (
+            <section className="FormCard" data-wizard-step="3">
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">2. Xe áp dụng</h3>
+                <p className="FormCard__hint">Chọn xe tương thích — hiển thị dạng thẻ sau khi lưu.</p>
+              </div>
+              <div className="FormCard__body">
+                {carRows.some(isCarRowComplete) ? (
+                  <div className="VehicleChipList" aria-label="Xe đã chọn">
+                    {carRows.map((r, idx) => {
+                      if (!isCarRowComplete(r)) return null;
+                      const label = getCarChipLabel(r, modelsByRow[idx] || []);
+                      return (
+                        <span key={`chip-${idx}`} className="VehicleChip">
+                          {label}
+                          <button
+                            type="button"
+                            className="VehicleChip__remove"
+                            aria-label={`Xóa ${label}`}
+                            onClick={() => {
+                              const clone = [...carRows];
+                              clone.splice(idx, 1);
+                              setCarRows(clone.length ? clone : [initialCarRow()]);
+                              setModelsByRow((prev) => {
+                                const m = [...prev];
+                                m.splice(idx, 1);
+                                return m.length ? m : [[]];
+                              });
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+              {carRows.map((r, idx) => {
+                if (isCarRowComplete(r)) return null;
+                return (
                 <div className="CarCard" key={idx}>
                   <div className="CarCard__header">
                     <span className="CarCard__index">Xe {idx + 1}</span>
@@ -869,76 +991,98 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
                     </select>
                   </div>
                 </div>
-              ))}
+              );
+              })}
 
               <button
                 type="button"
                 className="btnAddCar"
                 onClick={addCarRow}
               >
-                + Thêm xe
+                + Thêm xe áp dụng
               </button>
+              </div>
             </section>
 
-            <section className="ProductFormSection" data-wizard-step="4">
-              <h3 className="ProductFormSection__title">Kích thước &amp; trọng lượng</h3>
-              <div className="Row3 Row3--dim">
-                <div>
-                  <label>Chiều dài (cm)</label>
-                  <input
-                    inputMode="decimal"
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Chiều rộng (cm)</label>
-                  <input
-                    inputMode="decimal"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Chiều cao (cm)</label>
-                  <input
-                    inputMode="decimal"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Trọng lượng (gram)</label>
-                  <input
-                    inputMode="decimal"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                  />
+            <section className="FormCard" data-wizard-step="4">
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">4. Kích thước &amp; vận chuyển</h3>
+                <p className="FormCard__hint">Dùng để tính phí vận chuyển (cm, gram).</p>
+              </div>
+              <div className="FormCard__body">
+                <div className="FieldGrid FieldGrid--4">
+                  <div className="Field">
+                    <label htmlFor="ap-length">Dài (cm)</label>
+                    <input
+                      id="ap-length"
+                      inputMode="decimal"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="Field">
+                    <label htmlFor="ap-width">Rộng (cm)</label>
+                    <input
+                      id="ap-width"
+                      inputMode="decimal"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="Field">
+                    <label htmlFor="ap-height">Cao (cm)</label>
+                    <input
+                      id="ap-height"
+                      inputMode="decimal"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="Field">
+                    <label htmlFor="ap-weight">Khối lượng (g)</label>
+                    <input
+                      id="ap-weight"
+                      inputMode="decimal"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
               </div>
             </section>
 
-            <section className="ProductFormSection" data-wizard-step="4">
-              <h3 className="ProductFormSection__title">Mô tả</h3>
-              <label>Tiêu đề</label>
-              <div className="ShortEditor">
-                <ReactQuill
-                  value={shortDescription}
-                  onChange={setShortDescription}
-                  modules={modules}
-                />
+            <section className="FormCard" data-wizard-step="4">
+              <div className="FormCard__head">
+                <h3 className="FormCard__title">6. Mô tả sản phẩm</h3>
+                <p className="FormCard__hint">Mô tả ngắn cho danh sách; mô tả chi tiết thân thiện SEO.</p>
               </div>
-
-              <label>Mô tả chi tiết</label>
-              <div className="DescriptionEditor">
-                <ReactQuill
-                  value={description}
-                  onChange={setDescription}
-                  modules={modules}
-                />
+              <div className="FormCard__body">
+                <div className="Field">
+                  <label>Mô tả ngắn</label>
+                  <div className="EditorCard ShortEditor">
+                    <ReactQuill
+                      value={shortDescription}
+                      onChange={setShortDescription}
+                      modules={modules}
+                      placeholder="Tóm tắt 1–2 câu về sản phẩm"
+                    />
+                  </div>
+                </div>
+                <div className="Field">
+                  <label>Mô tả chi tiết</label>
+                  <div className="EditorCard DescriptionEditor">
+                    <ReactQuill
+                      value={description}
+                      onChange={setDescription}
+                      modules={modules}
+                      placeholder="Thông số, lưu ý lắp đặt, bảo hành…"
+                    />
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -955,47 +1099,43 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
                 stock={stock}
                 origin={origin}
                 carRows={carRows}
-                imageCount={images.length + existingImages.length}
+                imageCount={(images || []).length + (existingImages || []).length}
                 onJump={setStep}
               />
             </section>
           </div>
 
-          <div className="RightCol">
-            <div className="RightCol__submit">
-              <button
-                type="button"
-                className="btnSubmit"
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting
-                  ? "Đang lưu…"
-                  : product
-                    ? "Cập nhật"
-                    : "Thêm mới"}
-              </button>
+          <aside className="RightCol RightCol--media">
+            <div className="MediaPanel">
+              <div className="MediaPanel__head">
+                <h3 className="MediaPanel__title">Hình ảnh</h3>
+                <span className="MediaPanel__count">{imageCount} ảnh</span>
+              </div>
+              <ImagePicker
+                panelMode
+                images={images}
+                existingImages={existingImages}
+                onAddImages={(files) => setImages([...(images || []), ...files])}
+                onRemoveNewImage={(i) => {
+                  const clone = [...(images || [])];
+                  clone.splice(i, 1);
+                  setImages(clone);
+                }}
+                onRemoveExistingImage={(img, i) => {
+                  const clone = [...(existingImages || [])];
+                  setDeletedImages((prev) => [...(prev || []), img.id]);
+                  clone.splice(i, 1);
+                  setExistingImages(clone);
+                }}
+              />
+              <ul className="MediaPanel__tips">
+                <li>Ảnh rõ, nền sáng</li>
+                <li>Tối thiểu 3 ảnh</li>
+                <li>Không chèn số điện thoại</li>
+              </ul>
             </div>
-
-            <h3>Ảnh sản phẩm</h3>
-
-            <ImagePicker
-              images={images}
-              existingImages={existingImages}
-              onAddImages={(files) => setImages([...images, ...files])}
-              onRemoveNewImage={(i) => {
-                const clone = [...images];
-                clone.splice(i, 1);
-                setImages(clone);
-              }}
-              onRemoveExistingImage={(img, i) => {
-                const clone = [...existingImages];
-                setDeletedImages((prev) => [...prev, img.id]);
-                clone.splice(i, 1);
-                setExistingImages(clone);
-              }}
-            />
-          </div>
+          </aside>
+        </div>
         </div>
 
         {/* Mobile wizard footer: Prev / Next on steps 1-4, "Lưu sản
@@ -1034,8 +1174,8 @@ export default function AddProductPopup({ onClose, onSuccess, product }) {
               {submitting
                 ? "Đang lưu…"
                 : product
-                  ? "Cập nhật sản phẩm"
-                  : "Thêm sản phẩm"}
+                  ? "Đăng sản phẩm"
+                  : "Đăng sản phẩm"}
             </button>
           )}
         </div>
@@ -1061,17 +1201,38 @@ function ImagePicker({
   onRemoveNewImage,
   onRemoveExistingImage,
   cameraFirst,
+  panelMode = false,
 }) {
+  const totalCount = (existingImages || []).length + (images || []).length;
+  let previewIndex = 0;
+
   return (
-    <div className="ImagePicker">
-      <div className="ImagePicker__actions">
-        {cameraFirst && (
-          <label className="ImagePicker__input ImagePicker__input--camera">
-            <span className="ImagePicker__inputLabel">📷 Chụp ảnh</span>
+    <div className={`ImagePicker${panelMode ? " ImagePicker--panel" : ""}`}>
+      <div className="ImagePicker__dropzone">
+        <div className="ImagePicker__actions">
+          {cameraFirst && (
+            <label className="ImagePicker__input ImagePicker__input--camera">
+              <span className="ImagePicker__inputLabel">📷 Chụp ảnh</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length) onAddImages(files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
+          <label className="ImagePicker__input ImagePicker__input--primary">
+            <span className="ImagePicker__inputLabel">
+              {cameraFirst ? "🖼️ Thư viện" : "+ Tải ảnh lên"}
+            </span>
             <input
               type="file"
               accept="image/*"
-              capture="environment"
+              multiple
               onChange={(e) => {
                 const files = Array.from(e.target.files || []);
                 if (files.length) onAddImages(files);
@@ -1079,27 +1240,25 @@ function ImagePicker({
               }}
             />
           </label>
-        )}
-        <label className="ImagePicker__input">
-          <span className="ImagePicker__inputLabel">
-            {cameraFirst ? "🖼️ Thư viện" : "+ Thêm ảnh"}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => {
-              const files = Array.from(e.target.files || []);
-              if (files.length) onAddImages(files);
-              e.target.value = "";
-            }}
-          />
-        </label>
+        </div>
+        {totalCount === 0 ? (
+          <p className="ImagePicker__emptyHint">Kéo thả hoặc bấm để tải ảnh sản phẩm</p>
+        ) : null}
       </div>
 
+      {totalCount > 0 ? (
+        <div className="ImagePicker__meta">
+          <span>{totalCount} ảnh đã chọn</span>
+        </div>
+      ) : null}
+
       <div className="ImagePreview">
-        {existingImages.map((img, i) => (
+        {(existingImages || []).map((img, i) => {
+          const isPrimary = previewIndex === 0;
+          previewIndex += 1;
+          return (
           <div key={"old-" + i} className="ImagePreview__item">
+            {isPrimary ? <span className="ImagePreview__primary">Ảnh bìa</span> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.url + "?t=" + Date.now()} alt="" />
             <button
@@ -1111,10 +1270,14 @@ function ImagePicker({
               ✕
             </button>
           </div>
-        ))}
+        );})}
 
-        {images.map((img, i) => (
+        {(images || []).map((img, i) => {
+          const isPrimary = previewIndex === 0;
+          previewIndex += 1;
+          return (
           <div key={"new-" + i} className="ImagePreview__item ImagePreview__item--new">
+            {isPrimary ? <span className="ImagePreview__primary">Ảnh bìa</span> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={URL.createObjectURL(img)} alt="" />
             <button
@@ -1126,7 +1289,7 @@ function ImagePicker({
               ✕
             </button>
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );

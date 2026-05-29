@@ -1,16 +1,14 @@
 import axios from "axios";
 import { API_ORIGIN } from "../lib/config";
+import { getAdminToken } from "@/lib/auth/storage";
 
 const API = axios.create({
   baseURL: `${API_ORIGIN}/api/admin`,
 });
 
 API.interceptors.request.use((req) => {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (token) {
-    req.headers.Authorization = `Bearer ${token}`;
-  }
+  const token = getAdminToken();
+  if (token) req.headers.Authorization = `Bearer ${token}`;
   return req;
 });
 

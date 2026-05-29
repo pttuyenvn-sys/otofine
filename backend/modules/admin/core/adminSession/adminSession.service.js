@@ -16,6 +16,7 @@ import { generateOpaqueToken, hashToken } from "../../../../domains/auth/utils/c
 import { getRaw, setRaw } from "../../../../services/redisCache.service.js";
 import { isFeatureEnabled } from "../featureFlags/featureFlag.service.js";
 import { adminPlatformConfig } from "../../config/adminPlatform.config.js";
+import { authConfig } from "../../../../domains/auth/config/auth.config.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,12 +72,9 @@ function deriveDeviceHint(ua) {
  * Falls back to AUTH_ACCESS_EXPIRES for backward compatibility.
  */
 export function signAdminSessionToken(admin, sessionId) {
-  const secret = process.env.JWT_SECRET;
+  const secret = authConfig.jwtSecret || process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not configured");
-  const expiresIn =
-    process.env.AUTH_ADMIN_ACCESS_EXPIRES ||
-    process.env.AUTH_ACCESS_EXPIRES ||
-    "7d";
+  const expiresIn = authConfig.accessExpiresIn || process.env.AUTH_ADMIN_ACCESS_EXPIRES || process.env.AUTH_ACCESS_EXPIRES || "7d";
   return jwt.sign(
     { id: admin.id, role: "admin", email: admin.email, sid: sessionId },
     secret,

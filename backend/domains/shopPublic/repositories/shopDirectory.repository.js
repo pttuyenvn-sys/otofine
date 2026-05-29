@@ -1,4 +1,5 @@
 import { pool } from "../../../config/db.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Phase 7.1 — public shop directory queries.
@@ -72,9 +73,11 @@ export const PRODUCT_TIERS = Object.freeze({
  * Internal — build the WHERE / params arrays once so both the count
  * query and the row query stay in lockstep.
  */
-function buildFilterClause({ q, brand, provinceSlug, verified, minProducts }) {
+async function buildFilterClause({ q, brand, provinceSlug, verified, minProducts }) {
   const where = [`s.public_status = 'public'`];
   const params = [];
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
 
   if (q && typeof q === "string") {
     const needle = `%${q.trim().slice(0, 60)}%`;
@@ -102,6 +105,7 @@ function buildFilterClause({ q, brand, provinceSlug, verified, minProducts }) {
       JOIN product_car_applications pca ON pca.productId = p.id
       JOIN car_models cm ON cm.id = pca.carModelId
       WHERE p.shopId = s.id AND cm.hang_xe = ?
+      ${productOnlyVis}
     )`);
     params.push(brand.trim());
   }
@@ -110,7 +114,7 @@ function buildFilterClause({ q, brand, provinceSlug, verified, minProducts }) {
     // Sub-select keeps the main FROM clean and lets MySQL pick the
     // best index on `products(shopId)`. We avoid an outer HAVING so
     // the same predicate is reusable in both COUNT and LIMIT queries.
-    where.push(`(SELECT COUNT(*) FROM products WHERE shopId = s.id) >= ?`);
+    where.push(`(SELECT COUNT(*) FROM products p WHERE p.shopId = s.id ${productOnlyVis}) >= ?`);
     params.push(Number(minProducts));
   }
 
@@ -126,12 +130,15 @@ function buildFilterClause({ q, brand, provinceSlug, verified, minProducts }) {
  */
 async function loadProductCounts(shopIds) {
   if (!shopIds.length) return new Map();
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const placeholders = shopIds.map(() => "?").join(",");
   const [rows] = await pool.query(
-    `SELECT shopId, COUNT(*) AS n
-       FROM products
-      WHERE shopId IN (${placeholders})
-      GROUP BY shopId`,
+    `SELECT p.shopId, COUNT(*) AS n
+       FROM products p
+      WHERE p.shopId IN (${placeholders})
+      ${productOnlyVis}
+      GROUP BY p.shopId`,
     shopIds,
   );
   const out = new Map();
@@ -147,6 +154,8 @@ async function loadProductCounts(shopIds) {
  */
 async function loadTopBrands(shopIds, perShop = 3) {
   if (!shopIds.length) return new Map();
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const placeholders = shopIds.map(() => "?").join(",");
   const [rows] = await pool.query(
     `SELECT p.shopId, cm.hang_xe AS brand, COUNT(DISTINCT pca.productId) AS cnt
@@ -155,6 +164,7 @@ async function loadTopBrands(shopIds, perShop = 3) {
        JOIN products p     ON p.id  = pca.productId
       WHERE p.shopId IN (${placeholders})
         AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+        ${productOnlyVis}
       GROUP BY p.shopId, cm.hang_xe
       ORDER BY p.shopId ASC, cnt DESC, brand ASC`,
     shopIds,
@@ -205,7 +215,7 @@ async function loadProvinces(provinceIds) {
 const HARD_CAP = 200;
 
 export async function listPublicShopsForDirectory(filters = {}) {
-  const { where, params } = buildFilterClause(filters);
+  const { where, params } = await buildFilterClause(filters);
 
   const [shopRows] = await pool.query(
     `SELECT ${DIRECTORY_COLUMNS}
@@ -238,7 +248,7 @@ export async function listPublicShopsForDirectory(filters = {}) {
  * clause uses the same indexable predicates.
  */
 export async function countPublicShopsForDirectory(filters = {}) {
-  const { where, params } = buildFilterClause(filters);
+  const { where, params } = await buildFilterClause(filters);
   const [rows] = await pool.query(
     `SELECT COUNT(*) AS n FROM shops s WHERE ${where}`,
     params,
@@ -275,6 +285,8 @@ export async function listPublicShopProvinces() {
  * (raw `car_models.hang_xe` value, no normalization).
  */
 export async function listPublicShopBrands() {
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  const visSql = visObj.sql;
   const [rows] = await pool.query(
     `SELECT cm.hang_xe AS brand, COUNT(DISTINCT s.id) AS shopCount
        FROM shops s
@@ -283,6 +295,7 @@ export async function listPublicShopBrands() {
        JOIN car_models cm  ON cm.id = pca.carModelId
       WHERE s.public_status = 'public'
         AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+        ${visSql}
       GROUP BY cm.hang_xe
       ORDER BY shopCount DESC, brand ASC
       LIMIT 50`,
@@ -322,8 +335,10 @@ export async function listRelatedShops({ shopId, limit = 6 }) {
   if (!seedRow.length) return [];
   const seed = seedRow[0];
 
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
+
   // Source shop's brands (max 3) — overlap drives the primary ranking
-  // signal. Cheap because we already index pca by productId.
   const [seedBrandsRows] = await pool.query(
     `SELECT cm.hang_xe AS brand
        FROM products p
@@ -331,6 +346,7 @@ export async function listRelatedShops({ shopId, limit = 6 }) {
        JOIN car_models cm ON cm.id = pca.carModelId
       WHERE p.shopId = ?
         AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+        ${productOnlyVis}
       GROUP BY cm.hang_xe
       ORDER BY COUNT(*) DESC, brand ASC
       LIMIT 3`,
@@ -353,6 +369,7 @@ export async function listRelatedShops({ shopId, limit = 6 }) {
         WHERE cm.hang_xe IN (${placeholders})
           AND p.shopId <> ?
           AND s.public_status = 'public'
+          ${productOnlyVis}
         LIMIT 50`,
       [...seedBrands, shopId],
     );

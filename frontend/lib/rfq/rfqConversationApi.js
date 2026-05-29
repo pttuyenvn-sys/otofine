@@ -1,5 +1,6 @@
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
+import { getShopToken } from "@/lib/auth/storage";
 
 /**
  * Conversation timeline API — dispatchId is the canonical room anchor.
@@ -8,7 +9,7 @@ import { API_BASE } from "@/lib/config";
  */
 
 export async function fetchConversationMessages(dispatchId, { headers = {}, limit = 100, offset = 0 } = {}) {
-  const res = await axios.get(`${API_BASE}/rfq/conversations/${dispatchId}/messages`, {
+  const res = await axiosClient.get(`/rfq/conversations/${dispatchId}/messages`, {
     headers,
     params: { limit, offset },
   });
@@ -29,28 +30,20 @@ export async function sendConversationMessage(
   if (attachmentIds?.length) {
     body.attachmentIds = attachmentIds;
   }
-  const res = await axios.post(
-    `${API_BASE}/rfq/conversations/${dispatchId}/messages`,
-    body,
-    { headers },
-  );
+  const res = await axiosClient.post(`/rfq/conversations/${dispatchId}/messages`, body, { headers });
   return res.data;
 }
 
 /** Mark read through messageId (or latest in room if omitted). */
 export async function markConversationRead(dispatchId, { messageId } = {}, { headers = {} } = {}) {
-  const res = await axios.post(
-    `${API_BASE}/rfq/conversations/${dispatchId}/read`,
-    messageId != null ? { messageId } : {},
-    { headers },
-  );
+  const res = await axiosClient.post(`/rfq/conversations/${dispatchId}/read`, messageId != null ? { messageId } : {}, { headers });
   return res.data;
 }
 
 /** Buyer batch unread — ?dispatchIds=1,2,3 */
 export async function fetchConversationUnreadSummary(dispatchIds, { headers = {} } = {}) {
   if (!dispatchIds?.length) return { items: [], total_unread: 0 };
-  const res = await axios.get(`${API_BASE}/rfq/conversations/unread-summary`, {
+  const res = await axiosClient.get(`/rfq/conversations/unread-summary`, {
     headers,
     params: { dispatchIds: dispatchIds.join(",") },
   });
@@ -58,8 +51,12 @@ export async function fetchConversationUnreadSummary(dispatchIds, { headers = {}
 }
 
 export function shopConversationHeaders() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    const token = getShopToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 export function buyerConversationHeaders(viewerToken) {

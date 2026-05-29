@@ -33,6 +33,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useShopInboxSummaryBadge } from "@/hooks/useShopInboxSummaryBadge";
+import { getShopToken, getShopAuth } from "@/lib/auth/storage";
 
 // Paths where the bottom nav should appear. We DO NOT show it on
 // /shop/login, /shop/register, etc.; those routes also fall inside
@@ -91,13 +92,13 @@ export default function SellerMobileBottomNav() {
   useEffect(() => {
     function check() {
       try {
-        const tok = localStorage.getItem("token");
-        const raw = localStorage.getItem("auth");
+        const tok = getShopToken();
+        const raw = getShopAuth();
         if (!tok || !raw) {
           setAuthed(false);
           return;
         }
-        const a = JSON.parse(raw);
+        const a = raw;
         setAuthed(a?.role === "shop");
       } catch {
         setAuthed(false);

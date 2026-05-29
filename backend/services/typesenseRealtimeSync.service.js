@@ -7,6 +7,7 @@ import {
   loadProductRowForTypesense,
   rowToTypesenseDocument,
 } from "./typesenseProductDocument.service.js";
+import { isProductPubliclyVisible } from "../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Đồng bộ 1 document sau create/update (fire-and-forget an toàn).
@@ -15,6 +16,14 @@ export async function upsertProductInTypesense(productId) {
   if (!isTypesenseConfigured()) return;
   try {
     const client = getTypesenseClient();
+    // Defensive: only index publicly-visible products. If a product is not
+    // publicly visible under governance rules, remove it from the index.
+    const isPublic = await isProductPubliclyVisible(productId);
+    if (!isPublic) {
+      await deleteProductFromTypesense(productId);
+      return;
+    }
+
     const row = await loadProductRowForTypesense(productId);
     if (!row) {
       await deleteProductFromTypesense(productId);

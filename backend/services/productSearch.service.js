@@ -8,6 +8,7 @@ import { legacySlugForId } from "../utils/productSlug.js";
 import { sqlCategoryKeyFromPartName } from "../utils/categoryKey.js";
 import { TYPESENSE_SEARCH_DEFAULTS as TS_DEF } from "../config/typesenseSearchDefaults.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { buildPublicProductWhereClause, isProductPubliclyVisible } from "../modules/products/services/productPublicVisibility.server.js";
 import {
   cleanHttpQueryValue,
   normalizeListFilterYear,
@@ -89,9 +90,9 @@ async function mysqlSearchIds(opts) {
   const offset = (page - 1) * perPage;
   const cityId = Number(opts.cityId);
   const cityName = String(opts.city || opts.location || "").trim();
-  const joins = cityId || cityName
-    ? " JOIN shops s ON s.id = p.shopId LEFT JOIN address a ON a.id = s.provinceId "
-    : "";
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  const joins = " JOIN shops s ON s.id = p.shopId "
+    + (cityId || cityName ? " LEFT JOIN address a ON a.id = s.provinceId " : "");
 
   if (!q) {
     return { ids: [], found: 0, source: "mysql" };
@@ -101,7 +102,7 @@ async function mysqlSearchIds(opts) {
   const words = normalizeText(q)
     .split(/\s+/)
     .filter(Boolean);
-  let where = ` WHERE 1=1 `;
+  let where = ` WHERE 1=1 ${vis.sql} `;
   const params = [];
 
   if (words.length > 0 || (normalizedQ && normalizedQ.length > 2)) {
@@ -217,6 +218,8 @@ async function mysqlSearchIds(opts) {
     orderParams,
   );
 
+  // TEMP SQL debug removed to avoid logging large objects at runtime.
+
   return {
     ids: rows.map((r) => r.id),
     found,
@@ -331,9 +334,19 @@ export async function searchProductIds(opts) {
       .map((h) => Number(h.document?.id))
       .filter((n) => Number.isFinite(n) && n > 0);
 
+    // Defensive: post-filter Typesense results against current DB rules.
+    const ok = [];
+    for (const id of ids) {
+      // isProductPubliclyVisible handles schema-adaptive checks.
+      // Keep sequential to avoid DB overload; results size is small.
+      // (Could be batched later if needed.)
+      // eslint-disable-next-line no-await-in-loop
+      if (await isProductPubliclyVisible(id)) ok.push(id);
+    }
+
     return {
-      ids,
-      found: res.found ?? ids.length,
+      ids: ok,
+      found: ok.length,
       source: "typesense",
     };
   } catch (e) {

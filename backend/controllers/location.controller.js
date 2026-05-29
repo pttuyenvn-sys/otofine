@@ -1,5 +1,6 @@
 import { pool } from "../config/db.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 import {
   buildProductListFilters,
   buildLocationFilteredFromSql,
@@ -27,6 +28,7 @@ const slugify = (str) =>
  */
 export async function getAvailableLocations(req, res) {
   try {
+    const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
     const [rows] = await pool.query(`
       SELECT
         a.id,
@@ -34,8 +36,9 @@ export async function getAvailableLocations(req, res) {
         COUNT(DISTINCT s.id) AS shopCount,
         COUNT(DISTINCT p.id) AS productCount
       FROM address a
-      INNER JOIN shops s ON s.provinceId = a.id
+      INNER JOIN shops s ON s.provinceId = a.id AND s.public_status = 'public'
       INNER JOIN products p ON p.shopId = s.id
+      WHERE 1=1 ${vis.sql}
       GROUP BY a.id, a.tinh_tp
       HAVING productCount > 0
       ORDER BY productCount DESC, shopCount DESC

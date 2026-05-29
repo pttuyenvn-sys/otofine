@@ -1,6 +1,7 @@
 import { pool } from "../config/db.js";
 import { legacySlugForId } from "../utils/productSlug.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 import {
   collectSynonymPhrasesForProduct,
   tokenizePartName,
@@ -66,6 +67,7 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
 
   const _pcCols = await getProductsColumnsResolved();
   const pu = _pcCols.orderExprQualified("p");
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
 
   const r2Base = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
 
@@ -113,9 +115,10 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
       SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
              s.name AS shopName, ${pu} AS updatedAt
       FROM products p
-      LEFT JOIN shops s ON s.id = p.shopId
+      INNER JOIN shops s ON s.id = p.shopId
       WHERE p.id <> ?
         AND SUBSTRING_INDEX(${NORM_PN_EXPR}, ' ', 2) = ?
+        ${vis.sql}
       ORDER BY ${pu} DESC
       LIMIT ${poolSize}
       `,
@@ -171,9 +174,10 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
       SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
              s.name AS shopName, ${pu} AS updatedAt
       FROM products p
-      LEFT JOIN shops s ON s.id = p.shopId
+      INNER JOIN shops s ON s.id = p.shopId
       WHERE p.id <> ?
         AND (${cond})
+        ${vis.sql}
       ORDER BY ${pu} DESC
       LIMIT ${poolSize}
       `,
@@ -187,8 +191,9 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
     SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
            s.name AS shopName, ${pu} AS updatedAt
     FROM products p
-    LEFT JOIN shops s ON s.id = p.shopId
+    INNER JOIN shops s ON s.id = p.shopId
     WHERE p.id <> ?
+      ${vis.sql}
       AND p.id IN (
         SELECT pca.productId FROM product_car_applications pca
         INNER JOIN car_models cm ON cm.id = pca.carModelId
@@ -211,8 +216,9 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
     SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
            s.name AS shopName, ${pu} AS updatedAt
     FROM products p
-    LEFT JOIN shops s ON s.id = p.shopId
+    INNER JOIN shops s ON s.id = p.shopId
     WHERE p.id <> ?
+      ${vis.sql}
       AND p.id IN (
         SELECT pca.productId FROM product_car_applications pca
         INNER JOIN car_models cm ON cm.id = pca.carModelId
@@ -235,8 +241,9 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
     SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
            s.name AS shopName, ${pu} AS updatedAt
     FROM products p
-    LEFT JOIN shops s ON s.id = p.shopId
-    WHERE p.id <> ?
+    INNER JOIN shops s ON s.id = p.shopId
+      WHERE p.id <> ?
+      ${vis.sql}
       AND EXISTS (
         SELECT 1
         FROM product_car_applications pca1
@@ -261,16 +268,17 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
     const ph = existing.map(() => "?").join(",");
     const [fallRows] = await pool.query(
       `
-      SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
-             s.name AS shopName, ${pu} AS updatedAt
-      FROM products p
-      LEFT JOIN shops s ON s.id = p.shopId
-      WHERE p.id NOT IN (${ph})
-      ORDER BY ${pu} DESC
-      LIMIT ${poolSize}
-      `,
-      existing,
-    );
+    SELECT p.id, p.partNumber, p.partName, p.price, p.shortDescription, p.shopId,
+           s.name AS shopName, ${pu} AS updatedAt
+    FROM products p
+    INNER JOIN shops s ON s.id = p.shopId
+    WHERE p.id NOT IN (${ph})
+      ${vis.sql}
+    ORDER BY ${pu} DESC
+    LIMIT ${poolSize}
+    `,
+    existing,
+  );
     consider(fallRows, TIER.FALLBACK_NEW);
   }
 

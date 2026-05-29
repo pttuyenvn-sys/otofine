@@ -77,8 +77,9 @@ export default function ShopAccount() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("auth");
-      if (raw) setEmail(JSON.parse(raw).email || "");
+      const { getShopAuth } = require("@/lib/auth/storage");
+      const raw = getShopAuth();
+      if (raw) setEmail(raw.email || "");
     } catch {
       /* swallow */
     }
@@ -86,18 +87,25 @@ export default function ShopAccount() {
 
   function handleLogout() {
     try {
-      localStorage.clear();
-      // Also drop the cross-subdomain owner cookie so wildcard
-      // subdomains stop showing the admin chip the next time the
-      // logged-out seller (or another visitor on the same device)
-      // browses to their public storefront.
-      clearOwnerCookie();
-      // Broadcast so the Topbar / bottom-nav re-read state without a
-      // full page reload — matches the legacy pattern.
-      window.dispatchEvent(new Event("auth-changed"));
+      const { removeShopToken, removeShopRefreshToken, removeShopAuth, removeShopId } = require("@/lib/auth/storage");
+      removeShopToken();
+      removeShopRefreshToken();
+      removeShopAuth();
+      removeShopId();
     } catch {
-      /* swallow */
+      try {
+        const { removeShopToken, removeShopRefreshToken, removeShopAuth, removeShopId } = require("@/lib/auth/storage");
+        removeShopToken();
+        removeShopRefreshToken();
+        removeShopAuth();
+        removeShopId();
+      } catch {
+        /* swallow */
+      }
     }
+    // Also drop the cross-subdomain owner cookie so wildcard subdomains stop showing the admin chip.
+    clearOwnerCookie();
+    window.dispatchEvent(new Event("auth-changed"));
     router.replace("/shop/login");
   }
 

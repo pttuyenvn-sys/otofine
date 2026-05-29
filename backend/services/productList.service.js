@@ -8,6 +8,7 @@ import {
   normalizeListingQuery,
 } from "../utils/listingQueryNormalize.js";
 import { getOrSetCache } from "./listCache.service.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 const FACET_TTL = 5 * 60 * 1000;
 
@@ -38,8 +39,10 @@ export async function getProductList(query) {
     q.brand ||
     q.model ||
     (q.year != null && Number.isFinite(Number(q.year)));
-  const { where, params, keywordOrder } =
+  const { where: baseWhere, params, keywordOrder } =
     productListRepo.buildProductListFilters(pc, query);
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  const where = baseWhere + vis.sql;
 
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log("[listing SQL] /api/products facets", {

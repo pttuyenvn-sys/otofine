@@ -35,7 +35,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
 import { apexUrl } from "@/lib/apexOrigin";
 import useStorefrontOwnerState from "@/hooks/useStorefrontOwnerState";
@@ -80,10 +80,8 @@ export default function StorefrontOwnerStrip({ shopId, shopName }) {
     if (!isOwner || !token) return undefined;
     let cancelled = false;
     setLoading(true);
-    axios
-      .get(`${API_BASE}/shop/metrics/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    axiosClient
+      .get("/shop/metrics/overview")
       .then((res) => {
         if (cancelled) return;
         setMetrics(res.data || null);

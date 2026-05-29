@@ -13,66 +13,118 @@
 
 .AddProductOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
   z-index: 9999999;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .AddProductForm {
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  padding: 20px 40px;
+  width: min(96vw, 1600px);
+  height: min(94vh, 1400px);
+  max-height: 94vh;
+  background: #f8fafc;
+  padding: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+}
+
+.AddProductFormBody {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.AddProductForm--editor {
+  border: 1px solid #e5e7eb;
 }
 
 .AddProductForm h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  text-align: center;
-  color: #005bb5;
+  margin: 0;
+  text-align: left;
+  color: #111827;
 }
 
 .AddProductForm h3 {
-  margin-top: 20px;
-  color: #333;
+  margin: 0;
+  color: #111827;
 }
 
 .AddProductForm label {
-  font-weight: bold;
-  margin-top: 12px;
+  font-weight: 600;
+  font-size: 11px;
+  color: #374151;
+  margin: 0 0 4px;
   display: block;
 }
 
-.AddProductForm input,
+.AddProductForm input:not([type="checkbox"]):not([type="file"]):not([type="radio"]),
 .AddProductForm select,
 .AddProductForm textarea {
   width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+  margin-top: 0;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  color: #111827;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.AddProductForm input:not([type="checkbox"]):not([type="file"]):not([type="radio"]),
+.AddProductForm select {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  line-height: 1.2;
+}
+
+.AddProductForm textarea {
+  padding: 8px 12px;
+  min-height: 80px;
+}
+
+/* Autocomplete fields match standard input height */
+.AddProductFormBody .relative > input[type="text"],
+.AddProductFormBody .relative > input[type="search"] {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  font-size: 13px !important;
+}
+
+.AddProductForm input:focus,
+.AddProductForm select:focus,
+.AddProductForm textarea:focus {
+  outline: none;
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
 .AddProductForm textarea {
   resize: vertical;
 }
 
-/* ---------- Sections (used to group fields on mobile) ---------- */
 .ProductFormSection {
   margin-bottom: 4px;
 }
 
 .ProductFormSection__title {
-  margin: 20px 0 8px;
-  color: #333;
+  margin: 0;
+  color: #111827;
   font-size: 15px;
 }
 
@@ -81,41 +133,87 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+  gap: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 16px;
+  background: #fff;
+  flex-shrink: 0;
+  min-height: 0;
 }
 
-.PopupHeader H2 {
-  font-size: 20px;
-  font-weight: bold;
+.PopupHeader--sticky {
+  position: relative;
+  top: auto;
+  z-index: 30;
+}
+
+.PopupHeader__title {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.PopupHeader__draft {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 600;
 }
 
 .PopupHeaderActions {
-  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.btnDraft {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnDraft:hover {
+  background: #f9fafb;
 }
 
 .btnAddCar {
-  background: #0d6efd;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  border: none;
+  background: #fff;
+  color: #059669;
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin-bottom: 0;
+  border: 1px dashed #6ee7b7;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  width: 100%;
 }
 
 .btnAddCar:hover {
-  opacity: 0.85;
+  background: #ecfdf5;
 }
 
 .btnSubmit {
-  background: #0d6efd;
+  background: #059669;
   color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.btnSubmit--header {
+  align-items: center;
+  justify-content: center;
 }
 
 .btnSubmit:disabled {
@@ -124,144 +222,348 @@
 }
 
 .btnClose {
-  background: #dc3545;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  border: none;
+  background: #fff;
+  color: #374151;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .btnSubmit:hover,
 .btnClose:hover {
-  opacity: 0.85;
+  opacity: 0.92;
 }
 
-/* ---------- Form grid ---------- */
+.PopupHeader__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.PopupGovernanceAlert {
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.PopupGovernanceAlert .seller-reject-banner {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+}
+
+.PopupTimelineFold {
+  margin: 0 16px 2px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.PopupTimelineFold summary {
+  cursor: pointer;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 6px 0;
+}
+
+.PopupTimelineFold .seller-product-timeline {
+  margin: 8px 0 0;
+}
+
+/* ---------- Form grid — single scroll on AddProductFormBody; columns grow naturally ---------- */
 .FormGrid {
-  flex: 1;
   display: grid;
-  grid-template-columns: 4fr 1fr;
-  gap: 30px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
   align-items: start;
-  min-height: 0;
+  padding: 12px 16px 16px;
 }
 
 .LeftCol {
-  overflow-y: auto;
-  padding-right: 10px;
-  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .RightCol {
-  overflow-y: auto;
-  background: #f8fafc;
-  padding: 20px;
-  border-radius: 8px;
+  width: 320px;
+  min-width: 320px;
+  align-self: start;
+  position: sticky;
+  top: 0;
+}
+
+.RightCol--media {
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.MediaPanel {
+  background: #fff;
   border: 1px solid #e5e7eb;
-  height: 100%;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.RightCol__submit {
-  margin-bottom: 20px;
+.MediaPanel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.LeftCol label {
-  margin-top: 15px;
+.MediaPanel__title {
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
 }
 
-.LeftCol input {
-  width: 100%;
+.MediaPanel__count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
-/* ---------- Row layouts (desktop) ---------- */
+.MediaPanel__tips {
+  margin: 8px 0 0;
+  padding: 8px 10px 8px 22px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #166534;
+  line-height: 1.4;
+}
+
+.FormCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.FormCard__head {
+  padding: 10px 14px 0;
+}
+
+.FormCard__title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.FormCard__hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.FormCard__body {
+  padding: 10px 14px 14px;
+}
+
+.FieldGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.FieldGrid--2 {
+  grid-template-columns: 1fr 1.4fr;
+}
+
+.FieldGrid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.Field + .Field {
+  margin-top: 10px;
+}
+
+.FieldGrid .Field {
+  margin-top: 0;
+}
+
+/* ---------- Row layouts (legacy compat) ---------- */
 .Row2 {
   display: grid;
-  grid-template-columns: 1fr 5fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 12px;
 }
 
 .Row3 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px;
+  gap: 12px;
 }
 
-/* ---------- Car card ----------
-   Desktop layout matches the legacy single flex row: 9 selects + a
-   delete button. We use `display: contents` on the inner wrappers so
-   every select bubbles up as a direct flex child of `.CarCard` — the
-   visual result is identical to the pre-pass JSX that had
-   `style={{display: "flex", gap: 8}}` inline.
-
-   Mobile (in the media query block far below) re-introduces the
-   wrappers as real grid containers and re-skins `.CarCard` into a
-   bordered card.
-*/
+/* ---------- Car card (desktop compact) ---------- */
 .CarCard {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  display: block;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  min-width: 0;
 }
 
-.CarCard__header,
-.CarCard__detailsToggle,
+.CarCard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .CarCard__index {
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  color: #374151;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.CarCard__detailsToggle {
   display: none;
 }
 
-.CarCard__main,
-.CarCard__details {
-  display: contents;
-}
-
-.CarCard > select,
-.CarCard__main > select,
-.CarCard__details > select {
-  flex: 1 1 0;
-  min-width: 110px;
-}
-
 .CarCard__remove {
-  background: red;
-  color: #fff;
-  border: none;
-  padding: 4px 8px;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 2px 8px;
   cursor: pointer;
-  border-radius: 4px;
-  margin-left: auto;
+  border-radius: 6px;
+  font-size: 11px;
 }
 
-/* ---------- Quill editors ---------- */
+.CarCard__main {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.CarCard__main > select {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 8px;
+  font-size: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.CarCard__details {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.CarCard__details > select {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 8px;
+  font-size: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.VehicleChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.VehicleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.VehicleChip__remove {
+  border: none;
+  background: transparent;
+  color: #059669;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/* ---------- Quill editors — min-height only; grow with content ---------- */
+.EditorCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  min-width: 0;
+}
+
+.EditorCard .ql-toolbar {
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  background: #f9fafb;
+  padding: 4px 6px !important;
+  border-radius: 10px 10px 0 0;
+}
+
+.EditorCard .ql-toolbar .ql-formats {
+  margin-right: 6px !important;
+}
+
+.EditorCard .ql-container {
+  border: none !important;
+  min-width: 0;
+  height: auto !important;
+  overflow: visible;
+  border-radius: 0 0 10px 10px;
+}
+
 .DescriptionEditor .ql-editor {
-  min-height: 600px;
+  min-height: 220px;
+  max-height: none;
+  height: auto !important;
+  overflow: visible;
 }
 
 .ShortEditor .ql-editor {
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-  overflow: hidden;
+  min-height: 120px;
+  max-height: none;
+  height: auto !important;
+  overflow: visible;
 }
 
 .ql-editor {
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .ShortEditor .ql-container {
   min-height: unset !important;
-  height: 40px !important;
 }
 
 .ShortEditor .ql-editor {
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px;
-  overflow-y: hidden;
-  padding: 6px 10px;
+  padding: 8px 12px;
 }
 
 /* ---------- Image picker / preview ---------- */
@@ -271,19 +573,59 @@
   gap: 10px;
 }
 
+.ImagePicker--panel {
+  gap: 8px;
+}
+
+.ImagePicker__dropzone {
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafafa;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ImagePicker__emptyHint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.ImagePicker__meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.ImagePicker__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .ImagePicker__input {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: 8px;
-  background: #2563eb;
+  background: #059669;
   color: #fff;
   font-weight: 600;
+  font-size: 12px;
   cursor: pointer;
-  align-self: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 36px;
+}
+
+.ImagePicker__input--primary {
+  background: #059669;
 }
 
 .ImagePicker__input input {
@@ -293,21 +635,23 @@
   height: 100%;
   opacity: 0;
   cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .ImagePreview {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
 }
 
 .ImagePreview__item {
   position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
   background: #f3f4f6;
 }
@@ -318,10 +662,23 @@
   object-fit: cover;
 }
 
+.ImagePreview__primary {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  font-size: 9px;
+  font-weight: 800;
+  background: rgba(5, 150, 105, 0.92);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
 .ImagePreview__remove {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -335,6 +692,7 @@
   font-size: 12px;
   line-height: 1;
   padding: 0;
+  z-index: 2;
 }
 
 /* Hidden by default; the mobile media-query below makes it visible. */
@@ -353,6 +711,44 @@
 
 .ProductFormSection--review {
   display: none;
+}
+
+/* ---------- Desktop responsive breakpoints (≥1024) ---------- */
+@media (min-width: 1100px) {
+  .WizardDraftIndicator {
+    display: none;
+  }
+}
+
+@media (max-width: 1399.98px) and (min-width: 1100px) {
+  .FormGrid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .RightCol {
+    width: 280px;
+    min-width: 280px;
+  }
+
+  .CarCard__main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .CarCard__details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1099.98px) and (min-width: 1024px) {
+  .FormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .RightCol {
+    width: 100%;
+    min-width: 0;
+    position: static;
+  }
 }
 
 /* Secondary button used in the mobile wizard footer ("‹ Quay lại"). */
@@ -387,69 +783,87 @@
    =================================================================== */
 
 @media (max-width: 1023.98px) {
-  .AddProductForm {
-    /* Edge-to-edge full-screen sheet — no negative space wasted on
-       large gutters. The bottom inset reserves room for the fixed
-       MobileSaveBar plus iOS / Android safe-area.
+  .AddProductOverlay {
+    padding: 0;
+    align-items: stretch;
+  }
 
-       Override the desktop `overflow: hidden` so the form is the
-       natural mobile scroll container (LeftCol below is set to
-       `overflow: visible` so its content participates in this
-       single scrolling context). */
-    padding: 12px 12px calc(72px + env(safe-area-inset-bottom, 0px));
+  .AddProductForm {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .AddProductFormBody {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  .AddProductForm h2 {
-    text-align: left;
-    margin-bottom: 0;
-    font-size: 17px;
-  }
-
   .PopupHeader {
-    /* Sticky header keeps the title + close action visible while the
-       form scrolls underneath. The negative inline margins extend
-       the header background to the full sheet width even though
-       the AddProductForm has 12px side padding. */
     position: sticky;
-    top: -12px;
-    margin: -12px -12px 12px;
-    padding: 12px 12px 10px;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+    top: 0;
+    margin: 0;
+    padding: 12px 14px;
     z-index: 5;
-    align-items: center;
   }
 
-  .PopupHeaderActions {
-    margin-top: 0;
+  .PopupHeader__title {
+    font-size: 16px;
   }
 
-  .PopupHeaderActions .btnClose {
-    padding: 6px 12px;
-    font-size: 13px;
-    background: transparent;
-    color: #4b5563;
-    border: 1px solid #e5e7eb;
+  .PopupHeaderActions .btnSubmit--header {
+    display: none !important;
   }
 
-  /* Collapse the 2-col grid; LeftCol carries the form, RightCol is
-     hidden because the mobile image section already lives inside
-     LeftCol. */
+  .PopupGovernanceAlert {
+    padding: 0 12px;
+  }
+
+  .PopupTimelineFold {
+    margin: 0 12px 8px;
+  }
+
   .FormGrid {
     grid-template-columns: 1fr;
     gap: 0;
+    padding: 0 12px 12px;
   }
 
   .LeftCol {
-    overflow: visible;
     padding-right: 0;
-    height: auto;
+  }
+
+  .RightCol {
+    position: static;
+    width: 100%;
+    min-width: 0;
   }
 
   .RightCol {
     display: none;
+  }
+
+  .FieldGrid--2,
+  .FieldGrid--4 {
+    grid-template-columns: 1fr;
+  }
+
+  .FormCard__title {
+    font-size: 13px;
+  }
+
+  .FormCard__hint {
+    font-size: 11px;
   }
 
   .ProductFormSection__title {
@@ -539,6 +953,18 @@
     margin-bottom: 8px;
   }
 
+  .FieldGrid--4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .CarCard__main {
+    grid-template-columns: 1fr;
+  }
+
+  .CarCard__details {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .CarCard__detailsToggle {
     display: inline-flex;
     align-items: center;
@@ -552,14 +978,12 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    width: 100%;
+    justify-content: center;
   }
 
   .CarCard__details {
-    display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 8px;
-    margin-bottom: 4px;
   }
 
   .CarCard__details.is-collapsed {
@@ -568,11 +992,6 @@
 
   .CarCard__details.is-open {
     display: grid;
-  }
-
-  /* --------- Quill editor heights --------- */
-  .DescriptionEditor .ql-editor {
-    min-height: 220px;
   }
 
   /* --------- Mobile image picker --------- */

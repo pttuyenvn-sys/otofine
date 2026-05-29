@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { clearOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
+import { getShopToken, getShopAuth, getAdminToken, getAdminAuth, removeShopToken, removeShopRefreshToken, removeShopAuth, removeShopId, removeAdminToken, removeAdminAuth, removeAdminRefreshToken } from "@/lib/auth/storage";
 
 export default function Topbar() {
   const [open, setOpen] = useState(false);
@@ -34,7 +35,10 @@ export default function Topbar() {
 
   useEffect(() => {
     function loadAuth() {
-      const token = localStorage.getItem("token");
+      // prefer shop auth, fall back to admin for topbar visibility
+      const shopToken = getShopToken();
+      const adminToken = getAdminToken();
+      const token = shopToken || adminToken;
       if (!token) {
         setAuth(null);
         return;
@@ -44,8 +48,10 @@ export default function Topbar() {
         const decoded = jwtDecode(token);
         let emailFromStorage = "";
         try {
-          const raw = localStorage.getItem("auth");
-          if (raw) emailFromStorage = JSON.parse(raw).email || "";
+          const rawShop = getShopAuth();
+          const rawAdmin = getAdminAuth();
+          const raw = rawShop || rawAdmin;
+          if (raw) emailFromStorage = raw.email || "";
         } catch {
           /* ignore */
         }
@@ -79,14 +85,37 @@ export default function Topbar() {
   }, []);
 
   function handleLogout() {
-    localStorage.clear();
-    clearOwnerCookie();
-    setAuth(null);
-    setOpen(false);
-
-    if (auth?.role === "admin") {
-      router.push("/admin/login");
-    } else {
+    try {
+      if (auth?.role === "admin") {
+        removeAdminToken();
+        removeAdminRefreshToken();
+        removeAdminAuth();
+        clearOwnerCookie();
+        setAuth(null);
+        setOpen(false);
+        router.push("/admin/login");
+        return;
+      }
+      // default: shop logout
+      removeShopToken();
+      removeShopRefreshToken();
+      removeShopAuth();
+      removeShopId();
+      clearOwnerCookie();
+      setAuth(null);
+      setOpen(false);
+      router.push("/shop/login");
+    } catch {
+      try {
+        // best-effort remove namespaced keys only (do not wipe unrelated app storage)
+        removeShopToken();
+        removeShopRefreshToken();
+        removeShopAuth();
+        removeShopId();
+        removeAdminToken();
+        removeAdminRefreshToken();
+        removeAdminAuth();
+      } catch {}
       router.push("/shop/login");
     }
   }

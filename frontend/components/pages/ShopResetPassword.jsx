@@ -34,9 +34,18 @@ export default function ShopResetPassword() {
         newPassword: password,
       });
       setMsg(res.data.message || "Đặt lại mật khẩu thành công.");
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("auth");
+      try {
+        const { removeShopToken, removeShopRefreshToken, removeShopAuth } = require("@/lib/auth/storage");
+        removeShopToken();
+        removeShopRefreshToken();
+        removeShopAuth();
+      } catch {
+        try {
+          localStorage.removeItem("token");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("auth");
+        } catch {}
+      }
       setTimeout(() => router.replace("/shop/login"), 2000);
     } catch (err) {
       setMsg(

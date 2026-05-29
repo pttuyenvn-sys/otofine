@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
+import { getShopToken } from "@/lib/auth/storage";
 import Link from "next/link";
 import { API_BASE } from "@/lib/config";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
@@ -51,9 +52,6 @@ export default function RfqShopInboxChatPane({ dispatchId }) {
     stickToBottomRef: timelineStickRef,
   } = useShopConversationMessages(dispatchId, timelineRefresh);
 
-  const headers = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  });
 
   useEffect(() => {
     async function load() {
@@ -62,7 +60,7 @@ export default function RfqShopInboxChatPane({ dispatchId }) {
       setErrMsg("");
       setAuthRequired(false);
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token = getShopToken();
       if (!token) {
         setAuthRequired(true);
         setDetail(null);
@@ -71,8 +69,8 @@ export default function RfqShopInboxChatPane({ dispatchId }) {
       }
 
       try {
-        await axios.patch(`${API_BASE}/shop/rfq/${dispatchId}/view`, {}, { headers: headers() });
-        const res = await axios.get(`${API_BASE}/shop/rfq/${dispatchId}`, { headers: headers() });
+        await axiosClient.patch(`/shop/rfq/${dispatchId}/view`, {});
+        const res = await axiosClient.get(`/shop/rfq/${dispatchId}`);
         setDetail(res.data);
       } catch (err) {
         if (err.response?.status === 401) {
@@ -112,12 +110,13 @@ export default function RfqShopInboxChatPane({ dispatchId }) {
     setSubmitting(true);
     setErrMsg("");
     try {
-      const res = await axios.post(
-        `${API_BASE}/shop/rfq/${dispatchId}/quote`,
-        { priceAmount: Number(price), currency: "VND", note, lineType },
-        { headers: headers() },
-      );
-      const next = await axios.get(`${API_BASE}/shop/rfq/${dispatchId}`, { headers: headers() });
+      const res = await axiosClient.post(`/shop/rfq/${dispatchId}/quote`, {
+        priceAmount: Number(price),
+        currency: "VND",
+        note,
+        lineType,
+      });
+      const next = await axiosClient.get(`/shop/rfq/${dispatchId}`);
       setDetail(next.data);
       setPrice("");
       setNote("");

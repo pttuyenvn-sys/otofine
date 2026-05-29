@@ -16,6 +16,7 @@ import {
 } from "../services/productSearch.service.js";
 import { rowToTypesenseDocument } from "../services/typesenseProductDocument.service.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 dotenv.config();
 
@@ -68,6 +69,8 @@ async function fetchBatch(lastId, sinceIso) {
   const pc = await getProductsColumnsResolved();
   const ord = pc.orderExprQualified("p");
   const slugEx = pc.slugSqlExpr("p");
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  const visSql = visObj.sql;
 
   const params = [lastId];
   let whereSince = "";
@@ -90,10 +93,12 @@ async function fetchBatch(lastId, sinceIso) {
       MIN(pa.year_from) AS year_min,
       MAX(pa.year_to) AS year_max
     FROM products p
+    INNER JOIN shops s ON s.id = p.shopId
     LEFT JOIN product_car_applications pa ON pa.productId = p.id
     LEFT JOIN car_models cm ON cm.id = pa.carModelId
     WHERE p.id > ?
     ${whereSince}
+    ${visSql}
     GROUP BY p.id, p.partNumber, p.partName, ${slugEx}, ${ord}
     ORDER BY p.id ASC
     LIMIT ?

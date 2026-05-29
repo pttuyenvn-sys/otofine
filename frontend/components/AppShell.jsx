@@ -23,6 +23,7 @@ export default function AppShell({ children }) {
   const hideLayout =
     NO_LAYOUT.has(pathname) ||
     pathname.startsWith("/rfq") ||
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/product/") ||
     pathname.startsWith("/phu-tung/") ||
     pathname.startsWith("/p/") ||

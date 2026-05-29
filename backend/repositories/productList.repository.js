@@ -1,6 +1,7 @@
 import mysql from "mysql2";
 import { pool } from "../config/db.js";
 import { normalizeListingQuery } from "../utils/listingQueryNormalize.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 export function normalizeText(str = "") {
   return str
@@ -65,10 +66,10 @@ export function buildProductListingJoinSql(pc) {
   return `
     FROM products p
 
-    JOIN product_category_map pcm
+    LEFT JOIN product_category_map pcm
       ON pcm.product_id = ${pid}
 
-    JOIN product_categories pc
+    LEFT JOIN product_categories pc
       ON pc.id = pcm.category_id
 
     LEFT JOIN product_car_applications pa
@@ -102,10 +103,10 @@ export function buildLocationFilteredFromSql(pc, o) {
     INNER JOIN products p
       ON p.shopId = s.id
 
-    JOIN product_category_map pcm
+    LEFT JOIN product_category_map pcm
       ON pcm.product_id = ${pid}
 
-    JOIN product_categories pc
+    LEFT JOIN product_categories pc
       ON pc.id = pcm.category_id
 
     LEFT JOIN product_car_applications pa
@@ -122,6 +123,16 @@ export function buildLocationFilteredFromSql(pc, o) {
  * @param {ProductsSchemaAdapter} pc
  * @returns {{ where: string, params: unknown[], keywordOrder: string }}
  */
+/**
+ * Same as buildProductListFilters but appends public visibility predicates.
+ * Use for any public listing path that joins shops s.
+ */
+export async function buildProductListFiltersWithVisibility(pc, query) {
+  const base = buildProductListFilters(pc, query);
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  return { ...base, where: base.where + vis.sql };
+}
+
 export function buildProductListFilters(pc, query) {
   const q = normalizeListingQuery(query || {});
   const { brand, model, year, category, keyword, cityId, city, location } = q;
@@ -395,13 +406,16 @@ export async function selectPrimaryImagesForProducts(productIds) {
  */
 export async function selectBrandsWithCounts(pc) {
   const pid = pc.idExpr("p");
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
   const [rows] = await pool.query(`
       SELECT
         cm.hang_xe,
         COUNT(DISTINCT ${pid}) AS total
       FROM products p
+      INNER JOIN shops s ON s.id = p.shopId
       JOIN product_car_applications pa ON pa.productId = ${pid}
       JOIN car_models cm ON cm.id = pa.carModelId
+      WHERE 1=1 ${vis.sql}
       GROUP BY cm.hang_xe
       ORDER BY total DESC, cm.hang_xe ASC
     `);
@@ -413,15 +427,18 @@ export async function selectBrandsWithCounts(pc) {
  */
 export async function selectModelsWithCounts(pc, brand) {
   const pid = pc.idExpr("p");
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
   const [rows] = await pool.query(
     `
       SELECT
         cm.ten_xe,
         COUNT(DISTINCT ${pid}) AS total
       FROM products p
+      INNER JOIN shops s ON s.id = p.shopId
       JOIN product_car_applications pa ON pa.productId = ${pid}
       JOIN car_models cm ON cm.id = pa.carModelId
       WHERE cm.hang_xe = ?
+      ${vis.sql}
       GROUP BY cm.ten_xe
       ORDER BY total DESC, cm.ten_xe ASC
       `,
@@ -439,7 +456,7 @@ export async function selectLocationsWithCounts(pc, query) {
   const joinCategoryMap = true;
 
   const { where, params } =
-    buildProductListFilters(pc, query);
+    await buildProductListFiltersWithVisibility(pc, query);
 
   const fromSql = buildLocationFilteredFromSql(pc, {
     joinCategoryMap,

@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import OneSignal from "react-onesignal";
+import axiosClient from "@/api/axiosClient";
 
 import { initOneSignal } from "@/lib/onesignal";
 import { API_BASE } from "@/lib/config";
+import { getShopToken, getShopId, setShopId } from "@/lib/auth/storage";
 
 const CLOSED_KEY = "onesignal_prompt_closed";
 
@@ -77,55 +79,32 @@ export function useOneSignalCustomPrompt() {
 
       console.log("FINAL PLAYER ID:", playerId);
 
-      const token =
-        window.localStorage.getItem("token") ||
-        window.localStorage.getItem("shopToken") ||
-        window.localStorage.getItem("accessToken");
+      const token = getShopToken();
 
       if (playerId) {
-        const base = String(API_BASE || "").replace(/\/$/, "");
-
-        let shopId = window.localStorage.getItem("shopId");
+        let shopId = getShopId();
 
         if ((!shopId || shopId === "null" || shopId === "undefined") && token) {
           try {
-            const rs = await fetch(`${base}/shop/me`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            if (rs.ok) {
-              const sj = await rs.json();
-              if (sj?.id != null) {
-                const sid = String(sj.id).trim();
-                if (sid) {
-                  shopId = sid;
-                  try {
-                    window.localStorage.setItem("shopId", sid);
-                  } catch (_) { }
-                }
+            const rs = await axiosClient.get("/shop/me");
+            const sj = rs?.data;
+            if (sj?.id != null) {
+              const sid = String(sj.id).trim();
+              if (sid) {
+                shopId = sid;
+                try {
+                  setShopId(sid);
+                } catch (_) {}
               }
             }
-          } catch (_) { }
+          } catch (_) {}
         }
 
-        console.log("CALL SAVE API", {
-          playerId,
-          shopId: shopId || null,
-        });
-
-        await fetch(`${base}/push/save-player-id`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            playerId,
-            shopId,
-          }),
-        });
-
-        console.log("PLAYER ID SAVED");
+        try {
+          await axiosClient.post("/push/save-player-id", { playerId, shopId: shopId || null });
+        } catch (e) {
+          /* ignore */
+        }
       }
 
       try {

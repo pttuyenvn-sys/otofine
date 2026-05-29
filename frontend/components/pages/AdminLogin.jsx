@@ -5,6 +5,7 @@ import axios from "axios";
 import AuthCard from "../AuthCard";
 import { useRouter } from "next/navigation";
 import { API_BASE } from "@/lib/config";
+import { setAdminToken, setAdminRefreshToken, setAdminAuth } from "@/lib/auth/storage";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -22,15 +23,12 @@ export default function AdminLogin() {
         password,
       });
 
-      // 🔴 BẮT BUỘC
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({
-          role: "admin",
-          email: res.data.admin.email,
-        })
-      );
+      // namespaced admin storage
+      try {
+        setAdminToken(res.data.token);
+        if (res.data.refreshToken) setAdminRefreshToken(res.data.refreshToken);
+        setAdminAuth({ role: "admin", email: res.data.admin.email });
+      } catch {}
       window.dispatchEvent(new Event("auth-changed"));
 
       setMsg("Đăng nhập admin thành công!");

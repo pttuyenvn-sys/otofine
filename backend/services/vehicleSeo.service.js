@@ -2,6 +2,7 @@ import { pool } from "../config/db.js";
 import { parseVehicleSeoSlug } from "../utils/vehicleSeoSlugParser.js";
 import { buildVehicleSeoArticle }
     from "../utils/buildVehicleSeoArticle.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 export async function getVehicleSeoPage(slug) {
     const parsed = await parseVehicleSeoSlug(slug);
@@ -83,6 +84,9 @@ export async function getVehicleSeoPage(slug) {
         [parsed.carModelId]
     );
 
+    const visObj = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+    const visSql = visObj.sql;
+
     const [relatedCars] = await pool.query(
         `
         SELECT
@@ -111,11 +115,14 @@ export async function getVehicleSeoPage(slug) {
         LEFT JOIN products p
             ON p.id = pca.productId
 
+        LEFT JOIN shops s ON s.id = p.shopId
+
         LEFT JOIN product_car_applications shared
             ON shared.productId = p.id
             AND shared.carModelId = ?
 
         WHERE rel.car_model_id = ?
+          AND (p.id IS NULL OR (1=1 ${visSql}))
 
         GROUP BY
             cm.id,
@@ -138,12 +145,14 @@ export async function getVehicleSeoPage(slug) {
         SELECT
             COUNT(DISTINCT p.id) AS total_products
         FROM products p
+        INNER JOIN shops s ON s.id = p.shopId
         WHERE EXISTS (
             SELECT 1
             FROM product_car_applications pa
             WHERE pa.productId = p.id
             AND pa.carModelId = ?
         )
+        ${visSql}
         `,
         [parsed.carModelId]
     );
@@ -163,6 +172,8 @@ export async function getVehicleSeoPage(slug) {
 
     FROM products p
 
+    INNER JOIN shops s ON s.id = p.shopId
+
     INNER JOIN product_car_applications pa
         ON pa.productId = p.id
 
@@ -170,6 +181,7 @@ export async function getVehicleSeoPage(slug) {
         ON pa2.productId = p.id
 
     WHERE pa.carModelId = ?
+    ${visSql}
 
     GROUP BY
         p.id,

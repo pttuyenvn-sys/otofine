@@ -34,6 +34,7 @@ import knowledgePublicRoutes from "./routes/knowledgePublic.routes.js";
 import {
   getShopProductFilterOptions,
   getProductsByShop,
+  getShopGovernanceStatsHandler,
 } from "./controllers/product.controller.js";
 import { normalizeListingQuery } from "./utils/listingQueryNormalize.js";
 import vehicleSeoRoutes from "./routes/vehicleSeo.routes.js";
@@ -191,6 +192,12 @@ app.get(
   getShopProductFilterOptions,
 );
 app.get("/api/products/shop", requireAuth, requireShop, getProductsByShop);
+app.get(
+  "/api/products/shop/governance-stats",
+  requireAuth,
+  requireShop,
+  getShopGovernanceStatsHandler,
+);
 
 // Trang chủ: /list, /brands, /models + import + CRUD shop
 app.use("/api/products", productRoutes);

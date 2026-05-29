@@ -12,6 +12,7 @@ import { API_BASE } from "@/lib/config";
 import ShopPushPrompt from "@/components/push/ShopPushPrompt";
 import { getShopLoginDestinationFromSearch } from "@/lib/auth/safeShopRedirect";
 import { writeOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
+import { setShopToken, setShopRefreshToken, setShopAuth, setShopId } from "@/lib/auth/storage";
 
 export default function ShopLogin() {
   const router = useRouter();
@@ -20,7 +21,6 @@ export default function ShopLogin() {
   const [msg, setMsg] = useState("");
 
   async function submit(e) {
-    console.log("SUBMIT RUN");
 
     e.preventDefault();
     setMsg("");
@@ -34,12 +34,13 @@ export default function ShopLogin() {
         }
       );
 
-      console.log("LOGIN RESPONSE:", res.data);
+      
 
-      localStorage.setItem("token", res.data.token);
-      if (res.data.refreshToken) {
-        localStorage.setItem("refreshToken", res.data.refreshToken);
-      }
+      // namespaced shop storage
+      try {
+        setShopToken(res.data.token);
+        if (res.data.refreshToken) setShopRefreshToken(res.data.refreshToken);
+      } catch {}
       // Mirror the access token into a cross-subdomain cookie so the
       // storefront admin switcher (top owner strip + chip) can detect
       // ownership when the seller visits their own wildcard subdomain
@@ -50,17 +51,14 @@ export default function ShopLogin() {
       const sellerShopPk = res.data.shop?.id;
 
       if (sellerShopPk != null && sellerShopPk !== "") {
-        localStorage.setItem(
-          "shopId",
-          String(sellerShopPk)
-        );
+        try { setShopId(String(sellerShopPk)); } catch {}
 
         const playerId =
           OneSignal.User?.PushSubscription?.id ||
           OneSignal.User?.onesignalId ||
           null;
 
-        console.log("LOGIN PLAYER ID:", playerId);
+        
 
         if (playerId) {
           try {
@@ -78,30 +76,18 @@ export default function ShopLogin() {
               }
             );
 
-            console.log(
-              "SHOP PLAYER LINK RESULT:",
-              await rs.text()
-            );
+            
           } catch (e) {
-            console.error(
-              "SHOP PLAYER LINK ERROR:",
-              e
-            );
+            console.error("SHOP PLAYER LINK ERROR:", e);
           }
         }
       }
 
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({
-          role: "shop",
-          email: res.data.shop.email,
-        })
-      );
+      try {
+        setShopAuth({ role: "shop", email: res.data.shop.email });
+      } catch {}
 
-      window.dispatchEvent(
-        new Event("auth-changed")
-      );
+      window.dispatchEvent(new Event("auth-changed"));
 
       setMsg("Đăng nhập thành công!");
 

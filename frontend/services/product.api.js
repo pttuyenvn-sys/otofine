@@ -28,3 +28,15 @@ export function deleteProduct(id) {
 export function updateProductStock(id, stock) {
   return axiosClient.patch(`/products/${id}/stock`, { stock });
 }
+
+export function getShopGovernanceStats() {
+  return axiosClient.get("/products/shop/governance-stats");
+}
+
+export function getSellerProductTimeline(productId) {
+  return axiosClient.get(`/products/${productId}/governance-timeline`);
+}
+
+export function resubmitProductForReview(productId, body = {}) {
+  return axiosClient.post(`/products/${productId}/resubmit`, body);
+}

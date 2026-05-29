@@ -1,6 +1,10 @@
 import { pool } from "../config/db.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
 import {
+  appendProductPublicVisibilityWhereParts,
+  filterPublicProductIds,
+} from "../utils/productPublicVisibility.server.js";
+import {
   isPresentNonEmptyFilterString,
   normalizeListFilterYear,
 } from "../utils/listingQueryNormalize.js";
@@ -213,6 +217,7 @@ export async function fetchCardsFromListView({
     params.push(cursorUpdatedAt, cursorUpdatedAt, cursorId);
   }
 
+  const fetchLimit = Math.min(limitPlusOne * 3, 200);
   const [rows] = await pool.query(
     `
     SELECT
@@ -230,10 +235,11 @@ export async function fetchCardsFromListView({
     ORDER BY v.updatedAt DESC, v.productId DESC
     LIMIT ?
     `,
-    [...params, limitPlusOne],
+    [...params, fetchLimit],
   );
 
-  return rows;
+  const publicIds = new Set(await filterPublicProductIds(rows.map((r) => r.id)));
+  return rows.filter((r) => publicIds.has(r.id)).slice(0, limitPlusOne);
 }
 
 /**
@@ -253,6 +259,8 @@ export async function fetchCardsLiveUnfiltered({
     cursorUpdatedAt,
     cursorId,
   });
+
+  await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
 
   const where = whereParts.join("");
   const body = cardListSelectBody(pc);
@@ -302,6 +310,8 @@ export async function fetchCardsLiveFiltered({
     cursorId,
   });
 
+  await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
+
   const where = whereParts.join("");
   const body = cardListSelectBody(pc);
   const [rows] = await pool.query(
@@ -335,6 +345,8 @@ export async function fetchHomeCardsLiveUnfiltered({
     cursorUpdatedAt,
     cursorId,
   });
+
+  await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
 
   const where = whereParts.join("");
   const body = homeCardSelectBody(pc);
@@ -381,6 +393,8 @@ export async function fetchHomeCardsLiveFiltered({
     cursorId,
   });
 
+  await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
+
   const where = whereParts.join("");
   const body = homeCardSelectBody(pc);
   const [rows] = await pool.query(
@@ -416,6 +430,7 @@ export async function hydrateHomeCardsByIdsInOrder(ids) {
     [clean],
   );
 
+  const publicIds = new Set(await filterPublicProductIds(clean));
   const map = new Map(rows.map((r) => [r.id, r]));
-  return clean.map((id) => map.get(id)).filter(Boolean);
+  return clean.map((id) => map.get(id)).filter((r) => r && publicIds.has(r.id));
 }

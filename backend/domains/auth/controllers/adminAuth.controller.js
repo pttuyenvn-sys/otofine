@@ -1,6 +1,8 @@
 import * as adminAuthService from "../services/adminAuth.service.js";
 // Slice 5: logAdminAction for session audit events (controller owns req)
 import { logAdminAction } from "../../../modules/admin/index.js";
+import crypto from "crypto";
+import { authConfig } from "../config/auth.config.js";
 
 // ---------------------------------------------------------------------------
 // Existing handlers (PRESERVED — no logic changes)
@@ -8,6 +10,11 @@ import { logAdminAction } from "../../../modules/admin/index.js";
 
 export async function adminLogin(req, res) {
   try {
+    try {
+      const secret = authConfig.jwtSecret || process.env.JWT_SECRET || "";
+      const prefix = secret ? crypto.createHash("sha256").update(secret).digest("hex").slice(0, 8) : "no-secret";
+      console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/admin-login accessExpiresIn=${authConfig.accessExpiresIn} refreshExpiresIn=${authConfig.refreshExpiresIn} jwtSecretHashPrefix=${prefix}`);
+    } catch {}
     const { email, password } = req.body;
 
     // Slice 5: pass ip + userAgent for session metadata capture
@@ -71,6 +78,11 @@ export async function adminForgotPassword(req, res) {
  */
 export async function adminRefresh(req, res) {
   try {
+    try {
+      const secret = authConfig.jwtSecret || process.env.JWT_SECRET || "";
+      const prefix = secret ? crypto.createHash("sha256").update(secret).digest("hex").slice(0, 8) : "no-secret";
+      console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/admin-refresh accessExpiresIn=${authConfig.accessExpiresIn} refreshExpiresIn=${authConfig.refreshExpiresIn} jwtSecretHashPrefix=${prefix} refresh_call`);
+    } catch {}
     const rawRefreshToken = req.body?.refreshToken;
     const result = await adminAuthService.refreshAdminSession({ rawRefreshToken });
 

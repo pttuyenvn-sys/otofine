@@ -1,6 +1,7 @@
 import { pool } from "../../../config/db.js";
 import { rfqDispatchTuning } from "../../../config/rfq.config.js";
 import { parseInboxFilterQuery } from "../utils/rfqVehicleNormalize.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /** Active RFQ/dispatch — same semantics as countInboxUnread. */
 const ACTIVE_RFQ_SQL = `
@@ -395,6 +396,8 @@ export async function markWebViewedTransactional(conn, dispatchId, shopId) {
 
 export async function pickShopIdsForMatching(limit, excludeShopIds = []) {
   const recentMin = rfqDispatchTuning.onlineRecentMinutes;
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s", skipShopGate: true });
+  const visSql = visObj.sql;
   const params = [recentMin];
   let excludeClause = "";
   if (excludeShopIds?.length) {
@@ -409,7 +412,9 @@ export async function pickShopIdsForMatching(limit, excludeShopIds = []) {
         MAX(s.last_seen_at) AS last_seen_at
      FROM products p
      INNER JOIN shops s ON s.id = p.shopId
-     WHERE p.shopId IS NOT NULL${excludeClause}
+     WHERE p.shopId IS NOT NULL
+      AND s.public_status = 'public'
+      ${visSql}${excludeClause}
      GROUP BY p.shopId
      ORDER BY
        CASE

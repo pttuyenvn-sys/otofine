@@ -16,6 +16,7 @@ import {
 } from "./seoComposer.js";
 import { logError, logInfo, logWarn } from "../utils/syncLogger.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
+import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 const MIN_RELATED_PRODUCTS_FOR_SEO = 2;
 
@@ -521,6 +522,7 @@ async function loadProductBlocks(route, part = null, context = null) {
   const keyword = String(part?.name_vi ?? route?.h1 ?? "").trim();
   const pc = await getProductsColumnsResolved();
   const orderByFresh = pc.orderExprQualified("p");
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
   const contextual = productContextWhere(context, pc);
   const contextWhere = contextual.where.length
     ? `AND ${contextual.where.join("\n        AND ")}`
@@ -530,12 +532,14 @@ async function loadProductBlocks(route, part = null, context = null) {
     `
     SELECT p.*
     FROM products p
+    INNER JOIN shops s ON s.id = p.shopId
     WHERE
       (
         p.part_knowledge_id = ?
         OR ${pc.partNameExpr("p")} LIKE ?
       )
       ${contextWhere}
+      ${vis.sql}
     ORDER BY ${pc.stockExpr("p")} DESC, ${orderByFresh} DESC
     LIMIT 24
     `,
@@ -553,6 +557,8 @@ async function loadProductBlocks(route, part = null, context = null) {
 
 async function attachImagesAndShops(products, context = null) {
   const productIds = products.map((p) => p.id);
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   /** @type {import("mysql2").RowDataPacket[]} */
   let imageRows = [];
   if (productIds.length > 0) {
@@ -592,12 +598,13 @@ async function attachImagesAndShops(products, context = null) {
         SELECT p.shopId AS sid,
                COUNT(*) AS cnt
         FROM products p
-        WHERE p.id IN (?)
+      WHERE p.id IN (?)
+        ${productOnlyVis}
         GROUP BY p.shopId
       ) t
       INNER JOIN shops s ON s.id = t.sid
       LEFT JOIN address a ON a.id = s.provinceId
-      WHERE 1=1 ${locationWhere}
+      WHERE s.public_status = 'public' ${locationWhere}
       ORDER BY t.cnt DESC
       LIMIT 10
       `,
@@ -638,12 +645,16 @@ async function loadFallbackProductBlocksBySlug(slug) {
     .join(" + ");
   const likeParams = tokens.map((t) => `%${t}%`);
   const orderByFresh = pc.orderExprQualified("p");
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
+  const visSql = visObj.sql;
 
   const [products] = await pool.query(
     `
     SELECT p.*, (${scoreExpr}) AS _slug_score
     FROM products p
+    INNER JOIN shops s ON s.id = p.shopId
     WHERE ${where}
+    ${visSql}
     ORDER BY _slug_score DESC, ${pc.stockExpr("p")} DESC, ${orderByFresh} DESC
     LIMIT 24
     `,

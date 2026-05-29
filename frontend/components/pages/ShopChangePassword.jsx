@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthCard from "../AuthCard";
@@ -9,6 +9,7 @@ import PasswordInput from "../PasswordInput";
 import ShopGuard from "../ShopGuard";
 import { API_BASE } from "@/lib/config";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
+import { removeShopToken, removeShopRefreshToken, removeShopAuth } from "@/lib/auth/storage";
 
 function ChangePasswordForm() {
   const router = useRouter();
@@ -24,21 +25,19 @@ function ChangePasswordForm() {
       setMsg("Mật khẩu xác nhận không khớp");
       return;
     }
-    const token = localStorage.getItem("token");
+    const token = getShopToken();
     if (!token) {
       router.replace(buildShopLoginUrl(getCurrentShopReturnPath()));
       return;
     }
     try {
-      const res = await axios.post(
-        `${API_BASE}/auth/change-password`,
-        { oldPassword, newPassword },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await axiosClient.post("/auth/change-password", { oldPassword, newPassword });
       setMsg(res.data.message || "Đổi mật khẩu thành công.");
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("auth");
+      try {
+        removeShopToken();
+        removeShopRefreshToken();
+        removeShopAuth();
+      } catch {}
       setTimeout(() => router.replace("/shop/login"), 2500);
     } catch (err) {
       setMsg(err.response?.data?.message || "Không thể đổi mật khẩu");

@@ -5,6 +5,7 @@ import {
   shopExistenceCache,
 } from "../cache/caches.js";
 import { shopsiteLog } from "../observability/logger.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Read-only repository for the public shop site.
@@ -108,8 +109,9 @@ export async function findPublicShopBySlug(slug) {
 /** Count published products owned by the shop. */
 export async function countPublicShopProducts(shopId) {
   if (!shopId) return 0;
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
   const [rows] = await pool.query(
-    `SELECT COUNT(*) AS n FROM products WHERE shopId = ?`,
+    `SELECT COUNT(*) AS n FROM products p WHERE p.shopId = ? ${vis.sql}`,
     [shopId],
   );
   return Number(rows[0]?.n) || 0;
@@ -139,6 +141,7 @@ export async function countPublicShopProducts(shopId) {
  */
 export async function listShopTopBrands(shopId, limit = 3) {
   if (!shopId) return [];
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
   const [rows] = await pool.query(
     `
       SELECT cm.hang_xe AS brand, COUNT(DISTINCT pca.productId) AS cnt
@@ -146,6 +149,7 @@ export async function listShopTopBrands(shopId, limit = 3) {
       JOIN car_models cm ON cm.id = pca.carModelId
       JOIN products p     ON p.id  = pca.productId
       WHERE p.shopId = ? AND cm.hang_xe IS NOT NULL AND cm.hang_xe <> ''
+      ${vis.sql}
       GROUP BY cm.hang_xe
       ORDER BY cnt DESC, brand ASC
       LIMIT ?
@@ -157,6 +161,7 @@ export async function listShopTopBrands(shopId, limit = 3) {
 
 export async function listShopCategories(shopId) {
   if (!shopId) return [];
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
   const [rows] = await pool.query(
     `
       SELECT
@@ -168,6 +173,7 @@ export async function listShopCategories(shopId) {
       JOIN product_category_map pcm ON pcm.product_id = p.id
       JOIN product_categories pc    ON pc.id = pcm.category_id
       WHERE p.shopId = ?
+      ${vis.sql}
       GROUP BY pc.id, pc.category_name, pc.canonical_name
       ORDER BY productCount DESC, pc.category_name ASC
       LIMIT 50

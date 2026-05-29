@@ -43,7 +43,8 @@ function writeCache(data) {
 
 function jwtFingerprint() {
   try {
-    const t = localStorage.getItem("token");
+    const { getShopToken } = require("@/lib/auth/storage");
+    const t = getShopToken();
     if (!t) return null;
     const d = jwtDecode(t);
     return [d?.role || "?", d?.shopId || "?", d?.id || "?"].join(":");

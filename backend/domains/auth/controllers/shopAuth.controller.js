@@ -10,6 +10,8 @@ import {
   validateChangePasswordBody,
 } from "../validators/shopAuth.validators.js";
 import { normalizeIdentifier } from "../utils/identifier.util.js";
+import crypto from "crypto";
+import { authConfig } from "../config/auth.config.js";
 
 function requestMeta(req) {
   return {
@@ -49,6 +51,11 @@ export async function registerShop(req, res) {
 
 export async function shopLogin(req, res) {
   try {
+    try {
+      const secret = authConfig.jwtSecret || process.env.JWT_SECRET || "";
+      const prefix = secret ? crypto.createHash("sha256").update(secret).digest("hex").slice(0, 8) : "no-secret";
+      console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/shop-login accessExpiresIn=${authConfig.accessExpiresIn} refreshExpiresIn=${authConfig.refreshExpiresIn} jwtSecretHashPrefix=${prefix}`);
+    } catch {}
     const validated = validateLoginBody(req.body);
     if (!validated.ok) {
       return res.status(validated.status).json({ message: validated.message });
@@ -144,6 +151,11 @@ export async function changePassword(req, res) {
 
 export async function shopRefreshToken(req, res) {
   try {
+    try {
+      const secret = authConfig.jwtSecret || process.env.JWT_SECRET || "";
+      const prefix = secret ? crypto.createHash("sha256").update(secret).digest("hex").slice(0, 8) : "no-secret";
+      console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/shop-refresh accessExpiresIn=${authConfig.accessExpiresIn} refreshExpiresIn=${authConfig.refreshExpiresIn} jwtSecretHashPrefix=${prefix} refresh_call`);
+    } catch {}
     const refreshToken =
       req.body?.refreshToken ||
       req.headers["x-refresh-token"] ||
@@ -157,9 +169,10 @@ export async function shopRefreshToken(req, res) {
       requestMeta(req),
     );
     if (!result.ok) {
+      try { console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/shop-refresh refresh_result=FAIL status=${result.status} suspicious=${!!result.suspicious}`); } catch {}
       return res.status(result.status).json({ message: result.message });
     }
-
+    try { console.log(`[AUTH-RUNTIME] pid=${process.pid} route=/api/auth/shop-refresh refresh_result=OK expiresIn=${result.expiresIn}`); } catch {}
     res.json({
       token: result.token,
       refreshToken: result.refreshToken,

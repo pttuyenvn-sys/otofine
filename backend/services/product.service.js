@@ -7,6 +7,13 @@ import {
   queueUpsertProductInTypesense,
 } from "./typesenseRealtimeSync.service.js";
 import { buildSeoProductSlug } from "../utils/productSlug.js";
+import {
+  buildLifecycleFilterSql,
+  enrichProductGovernance,
+  getShopPublicStatus,
+  getSellerGovernanceSchema,
+  sqlSellerDeletedAtSelect,
+} from "../modules/products/services/sellerProductGovernance.service.js";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.js";
 
@@ -264,8 +271,8 @@ export async function createProduct(shopId, data) {
       `
       INSERT INTO products
       (shopId, partNumber, partName, stock, price, origin,
-       shortDescription, description, weight, length, width, height)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       shortDescription, description, weight, length, width, height, moderation_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         shopId,
@@ -280,6 +287,7 @@ export async function createProduct(shopId, data) {
         length,
         width,
         height,
+        'pending_review',
       ],
     );
 
@@ -536,32 +544,64 @@ export async function updateProduct(data) {
    DELETE (single / bulk)
 ================================ */
 export async function deleteProduct({ id, shopId }) {
-  await plvRepo.deleteProductListViewRow(id);
-  const [rs] = await pool.query(
-    `
-    DELETE FROM products
-    WHERE id = ? AND shopId = ?
-    `,
-    [id, shopId],
-  );
+  const schema = await getSellerGovernanceSchema();
+  let rs;
+
+  if (schema.hasSellerDeletedAt) {
+    [rs] = await pool.query(
+      `
+      UPDATE products
+      SET seller_deleted_at = COALESCE(seller_deleted_at, NOW()),
+          moderation_status = 'deleted'
+      WHERE id = ? AND shopId = ? AND seller_deleted_at IS NULL
+      `,
+      [id, shopId],
+    );
+  } else {
+    [rs] = await pool.query(
+      `
+      UPDATE products
+      SET moderation_status = 'hidden'
+      WHERE id = ? AND shopId = ? AND TRIM(LOWER(moderation_status)) NOT IN ('hidden', 'deleted')
+      `,
+      [id, shopId],
+    );
+  }
 
   if (rs.affectedRows > 0) {
+    await plvRepo.deleteProductListViewRow(id);
     queueDeleteProductFromTypesense(id);
   }
   return rs.affectedRows > 0;
 }
 
 export async function deleteProducts({ shopId, ids }) {
-  await plvRepo.deleteProductListViewRows(ids);
-  const [rs] = await pool.query(
-    `
-    DELETE FROM products
-    WHERE shopId = ? AND id IN (?)
-    `,
-    [shopId, ids],
-  );
+  const schema = await getSellerGovernanceSchema();
+  let rs;
+
+  if (schema.hasSellerDeletedAt) {
+    [rs] = await pool.query(
+      `
+      UPDATE products
+      SET seller_deleted_at = COALESCE(seller_deleted_at, NOW()),
+          moderation_status = 'deleted'
+      WHERE shopId = ? AND id IN (?) AND seller_deleted_at IS NULL
+      `,
+      [shopId, ids],
+    );
+  } else {
+    [rs] = await pool.query(
+      `
+      UPDATE products
+      SET moderation_status = 'hidden'
+      WHERE shopId = ? AND id IN (?) AND TRIM(LOWER(moderation_status)) NOT IN ('hidden', 'deleted')
+      `,
+      [shopId, ids],
+    );
+  }
 
   if (rs.affectedRows > 0 && Array.isArray(ids)) {
+    await plvRepo.deleteProductListViewRows(ids);
     for (const pid of ids) {
       queueDeleteProductFromTypesense(pid);
     }
@@ -590,7 +630,7 @@ export async function getProductCars(productId) {
 }
 
 /** WHERE products p … (chỉ bảng products + EXISTS), dùng cho COUNT và base subquery */
-function buildShopProductWhereClause(shopId, opts = {}) {
+function buildShopProductWhereClause(shopId, opts = {}, schema = {}) {
   const params = [shopId];
   const parts = ["p.shopId = ?"];
 
@@ -639,6 +679,11 @@ function buildShopProductWhereClause(shopId, opts = {}) {
     }
   }
 
+  const lifecycle = (opts.lifecycle && String(opts.lifecycle).trim()) || "";
+  if (lifecycle) {
+    parts.push(buildLifecycleFilterSql(lifecycle, schema));
+  }
+
   return { whereSql: parts.join(" AND "), params };
 }
 
@@ -650,11 +695,25 @@ export async function getProductsByShop(shopId, opts = {}) {
   const page = Math.max(1, Number(opts.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 20));
   const offset = (page - 1) * limit;
+  const lifecycle = (opts.lifecycle && String(opts.lifecycle).trim()) || "";
+  const schema = await getSellerGovernanceSchema();
+  const sellerDeletedSelect = sqlSellerDeletedAtSelect(schema.hasSellerDeletedAt, "p");
 
   const { whereSql, params: whereParams } = buildShopProductWhereClause(
     shopId,
     opts,
+    schema,
   );
+
+  const isDev = process.env.NODE_ENV === "development";
+  let totalBeforeGovernance = null;
+  if (isDev) {
+    const [[beforeRow]] = await pool.query(
+      `SELECT COUNT(*) AS total FROM products p WHERE p.shopId = ?`,
+      [shopId],
+    );
+    totalBeforeGovernance = Number(beforeRow?.total) || 0;
+  }
 
   const [[countRow]] = await pool.query(
     `
@@ -669,6 +728,19 @@ export async function getProductsByShop(shopId, opts = {}) {
   );
 
   const total = Number(countRow?.total) || 0;
+
+  if (isDev) {
+    console.info("[seller-products:governance]", {
+      shopId,
+      lifecycle: lifecycle || "(none)",
+      hasSellerDeletedAt: schema.hasSellerDeletedAt,
+      lifecycleFilter: lifecycle ? buildLifecycleFilterSql(lifecycle, schema) : null,
+      totalBeforeGovernance,
+      totalAfterGovernance: total,
+    });
+  }
+
+  const shopPublicStatus = await getShopPublicStatus(shopId);
 
   const [rows] = await pool.query(
     `
@@ -687,6 +759,23 @@ export async function getProductsByShop(shopId, opts = {}) {
       p.width,
       p.height,
       p.createdAt,
+      p.moderation_status AS moderationStatus,
+      ${sellerDeletedSelect},
+      (
+        SELECT e.reject_reason FROM product_moderation_events e
+        WHERE e.product_id = p.id AND e.new_status = 'rejected'
+        ORDER BY e.created_at DESC LIMIT 1
+      ) AS lastRejectReason,
+      (
+        SELECT e.notes FROM product_moderation_events e
+        WHERE e.product_id = p.id AND e.new_status = 'rejected'
+        ORDER BY e.created_at DESC LIMIT 1
+      ) AS lastRejectNotes,
+      (
+        SELECT e.created_at FROM product_moderation_events e
+        WHERE e.product_id = p.id AND e.new_status = 'rejected'
+        ORDER BY e.created_at DESC LIMIT 1
+      ) AS lastRejectedAt,
       MAX(CASE WHEN at.code = 'dong_co' THEN attr.name END) AS dong_co,
       MAX(CASE WHEN at.code = 'hop_so' THEN attr.name END) AS hop_so,
       MAX(CASE WHEN at.code = 'so_cau' THEN attr.name END) AS so_cau,
@@ -809,16 +898,20 @@ export async function getProductsByShop(shopId, opts = {}) {
   });
 
   // ===== GỘP DATA =====
-  const items = rows.map((p) => ({
-    ...p,
-    dong_co: p.dong_co,
-    hop_so: p.hop_so,
-    so_cau: p.so_cau,
-    kieu_dang: p.kieu_dang,
-    cc: p.cc,
-    images: imagesMap[p.id] || [],
-    cars: carsMap[p.id] || [],
-  }));
+  const items = rows.map((p) => {
+    const base = {
+      ...p,
+      dong_co: p.dong_co,
+      hop_so: p.hop_so,
+      so_cau: p.so_cau,
+      kieu_dang: p.kieu_dang,
+      cc: p.cc,
+      images: imagesMap[p.id] || [],
+      cars: carsMap[p.id] || [],
+    };
+    const gov = enrichProductGovernance(base, shopPublicStatus);
+    return { ...base, ...gov };
+  });
 
   return { items, total };
 }

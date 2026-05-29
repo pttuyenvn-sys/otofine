@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
 import "./ImportImagePopup.css";
 
@@ -10,6 +11,15 @@ export default function ImportImagePopup({ show, onClose }) {
   const [uploading, setUploading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [done, setDone] = useState(false);
+  const uploadAbortRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      try {
+        uploadAbortRef.current?.abort?.();
+      } catch {}
+    };
+  }, []);
 
   if (!show) return null;
 
@@ -30,64 +40,51 @@ export default function ImportImagePopup({ show, onClose }) {
     setStatusText("");
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (files.length === 0) return alert("Chưa chọn ảnh!");
 
     const form = new FormData();
     files.forEach((f) => form.append("images", f));
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.open("POST", `${API_BASE}/products/images/import`);
-
-    xhr.setRequestHeader(
-      "Authorization",
-      `Bearer ${localStorage.getItem("token")}`,
-    );
 
     setUploading(true);
     setDone(false);
     setProgress(0);
     setStatusText("Đang tải ảnh...");
 
-    // progress %
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setProgress(percent);
+    const controller = new AbortController();
+    const signal = controller.signal;
+    // attach controller so we can abort if the component unmounts
+    uploadAbortRef.current = controller;
 
-        if (percent < 100) {
-          setStatusText("Đang tải ảnh...");
-        } else {
-          setStatusText("Đang xử lý ảnh trên server...");
-        }
-      }
-    };
+    try {
+      const res = await axiosClient.post("/products/images/import", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (event) => {
+          if (!event.lengthComputable) return;
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setProgress(percent);
+          setStatusText(percent < 100 ? "Đang tải ảnh..." : "Đang xử lý ảnh trên server...");
+        },
+        signal,
+        timeout: 0,
+      });
 
-    xhr.upload.onload = () => {
-      setProgress(100);
-    };
-
-    xhr.onload = () => {
       setUploading(false);
       setDone(true);
       setProgress(100);
       setStatusText("Đã tải xong ảnh thành công");
-
-      if (xhr.status !== 200) {
-        alert(`Upload lỗi (${xhr.status})`);
-        return;
-      }
-
       setFiles([]);
-    };
-
-    xhr.onerror = () => {
+    } catch (err) {
+      if (axiosClient.isCancel?.(err) || err.name === "CanceledError") {
+        // aborted — keep previous UI state minimal
+      } else {
+        console.error("Upload error:", err);
+        alert("Lỗi khi upload ảnh");
+      }
       setUploading(false);
-      alert("Lỗi khi upload ảnh");
-    };
-
-    xhr.send(form);
+    } finally {
+      uploadAbortRef.current = null;
+    }
   };
 
   return (

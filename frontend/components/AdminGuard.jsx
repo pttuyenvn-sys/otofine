@@ -2,31 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAdminToken, getAdminAuth } from "@/lib/auth/storage";
 
 export default function AdminGuard({ children }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const authStr = localStorage.getItem("auth");
-
-    if (!token || !authStr) {
+    const token = getAdminToken();
+    const auth = getAdminAuth();
+    if (!token || !auth) {
       router.replace("/admin/login");
       return;
     }
-
-    try {
-      const auth = JSON.parse(authStr);
-      if (auth.role !== "admin") {
-        router.replace("/admin/login");
-        return;
-      }
-    } catch {
+    if (auth.role !== "admin") {
       router.replace("/admin/login");
       return;
     }
-
     setReady(true);
   }, [router]);
 

@@ -17,8 +17,8 @@
  */
 
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { API_BASE } from "@/lib/config";
+import axiosClient from "@/api/axiosClient";
+import { getShopToken } from "@/lib/auth/storage";
 import { deriveTodayRecommendations } from "@/lib/rfq/buyerIntent";
 
 function compactNumber(n) {
@@ -85,17 +85,15 @@ export default function ShopMetricsOverview() {
     if (typeof window === "undefined") return undefined;
     let cancelled = false;
     const token = (() => {
-      try { return localStorage.getItem("token"); } catch { return null; }
+      try { return getShopToken(); } catch { return null; }
     })();
     if (!token) {
       setLoading(false);
       return undefined;
     }
 
-    axios
-      .get(`${API_BASE}/shop/metrics/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    axiosClient
+      .get("/shop/metrics/overview")
       .then((res) => {
         if (cancelled) return;
         setData(res.data);

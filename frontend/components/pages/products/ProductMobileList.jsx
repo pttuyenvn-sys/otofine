@@ -24,6 +24,8 @@ export default function ProductMobileList({
   onSelectChange,
   onEdit,
   onDelete,
+  onResubmit,
+  resubmittingId = null,
 }) {
   const allChecked = data.length > 0 && selectedIds.length === data.length;
 
@@ -44,25 +46,25 @@ export default function ProductMobileList({
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2 px-1 text-[12px] text-gray-500">
-        <label className="inline-flex items-center gap-2 select-none">
+    <div className="seller-dash-mobile-list-wrap">
+      <div className="seller-dash-mobile-bulk-bar">
+        <label className="seller-dash-mobile-bulk-label">
           <input
             type="checkbox"
             checked={allChecked}
             onChange={(e) =>
               onSelectChange(e.target.checked ? data.map((p) => p.id) : [])
             }
-            className="w-4 h-4 accent-emerald-600"
+            className="seller-dash-mobile-bulk-check"
           />
           {selectedIds.length > 0
             ? `Đã chọn ${selectedIds.length}/${data.length}`
             : `Chọn tất cả (${data.length})`}
         </label>
-        <span className="tabular-nums">{data.length} mục</span>
+        <span className="seller-dash-mobile-bulk-count">{data.length} mục</span>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="seller-dash-mobile-list">
         {data.map((p) => (
           <ProductMobileCard
             key={p.id}
@@ -71,6 +73,8 @@ export default function ProductMobileList({
             onSelectToggle={toggle}
             onEdit={onEdit}
             onDelete={onDelete}
+            onResubmit={onResubmit}
+            resubmittingId={resubmittingId}
           />
         ))}
       </ul>

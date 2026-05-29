@@ -9,6 +9,9 @@ import {
   deleteProduct,
   deleteProducts,
   importImages,
+  getShopGovernanceStatsHandler,
+  getSellerProductTimelineHandler,
+  resubmitProductForReviewHandler,
 } from "../controllers/product.controller.js";
 import { getProductCars } from "../controllers/product.controller.js";
 import { filterProducts } from "../controllers/product.controller.js";
@@ -48,6 +51,9 @@ router.put(
 // tap-to-edit stock chip. See controller for the safety rationale
 // (avoids the destructive car-application rewrite of `PUT /:id`).
 router.patch("/:id/stock", requireAuth, requireShop, updateProductStock);
+
+router.get("/:id/governance-timeline", requireAuth, requireShop, getSellerProductTimelineHandler);
+router.post("/:id/resubmit", requireAuth, requireShop, resubmitProductForReviewHandler);
 
 router.get("/filter", requireAuth, requireShop, filterProducts);
 

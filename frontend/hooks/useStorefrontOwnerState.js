@@ -31,6 +31,7 @@
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { readOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
+import { getShopToken } from "@/lib/auth/storage";
 
 function decodeSafe(token) {
   try {
@@ -42,8 +43,7 @@ function decodeSafe(token) {
 
 function readToken() {
   try {
-    const fromLocal =
-      typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+    const fromLocal = getShopToken();
     if (fromLocal) return fromLocal;
   } catch {
     /* swallow */

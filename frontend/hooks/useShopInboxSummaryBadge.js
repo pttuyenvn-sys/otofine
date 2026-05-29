@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
+import { getShopToken } from "@/lib/auth/storage";
 
 /**
  * Lightweight polling hook for the seller-center sidebar badge.
@@ -42,16 +43,8 @@ export function useShopInboxSummaryBadge({ enabled = true } = {}) {
     let cancelled = false;
     let timerId = null;
 
-    function getToken() {
-      try {
-        return localStorage.getItem("token");
-      } catch {
-        return null;
-      }
-    }
-
     async function pollOnce() {
-      const token = getToken();
+      const token = getShopToken();
       if (!token) {
         if (!cancelled) {
           setUnread(0);
@@ -60,9 +53,7 @@ export function useShopInboxSummaryBadge({ enabled = true } = {}) {
         return;
       }
       try {
-        const res = await axios.get(`${API_BASE}/shop/rfq/inbox/summary`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axiosClient.get("/shop/rfq/inbox/summary");
         if (cancelled) return;
         const total =
           Number(res.data?.unreadCount || 0) +

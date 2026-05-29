@@ -1,7 +1,7 @@
-"use client";
+ "use client";
 
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
 import { buildInboxQueryParams } from "@/lib/rfq/rfqInboxFilters";
 import { buildShopLoginUrl, getCurrentShopReturnPath } from "@/lib/auth/safeShopRedirect";
@@ -11,6 +11,7 @@ import {
   mergeInboxLoadMore,
   mergeInboxRows,
 } from "@/lib/rfq/rfqInboxListStable";
+import { getShopToken } from "@/lib/auth/storage";
 
 /**
  * Shop inbox list + summary — same polling/snapshot stabilization as inbox page.
@@ -68,7 +69,7 @@ export function useShopInboxList({
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = getShopToken();
     if (!token) {
       lastSnapshotRef.current = "";
       setMsg("Cần đăng nhập shop (/shop/login).");
@@ -91,13 +92,8 @@ export function useShopInboxList({
     (async () => {
       try {
         const [listRes, sumRes] = await Promise.all([
-          axios.get(`${API_BASE}/shop/rfq/inbox`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: listParams(0),
-          }),
-          axios.get(`${API_BASE}/shop/rfq/inbox/summary`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          axiosClient.get("/shop/rfq/inbox", { params: listParams(0) }),
+          axiosClient.get("/shop/rfq/inbox/summary"),
         ]);
         if (cancelled) return;
         const rows = listRes.data.items || [];
@@ -121,8 +117,7 @@ export function useShopInboxList({
 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return undefined;
-
-    const token = localStorage.getItem("token");
+    const token = getShopToken();
     if (!token || loginBlocked) return undefined;
 
     let pollIntervalId = null;
@@ -138,13 +133,8 @@ export function useShopInboxList({
       if (!pollFirstPage) return;
       try {
         const [listRes, sumRes] = await Promise.all([
-          axios.get(`${API_BASE}/shop/rfq/inbox`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: listParams(0),
-          }),
-          axios.get(`${API_BASE}/shop/rfq/inbox/summary`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          axiosClient.get("/shop/rfq/inbox", { params: listParams(0) }),
+          axiosClient.get("/shop/rfq/inbox/summary"),
         ]);
         const rows = listRes.data.items || [];
         const unread = Number(sumRes.data?.unreadCount ?? 0);
@@ -202,15 +192,12 @@ export function useShopInboxList({
   ]);
 
   function loadMore() {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = getShopToken();
     if (!token) return;
     const next = offset + limit;
     setLoading(true);
-    axios
-      .get(`${API_BASE}/shop/rfq/inbox`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: listParams(next),
-      })
+    axiosClient
+      .get("/shop/rfq/inbox", { params: listParams(next) })
       .then((res) => {
         const rows = res.data.items || [];
         const merged = mergeInboxLoadMore(itemsRef.current, rows);

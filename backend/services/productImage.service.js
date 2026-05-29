@@ -10,9 +10,11 @@ const logoPath = path.resolve("assets/logo.png");
 const patternPath = path.resolve("assets/otofine-logo.png");
 
 const buildSmartImageKey = (files, shopId, partNumber, index) => {
+  // Defensive: callers may pass undefined when only processing a single file.
+  const fileList = Array.isArray(files) ? files : [];
   const numIndex = Number(index || 0);
 
-  const sameFiles = files
+  const sameFiles = fileList
     .map((f) => path.parse(f.originalname).name.trim().toUpperCase())
     .filter(
       (name) =>

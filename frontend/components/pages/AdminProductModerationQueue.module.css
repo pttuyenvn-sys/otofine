@@ -1,0 +1,298 @@
+.page {
+  width: 100%;
+  min-width: 0;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.opsToolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toolbarSearch {
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.toolbarShop {
+  flex: 0 1 220px;
+  min-width: 180px;
+  max-width: 240px;
+}
+
+.toolbarShopInner {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.toolbarFilters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.field {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.fieldCompact {
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 11px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.chkLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  color: #374151;
+}
+
+.selectedCount {
+  font-size: 11px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.shortcuts {
+  font-size: 10px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.bulkBtn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mainLayout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.tableArea {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.reviewPanel {
+  width: 320px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 8px;
+}
+
+.compactTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+
+.compactTable th,
+.compactTable td {
+  padding: 5px 6px;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactTable thead tr {
+  background: #f9fafb;
+}
+
+.actionsCell {
+  white-space: nowrap;
+  overflow: visible !important;
+}
+
+.actionsRow {
+  display: inline-flex;
+  gap: 3px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.rowReviewActive {
+  background: #dbeafe !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.actionBtnLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: #fff;
+}
+
+.actionBtnApprove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  background: #059669;
+  color: #fff;
+}
+
+.actionBtnReject {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  background: #dc2626;
+  color: #fff;
+}
+
+.actionBtnNeutral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+@media (max-width: 1200px) {
+  .opsToolbar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .toolbarActions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .shortcuts {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbarSearch,
+  .toolbarShop {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .reviewPanel {
+    width: 100%;
+    position: static;
+  }
+
+  .mainLayout {
+    flex-direction: column;
+  }
+}

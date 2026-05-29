@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axiosClient from "@/api/axiosClient";
 import { API_BASE } from "@/lib/config";
 
 /**
@@ -35,7 +35,8 @@ async function fetchHeatMap() {
 
   const token = (() => {
     try {
-      return localStorage.getItem("token");
+      const { getShopToken } = require("@/lib/auth/storage");
+      return getShopToken();
     } catch {
       return null;
     }
@@ -45,10 +46,8 @@ async function fetchHeatMap() {
     return cached;
   }
 
-  inflight = axios
-    .get(`${API_BASE}/shop/metrics/overview`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+  inflight = axiosClient
+    .get("/shop/metrics/overview")
     .then((res) => {
       const raw = res?.data?.productClickHeatLast7d || {};
       const map = new Map();

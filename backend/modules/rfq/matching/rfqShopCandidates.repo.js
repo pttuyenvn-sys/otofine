@@ -1,4 +1,5 @@
 import { pool } from "../../../config/db.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Phase 8.1 — RFQ supplier matching: candidate pool repository.
@@ -63,6 +64,8 @@ export async function loadCandidateShopIds(input, opts = {}) {
 async function findShopsByBrand(brandRaw, limit) {
   const brand = String(brandRaw || "").trim();
   if (!brand) return [];
+  const productOnlyVisObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis = productOnlyVisObj.sql;
   const [rows] = await pool.query(
     `SELECT DISTINCT s.id
        FROM shops s
@@ -71,6 +74,7 @@ async function findShopsByBrand(brandRaw, limit) {
        JOIN car_models cm ON cm.id = pca.carModelId
       WHERE s.public_status = 'public'
         AND cm.hang_xe = ?
+        ${productOnlyVis}
       LIMIT ?`,
     [brand, limit],
   );
@@ -79,6 +83,8 @@ async function findShopsByBrand(brandRaw, limit) {
 
 async function findShopsBySystemGroups(systemGroups, limit) {
   if (!systemGroups?.length) return [];
+  const productOnlyVisObj2 = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis2 = productOnlyVisObj2.sql;
   const placeholders = systemGroups.map(() => "?").join(",");
   const [rows] = await pool.query(
     `SELECT DISTINCT p.shopId AS id
@@ -87,6 +93,7 @@ async function findShopsBySystemGroups(systemGroups, limit) {
        JOIN part_knowledge pk ON pk.id = p.part_knowledge_id
       WHERE s.public_status = 'public'
         AND pk.system_group IN (${placeholders})
+        ${productOnlyVis2}
       LIMIT ?`,
     [...systemGroups, limit],
   );
@@ -107,12 +114,15 @@ async function findShopsByProvinceId(provinceId, limit) {
 
 async function findShopsWideFallback(want, exclude) {
   if (want <= 0) return [];
+  const productOnlyVisObj3 = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const productOnlyVis3 = productOnlyVisObj3.sql;
   if (exclude.size === 0) {
     const [rows] = await pool.query(
       `SELECT DISTINCT p.shopId AS id
          FROM products p
          JOIN shops s ON s.id = p.shopId
         WHERE s.public_status = 'public'
+          ${productOnlyVis3}
         ORDER BY p.shopId ASC
         LIMIT ?`,
       [want],
@@ -127,6 +137,7 @@ async function findShopsWideFallback(want, exclude) {
        JOIN shops s ON s.id = p.shopId
       WHERE s.public_status = 'public'
         AND p.shopId NOT IN (${placeholders})
+        ${productOnlyVis3}
       ORDER BY p.shopId ASC
       LIMIT ?`,
     [...excludeArr, want],

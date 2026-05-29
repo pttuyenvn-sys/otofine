@@ -1,4 +1,6 @@
 import { pool } from "../../../config/db.js";
+import { appendProductPublicVisibilityWhereParts } from "../../../utils/productPublicVisibility.server.js";
+import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
 
 /**
  * Read-only product repository scoped to a single shop.
@@ -80,8 +82,8 @@ export async function listShopProducts({
   let categoryJoin = "";
   if (categorySlug) {
     categoryJoin = `
-      JOIN product_category_map pcm ON pcm.product_id = p.id
-      JOIN product_categories   pc  ON pc.id = pcm.category_id
+      LEFT JOIN product_category_map pcm ON pcm.product_id = p.id
+      LEFT JOIN product_categories   pc  ON pc.id = pcm.category_id
     `;
     const raw = String(categorySlug).trim();
     const idMatch = /^c-(\d+)$/i.exec(raw);
@@ -118,6 +120,10 @@ export async function listShopProducts({
       params.push(yearN, yearN);
     }
   }
+
+  await appendProductPublicVisibilityWhereParts(whereParts, "p", "s", {
+    skipShopGate: true,
+  });
 
   const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
@@ -225,6 +231,9 @@ export async function listShopProducts({
 export async function listShopFitmentOptions(shopId) {
   if (!shopId) return { brands: [], modelsByBrand: {}, years: [] };
 
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const visSql = visObj.sql;
+
   const [rows] = await pool.query(
     `
       SELECT DISTINCT cm.hang_xe AS brand, cm.ten_xe AS model
@@ -232,6 +241,7 @@ export async function listShopFitmentOptions(shopId) {
       JOIN product_car_applications pca ON pca.productId = p.id
       JOIN car_models cm                ON cm.id = pca.carModelId
       WHERE p.shopId = ?
+      ${visSql}
       ORDER BY cm.hang_xe ASC, cm.ten_xe ASC
     `,
     [shopId],
@@ -258,6 +268,7 @@ export async function listShopFitmentOptions(shopId) {
       WHERE p.shopId = ?
         AND pca.year_from IS NOT NULL
         AND pca.year_to   IS NOT NULL
+        ${visSql}
     `,
     [shopId],
   );

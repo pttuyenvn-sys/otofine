@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { API_BASE } from "@/lib/config";
+import axiosClient from "@/api/axiosClient";
 import "./ProductImagePopup.css";
 
 export default function ProductImagePopup({
@@ -27,12 +27,12 @@ export default function ProductImagePopup({
 
     setLoading(true);
 
-    const token = localStorage.getItem("token");
-    fetch(`${API_BASE}/product/${product.id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    let cancelled = false;
+    axiosClient
+      .get(`/product/${product.id}`)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data || {};
         const raw = Array.isArray(data?.images) ? data.images : [];
         const fixed = raw.map((img) => ({
           ...img,
@@ -40,8 +40,12 @@ export default function ProductImagePopup({
         }));
         setImages(fixed);
       })
-      .catch((err) => console.error("Load image error:", err))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!cancelled) console.error("Load image error:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
   }, [show, product]);
 
   if (!show) return null;
@@ -144,17 +148,11 @@ export default function ProductImagePopup({
                 // Tách KEY từ URL
                 const key = img.url.split("/").pop().split("?")[0];
 
-                await fetch(
-                  `http://localhost:3001/products/${product.ProductID}/images`,
-                  {
-                    method: "DELETE",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                    body: JSON.stringify({ key }),
-                  }
-                );
+                try {
+                  await axiosClient.delete(`/products/${product.ProductID}/images`, { data: { key } });
+                } catch (e) {
+                  console.error("Delete image error:", e);
+                }
 
                 // Cập nhật danh sách ảnh trong UI
                 const newImages = images.filter((_, i) => i !== index);

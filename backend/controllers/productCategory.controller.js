@@ -1,6 +1,6 @@
 import { pool } from "../config/db.js";
 import {
-  buildProductListFilters,
+  buildProductListFiltersWithVisibility,
   buildProductListingJoinSql,
 } from "../repositories/productList.repository.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
@@ -42,7 +42,7 @@ export async function getProductCategories(req, res) {
   try {
     if (hasCategoryFilters(req.query)) {
       const productColumns = await getProductsColumnsResolved();
-      const { where, params } = buildProductListFilters(productColumns, req.query);
+      const { where, params } = await buildProductListFiltersWithVisibility(productColumns, req.query);
       const joinV = listingQueryNeedsVehicleFitmentJoin(req.query);
       const fromSql = buildProductListingJoinSql(productColumns, joinV);
       const [rows] = await pool.query(`
@@ -118,7 +118,7 @@ export async function getCanonicalCategories(req, res) {
   try {
     if (hasCategoryFilters(req.query)) {
       const productColumns = await getProductsColumnsResolved();
-      const { where, params } = buildProductListFilters(productColumns, req.query);
+      const { where, params } = await buildProductListFiltersWithVisibility(productColumns, req.query);
       const joinV = listingQueryNeedsVehicleFitmentJoin(req.query);
       const fromSql = buildProductListingJoinSql(productColumns, joinV);
       const [rows] = await pool.query(`
@@ -239,7 +239,7 @@ export async function searchSidebarCategories(req, res) {
     const fromSql = buildProductListingJoinSql(productColumns, joinV);
 
     // 🔥 dùng chung filter với product (KEY POINT)
-    const { where, params } = buildProductListFilters(productColumns, {
+    const { where, params } = await buildProductListFiltersWithVisibility(productColumns, {
       ...req.query,
       keyword, // 🔥 ép keyword vào filter
     });
