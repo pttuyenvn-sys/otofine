@@ -507,6 +507,25 @@ export default function AddProductPopup({
 
   const imageCount = (images || []).length + (existingImages || []).length;
 
+  /** New uploads on edit replace the gallery — mark existing rows for removal. */
+  const handleAddImages = (incoming) => {
+    const files = Array.from(incoming || []);
+    if (!files.length) return;
+
+    if (product && (existingImages || []).length) {
+      setDeletedImages((prev) => {
+        const next = new Set(prev || []);
+        for (const img of existingImages) {
+          if (img?.id) next.add(img.id);
+        }
+        return [...next];
+      });
+      setExistingImages([]);
+    }
+
+    setImages([...(images || []), ...files]);
+  };
+
   return createPortal(
     <div className="AddProductOverlay">
       <div
@@ -730,7 +749,7 @@ export default function AddProductPopup({
                   panelMode
                   images={images}
                   existingImages={existingImages}
-                  onAddImages={(files) => setImages([...(images || []), ...files])}
+                  onAddImages={handleAddImages}
                   onRemoveNewImage={(i) => {
                     const clone = [...(images || [])];
                     clone.splice(i, 1);
@@ -1115,7 +1134,7 @@ export default function AddProductPopup({
                 panelMode
                 images={images}
                 existingImages={existingImages}
-                onAddImages={(files) => setImages([...(images || []), ...files])}
+                onAddImages={handleAddImages}
                 onRemoveNewImage={(i) => {
                   const clone = [...(images || [])];
                   clone.splice(i, 1);
@@ -1260,7 +1279,7 @@ function ImagePicker({
           <div key={"old-" + i} className="ImagePreview__item">
             {isPrimary ? <span className="ImagePreview__primary">Ảnh bìa</span> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.url + "?t=" + Date.now()} alt="" />
+            <img src={img.url + "?t=" + Date.now()} alt="" className="ImagePreview__img" />
             <button
               type="button"
               className="ImagePreview__remove"

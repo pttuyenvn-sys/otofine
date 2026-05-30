@@ -656,7 +656,8 @@
   background: #f3f4f6;
 }
 
-.ImagePreview__item img {
+.ImagePreview__item img,
+.ImagePreview__item .ImagePreview__img {
   width: 100%;
   height: 100%;
   object-fit: cover;

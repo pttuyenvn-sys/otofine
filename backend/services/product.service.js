@@ -831,9 +831,10 @@ export async function getProductsByShop(shopId, opts = {}) {
   // ===== LẤY IMAGES =====
   const [images] = await pool.query(
     `
-  SELECT id, productId, url
+  SELECT id, productId, url, isPrimary
   FROM product_images
   WHERE productId IN (?)
+  ORDER BY isPrimary DESC, id ASC
 `,
     [ids],
   );
@@ -842,6 +843,10 @@ export async function getProductsByShop(shopId, opts = {}) {
   images.forEach((img) => {
     if (!imagesMap[img.productId]) {
       imagesMap[img.productId] = [];
+    }
+
+    if (imagesMap[img.productId].some((row) => row.url === img.url)) {
+      return;
     }
 
     imagesMap[img.productId].push({

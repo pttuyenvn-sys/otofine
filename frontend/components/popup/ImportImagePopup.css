@@ -70,6 +70,15 @@
   cursor: pointer;
 }
 
+.PopupContent input[type="file"].ImportImagePopup__fileInput--hidden {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.PopupContent input[type="file"]:disabled {
+  cursor: not-allowed;
+}
+
 /* ============================
    Danh sách file
 ============================ */
@@ -91,7 +100,12 @@
 /* ============================
    Buttons
 ============================ */
-.PopupContent button {
+.ImportImagePopup__actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.ImportImagePopup__actions button {
   width: 100%;
   padding: 10px 0;
   margin-top: 12px;
@@ -103,23 +117,74 @@
   font-weight: 600;
 }
 
-/* nút Upload */
-.PopupContent button:first-of-type {
+.ImportImagePopup__uploadBtn {
   background: #007bff;
   color: white;
 }
 
-.PopupContent button:first-of-type:hover {
+.ImportImagePopup__uploadBtn:hover:not(:disabled) {
   background: #0069d9;
 }
 
-/* nút Đóng */
-.PopupContent button:last-of-type {
+.ImportImagePopup__uploadBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ImportImagePopup__success {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ecfdf3;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ImportImagePopup__closeBtn {
   background: #e4e6eb;
   color: #333;
 }
 
-.PopupContent button:last-of-type:hover {
+.ImportImagePopup__closeBtn:hover {
+  background: #d6d8db;
+}
+
+.ImportImagePopup__closeBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Legacy selectors for ImportProductPopup */
+.PopupContent:not(.ImportImagePopup) button {
+  width: 100%;
+  padding: 10px 0;
+  margin-top: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 600;
+}
+
+.PopupContent:not(.ImportImagePopup) button:first-of-type {
+  background: #007bff;
+  color: white;
+}
+
+.PopupContent:not(.ImportImagePopup) button:first-of-type:hover {
+  background: #0069d9;
+}
+
+.PopupContent:not(.ImportImagePopup) button:last-of-type {
+  background: #e4e6eb;
+  color: #333;
+}
+
+.PopupContent:not(.ImportImagePopup) button:last-of-type:hover {
   background: #d6d8db;
 }
 

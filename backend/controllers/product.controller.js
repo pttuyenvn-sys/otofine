@@ -8,10 +8,13 @@ import {
 import { syncProductListViewByProductId } from "../services/productListViewSync.service.js";
 import { queueUpsertProductInTypesense } from "../services/typesenseRealtimeSync.service.js";
 import { invalidateListCache } from "../services/listCache.service.js";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { r2 } from "../config/r2.js";
-import { importImagesBatch } from "../services/productImage.service.js";
-import { processSingleImage } from "../services/productImage.service.js";
+import {
+  importImagesBatch,
+  processSingleImage,
+  upsertProductImageRow,
+  syncProductImages,
+  replaceProductGalleryFromFiles,
+} from "../services/productImage.service.js";
 // risk flags evaluation is best-effort, imported dynamically where used
 
 /* =========================
@@ -176,52 +179,12 @@ export const updateProduct = async (req, res) => {
     }
 
     if (req.files && req.files.length > 0) {
-      // ===== 1. XÓA ẢNH CŨ (R2 + DB) =====
-      const [oldImages] = await pool.query(
-        "SELECT url FROM product_images WHERE productId = ?",
-        [productId],
-      );
-
-      for (const img of oldImages) {
-        try {
-          const key = img.url.replace(process.env.R2_PUBLIC_URL + "/", "");
-
-          await r2.send(
-            new DeleteObjectCommand({
-              Bucket: process.env.R2_BUCKET,
-              Key: key,
-            }),
-          );
-        } catch (err) {
-          console.error("DELETE R2 ERROR:", err.message);
-        }
-      }
-
-      await pool.query("DELETE FROM product_images WHERE productId = ?", [
+      await replaceProductGalleryFromFiles({
+        shopId,
         productId,
-      ]);
-
-      // ===== 2. UPLOAD ẢNH MỚI (có watermark + resize) =====
-      let index = 0;
-
-      for (const file of req.files) {
-        const result = await processSingleImage({
-          file,
-          shopId,
-          partNumber,
-          index: index === 0 ? "" : index,
-        });
-
-        if (!result) continue;
-
-        await pool.query(
-          `INSERT INTO product_images (productId, url, shopId, partNumber)
-       VALUES (?, ?, ?, ?)`,
-          [productId, result.url, shopId, partNumber],
-        );
-
-        index++;
-      }
+        partNumber,
+        files: req.files,
+      });
     }
 
     await productService.updateProduct({
@@ -451,26 +414,34 @@ export const addProduct = async (req, res) => {
     }
 
     // 🔥 upload ảnh LUÔN
-    let index = 0;
-
     if (files && files.length > 0) {
-      for (const file of files) {
-        const result = await processSingleImage({
-          file,
+      if (exist.length) {
+        await replaceProductGalleryFromFiles({
           shopId,
+          productId,
           partNumber: data.partNumber,
-          index: index === 0 ? "" : index,
+          files,
         });
+      } else {
+        for (let galleryIndex = 0; galleryIndex < files.length; galleryIndex += 1) {
+          const result = await processSingleImage({
+            file: files[galleryIndex],
+            files: req.files,
+            shopId,
+            partNumber: data.partNumber,
+            galleryIndex,
+          });
 
-        if (!result) continue;
+          if (!result?.url) continue;
 
-        await pool.query(
-          `INSERT INTO product_images (productId, url, shopId, partNumber)
-       VALUES (?, ?, ?, ?)`,
-          [productId, result.url, shopId, data.partNumber],
-        );
-
-        index++;
+          await upsertProductImageRow({
+            shopId,
+            productId,
+            partNumber: data.partNumber,
+            url: result.url,
+            isPrimary: result.isPrimary,
+          });
+        }
       }
     }
 
@@ -609,11 +580,12 @@ export const importImages = async (req, res) => {
     const shopId = req.shop.id;
     const files = req.files || [];
 
-    await importImagesBatch(files, shopId);
+    const result = await importImagesBatch(files, shopId);
 
+    await syncProductImages(shopId);
     await invalidateListCache();
 
-    res.json({ success: true });
+    res.json({ success: true, ...result });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });

@@ -8,7 +8,6 @@ export default function PopularCategoriesBox({
   selectedCategory,
 }) {
   if (!categories || categories.length === 0) return null;
-  console.log("POPULAR COUNT:", categories.length);
 
   return (
     <div className="of-rail-card box-popular-cats" aria-label="Danh mục phổ biến">
