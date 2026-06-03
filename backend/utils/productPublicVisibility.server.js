@@ -131,7 +131,18 @@ export async function appendProductPublicVisibilityWhereParts(
 ) {
   const clauses = await getProductPublicVisibilityClauses(aliasP, aliasS, opts);
   for (const c of clauses) {
-    whereParts.push(` AND ${c} `);
+    const clause = String(c || "").trim();
+    // Support two calling styles across repositories:
+    // 1) callers that build a WHERE string first (e.g. " WHERE 1=1 ")
+    //    expect appended fragments to include a leading "AND ...".
+    // 2) callers that accumulate bare expressions (e.g. ["p.shopId = ?"])
+    //    and later join with " AND ". In that case we must NOT prepend "AND".
+    const first = String(whereParts[0] || "").trim().toUpperCase();
+    if (first.startsWith("WHERE")) {
+      whereParts.push(` AND ${clause} `);
+    } else {
+      whereParts.push(clause);
+    }
   }
 }
 

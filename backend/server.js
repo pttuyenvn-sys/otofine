@@ -55,6 +55,7 @@ import pushRoutes from "./routes/push.routes.js";
 import { platformRouter, rbacRouter, enforcementRouter } from "./modules/admin/index.js";
 app.use("/api/push", pushRoutes);
 
+// Legacy: a static list of developer origins. Kept for local dev convenience.
 const defaultOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -64,15 +65,37 @@ const defaultOrigins = [
   "http://180.93.1.24:3001",
 ];
 
+// Extra explicit origins (comma-separated) for ops to add special cases.
 const extraOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Accept only origins that are:
+//  - explicitly in defaultOrigins / extraOrigins, OR
+//  - the apex domain otofine.com, OR
+//  - any single-level subdomain of otofine.com (e.g. foo.otofine.com)
+const allowedSubdomainRegex = /^https?:\/\/([a-z0-9-]+\.)?otofine\.com(?::\d+)?$/i;
+
 app.use(
   cors({
-    origin: [...new Set([...defaultOrigins, ...extraOrigins])],
+    origin: function (origin, callback) {
+      // Non-browser requests (e.g. curl, server-to-server) may have no Origin header.
+      if (!origin) return callback(null, true);
+      // Allow developer origins + explicitly configured extra origins.
+      if (defaultOrigins.includes(origin) || extraOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // Allow apex and single-level subdomains under otofine.com
+      if (allowedSubdomainRegex.test(origin)) {
+        return callback(null, true);
+      }
+      // Deny all others.
+      return callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
+    // Expose common headers (optional)
+    exposedHeaders: ["X-Request-Id"],
   }),
 );
 
