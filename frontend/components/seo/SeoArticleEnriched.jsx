@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import SeoArticleProductImage from "./SeoArticleProductImage";
 import { getProductDetailHref } from "@/lib/productDetailHref";
+import { traceRenderedProductHref } from "@/lib/marketplace/marketplaceHrefTrace";
 import "./seo-article-enriched.css";
 
 const NO_IMAGE = "/no-image.png";
@@ -55,18 +56,23 @@ function buildShopRanking(products) {
     .slice(0, 5);
 }
 
-function ProductSnippet({ item }) {
-  const href = getProductDetailHref(item);
+function ProductSnippet({ item, marketplaceContext = null }) {
+  const href = traceRenderedProductHref({
+    src: "seo",
+    href: getProductDetailHref(item, { marketplaceContext }),
+    item,
+    marketplaceContext,
+  });
   return (
     <Link href={href} className="sea-e-snippet" prefetch={false}>
       <div className="sea-e-snippet__img-wrap">
-        <Image
+        <SeoArticleProductImage
           src={item.image || NO_IMAGE}
           alt={item.shortDescription || "Phu tung"}
           width={64}
           height={64}
+          sizes="64px"
           className="sea-e-snippet__img"
-          quality={75}
         />
       </div>
       <div className="sea-e-snippet__body">
@@ -89,13 +95,13 @@ function InlineImage({ product, caption }) {
   const alt = product?.shortDescription || caption || "Phu tung o to";
   return (
     <figure className="sea-e-figure">
-      <Image
+      <SeoArticleProductImage
         src={src}
         alt={alt}
         width={600}
         height={340}
+        sizes="(max-width: 768px) 100vw, 600px"
         className="sea-e-figure__img"
-        quality={80}
       />
       <figcaption className="sea-e-figure__cap">{alt}</figcaption>
     </figure>
@@ -136,6 +142,7 @@ export default function SeoArticleEnriched({
   products = [],
   partDisplayName = "Phu tung",
   currentListingUrl = "/",
+  marketplaceContext = null,
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -203,7 +210,11 @@ export default function SeoArticleEnriched({
                   </h3>
                   <div className="sea-e-snippets__grid">
                     {snippets.map((p) => (
-                      <ProductSnippet key={p.id} item={p} />
+                      <ProductSnippet
+                        key={p.id}
+                        item={p}
+                        marketplaceContext={marketplaceContext}
+                      />
                     ))}
                   </div>
                 </div>

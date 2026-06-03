@@ -64,11 +64,11 @@ export async function listShopProducts({
   const offsetN = (pageN - 1) * limitN;
   const orderBy = buildOrderBy(ALLOWED_SORTS.has(sort) ? sort : "newest");
 
-  const whereParts = ["p.shopId = ?"];
+  const whereParts = [`WHERE p.shopId = ?`];
   const params = [shopId];
 
   if (q) {
-    whereParts.push("(p.partName LIKE ? OR p.partNumber LIKE ?)");
+    whereParts.push(" AND (p.partName LIKE ? OR p.partNumber LIKE ?)");
     params.push(`%${q}%`, `%${q}%`);
   }
 
@@ -88,10 +88,10 @@ export async function listShopProducts({
     const raw = String(categorySlug).trim();
     const idMatch = /^c-(\d+)$/i.exec(raw);
     if (idMatch) {
-      whereParts.push("pc.id = ?");
+      whereParts.push(" AND pc.id = ?");
       params.push(Number(idMatch[1]));
     } else {
-      whereParts.push("pc.canonical_name = ?");
+      whereParts.push(" AND pc.canonical_name = ?");
       params.push(raw.toLowerCase());
     }
   }
@@ -106,17 +106,17 @@ export async function listShopProducts({
       JOIN car_models cm                ON cm.id = pca.carModelId
     `;
     if (brand) {
-      whereParts.push("LOWER(TRIM(cm.hang_xe)) = ?");
+      whereParts.push(" AND LOWER(TRIM(cm.hang_xe)) = ?");
       params.push(String(brand).toLowerCase().trim());
     }
     if (model) {
-      whereParts.push("LOWER(TRIM(cm.ten_xe)) = ?");
+      whereParts.push(" AND LOWER(TRIM(cm.ten_xe)) = ?");
       params.push(String(model).toLowerCase().trim());
     }
     if (hasYear) {
       // Year filter: any fitment row whose [year_from, year_to] covers
       // the requested year. NULL bounds are treated as open-ended.
-      whereParts.push("(pca.year_from IS NULL OR pca.year_from <= ?) AND (pca.year_to IS NULL OR pca.year_to >= ?)");
+      whereParts.push(" AND (pca.year_from IS NULL OR pca.year_from <= ?) AND (pca.year_to IS NULL OR pca.year_to >= ?)");
       params.push(yearN, yearN);
     }
   }
@@ -125,7 +125,7 @@ export async function listShopProducts({
     skipShopGate: true,
   });
 
-  const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+  const whereSql = whereParts.join("");
 
   // Whenever we joined a 1-N table (category map or fitments) we need
   // to dedup product ids. Without GROUP BY a single product with
@@ -138,6 +138,7 @@ export async function listShopProducts({
       p.partName,
       p.partNumber,
       p.price,
+      p.stock,
       p.origin,
       p.createdAt,
       (

@@ -2,7 +2,7 @@
 
 import OneSignal from "react-onesignal";
 
-import { initOneSignal } from "@/lib/onesignal";
+import { initOneSignal, shouldInitOneSignal } from "@/lib/onesignal";
 import { persistDeepLinkDispatchId } from "@/lib/rfq/rfqBuyerDeepLink";
 import { trackReminderAttributionEvent } from "@/lib/rfq/rfqReminderAnalytics";
 
@@ -13,6 +13,7 @@ let wired = false;
  */
 export function wireBuyerPushNotificationClick() {
   if (typeof window === "undefined" || wired) return;
+  if (!shouldInitOneSignal()) return;
   wired = true;
 
   void (async () => {

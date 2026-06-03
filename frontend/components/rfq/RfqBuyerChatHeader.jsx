@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { rfqThumbSmallSrc, rfqThumbSmallFallbackSrcs } from "@/lib/rfq/rfqMediaUrl";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 import { normalizeMergedPartDescription } from "@/lib/rfq/rfqPartDescription";
 import RfqImageLightbox from "@/components/rfq/RfqImageLightbox";
 import RfqLazyImage from "@/components/rfq/RfqLazyImage";
@@ -58,8 +58,8 @@ function RfqBuyerChatHeader({
           {thumbs.map((src, i) => (
             <button key={i} type="button" onClick={() => setLightboxIndex(i)}>
               <RfqLazyImage
-                src={rfqThumbSmallSrc(src)}
-                fallbackSrcs={rfqThumbSmallFallbackSrcs(src)}
+                originalUrl={src}
+                variant={RFQ_MEDIA_VARIANT.SMALL}
                 alt=""
                 loading="lazy"
                 decoding="async"

@@ -9,12 +9,20 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { API_BASE, API_ORIGIN } from "@/lib/config";
+import { getProductDetailHref } from "@/lib/productDetailHref";
+import { traceRenderedProductHref } from "@/lib/marketplace/marketplaceHrefTrace";
 import {
-  buildProductSeoUrl,
-  extractProductIdFromSeoSlug,
-} from "@/lib/seo/productSeoUrl";
+  formatMarketplaceVehicleLabel,
+  isEmptyMarketplaceContext,
+  parseMarketplaceContextFromQuery,
+  readListingSessionMarketplaceContext,
+  resolveActiveMarketplaceContext,
+  resolveListingBackHref,
+  carMatchesMarketplaceContext,
+} from "@/lib/marketplace/marketplaceContext";
+import { extractProductIdFromSeoSlug } from "@/lib/seo/productSeoUrl";
 import {
   RECENT_VIEWED_KEY,
   pushRecentlyViewed,
@@ -22,17 +30,20 @@ import {
   excludeCurrent,
 } from "@/lib/shopsite/recentlyViewed";
 import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
+import AppImage from "@/components/common/AppImage";
+import { rewriteLegacyThumbUrlsInHtml } from "@/lib/media/productMediaUrl";
+import ListingProductImage from "@/components/common/ListingProductImage";
 import "./ProductDetail.css";
 
 const stripHtml = (html = "") =>
-  html
+  String(html || "")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
 const hasContent = (html = "") => {
-  const clean = html
+  const clean = String(html || "")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, "")
     .trim();
@@ -57,6 +68,18 @@ const formatPrice = (value) => {
 
 const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
 
+function PdMiniCardImage({ src }) {
+  return (
+    <ListingProductImage
+      slot="grid"
+      fill
+      src={src || null}
+      alt=""
+      className="object-cover w-full h-full"
+    />
+  );
+}
+
 /**
  * Open the storefront Quick-RFQ modal pre-filled with the current
  * product + first matching fitment. The modal lives at the storefront
@@ -74,17 +97,19 @@ const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
  * page is still here AND we're not under the shopsite layout (no
  * `[data-shopsite-rfq-mount]` marker), we navigate.
  */
-function openQuickRfqWithProduct(product, cars) {
+function openQuickRfqWithProduct(product, activeContext) {
   if (typeof window === "undefined") return;
   const title = (product?.shortDescription || product?.partName || "")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const firstCar = Array.isArray(cars) && cars[0] ? cars[0] : null;
-  const brand = firstCar?.hang_xe || firstCar?.brand || "";
-  const model = firstCar?.ten_xe || firstCar?.model || "";
-  const yr = firstCar?.year_from || firstCar?.yearFrom || "";
+  const brand = activeContext?.brand || "";
+  const model = activeContext?.model || "";
+  const yr =
+    activeContext?.year != null && activeContext?.year !== ""
+      ? String(activeContext.year)
+      : "";
   const detail = {
     source: "product_detail_cta",
     productId: product?.id || null,
@@ -119,17 +144,22 @@ function openQuickRfqWithProduct(product, cars) {
   }, 80);
 }
 
-function productHref(slug, id, item) {
-  // Root-level canonical: `/<slug>-<id>`. With the full item shape
-  // (related-product card, recent-viewed entry) we delegate to the
-  // canonical builder so the URL we emit matches what the apex
-  // `[slug]/page.js` canonical-enforce branch would compute — no
-  // redirect on click. With only an id available we hand off to the
-  // short `/p/<id>` redirect namespace which 308s to canonical in
-  // a single hop.
+function productHref(slug, id, item, marketplaceContext, src = "related") {
   if (item && typeof item === "object") {
-    const url = buildProductSeoUrl(item);
-    if (url && url !== "/") return url;
+    const url = getProductDetailHref(
+      item,
+      marketplaceContext && !isEmptyMarketplaceContext(marketplaceContext)
+        ? { marketplaceContext }
+        : {},
+    );
+    if (url && url !== "/") {
+      return traceRenderedProductHref({
+        src,
+        href: url,
+        item,
+        marketplaceContext,
+      });
+    }
   }
   if (id != null && id !== "") return `/p/${id}`;
   return "/";
@@ -322,14 +352,15 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
         ? String(params.id)
         : extractProductIdFromSeoSlug(params.slug);
   const router = useRouter();
-
-  const handleBack = useCallback(() => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  }, [router]);
+  const searchParams = useSearchParams();
+  const sessionMarketplaceContext = useMemo(
+    () => readListingSessionMarketplaceContext(),
+    [],
+  );
+  const queryMarketplaceContext = useMemo(
+    () => parseMarketplaceContextFromQuery(searchParams),
+    [searchParams],
+  );
 
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -354,6 +385,19 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
     if (data.product?.image) return [data.product.image];
     return ["/no-image.png"];
   }, [data]);
+
+  const legacyMediaCtx = useMemo(
+    () => ({
+      shopId: data?.product?.shopId,
+      partNumber: data?.product?.partNumber,
+    }),
+    [data?.product?.shopId, data?.product?.partNumber],
+  );
+
+  const productDescriptionHtml = useMemo(() => {
+    const raw = data?.product?.description?.replace(/<p><br><\/p>/g, "") || "";
+    return rewriteLegacyThumbUrlsInHtml(raw, legacyMediaCtx);
+  }, [data?.product?.description, legacyMediaCtx]);
 
   useEffect(() => {
     setRelatedOverride(null);
@@ -459,6 +503,35 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
   const product = data?.product || {};
   const shop = data?.shop || {};
   const cars = data?.cars || [];
+
+  const activeMarketplaceContext = useMemo(
+    () =>
+      resolveActiveMarketplaceContext({
+        queryContext: queryMarketplaceContext,
+        sessionContext: sessionMarketplaceContext,
+        cars,
+      }),
+    [queryMarketplaceContext, sessionMarketplaceContext, cars],
+  );
+
+  const listingBackHref = useMemo(
+    () => resolveListingBackHref(activeMarketplaceContext),
+    [activeMarketplaceContext],
+  );
+
+  const vehicleBreadcrumbLabel = useMemo(
+    () => formatMarketplaceVehicleLabel(activeMarketplaceContext),
+    [activeMarketplaceContext],
+  );
+
+  const handleBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(listingBackHref || "/");
+  }, [router, listingBackHref]);
+
   const relatedList = useMemo(() => {
     const fromApi =
       relatedOverride != null && relatedOverride.length
@@ -572,7 +645,17 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
           </button>
         </p>
         <nav className="breadcrumb" aria-label="Breadcrumb">
-          <Link href="/" prefetch={false}>Trang chủ</Link>
+          <Link href="/" prefetch={false}>
+            Trang chủ
+          </Link>
+          {vehicleBreadcrumbLabel ? (
+            <>
+              <span className="breadcrumb-sep"> / </span>
+              <Link href={listingBackHref} prefetch={false}>
+                {vehicleBreadcrumbLabel}
+              </Link>
+            </>
+          ) : null}
           <span className="breadcrumb-sep"> / </span>
           <span className="breadcrumb-current">{titleText}</span>
         </nav>
@@ -700,7 +783,7 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                 <button
                   type="button"
                   className="cta-btn cta-btn--ghost"
-                  onClick={() => openQuickRfqWithProduct(product, cars)}
+                  onClick={() => openQuickRfqWithProduct(product, activeMarketplaceContext)}
                 >
                   <span className="cta-ico" aria-hidden>
                     📦
@@ -765,7 +848,14 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
           ) : (
             <ul className="car-chip-list">
               {cars.map((x, i) => (
-                <li key={`${x.hang_xe}-${x.ten_xe}-${i}`} className="car-chip">
+                <li
+                  key={`${x.hang_xe}-${x.ten_xe}-${i}`}
+                  className={`car-chip${
+                    carMatchesMarketplaceContext(x, activeMarketplaceContext)
+                      ? " car-chip--active"
+                      : ""
+                  }`}
+                >
                   <span className="car-chip-brand">{x.hang_xe}</span>
                   <span className="car-chip-model">{x.ten_xe}</span>
                   <span className="car-chip-year">
@@ -792,15 +882,10 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
               items={relatedList}
               renderCard={(r) => (
                 <Link
-                  href={productHref(r.slug, r.id, r)}
+                  href={productHref(r.slug, r.id, r, activeMarketplaceContext, "related")}
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
-                    <img
-                      src={r.image || "/no-image.png"}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <PdMiniCardImage src={r.image} />
                   </div>
                   <div className="pd-mini-card__body">
                     <div className="pd-mini-card__title">
@@ -834,15 +919,10 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
               items={recentViewed}
               renderCard={(r) => (
                 <Link
-                  href={productHref(r.slug, r.id, r)}
+                  href={productHref(r.slug, r.id, r, activeMarketplaceContext, "recent")}
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
-                    <img
-                      src={r.image || "/no-image.png"}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <PdMiniCardImage src={r.image} />
                   </div>
                   <div className="pd-mini-card__body">
                     <div className="pd-mini-card__title">{r.title}</div>
@@ -864,7 +944,7 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
           <div
             className="detail-html"
             dangerouslySetInnerHTML={{
-              __html: product.description?.replace(/<p><br><\/p>/g, "") || "",
+              __html: productDescriptionHtml,
             }}
           />
         </div>
@@ -1019,7 +1099,7 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
           <button
             type="button"
             className="m-cta m-cta--contact"
-            onClick={() => openQuickRfqWithProduct(product, cars)}
+            onClick={() => openQuickRfqWithProduct(product, activeMarketplaceContext)}
             aria-label="Hỏi nhanh về sản phẩm này"
           >
             <span className="m-cta-ico">📦</span>

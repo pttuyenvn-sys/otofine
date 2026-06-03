@@ -11,9 +11,9 @@ import {
   buildLifecycleFilterSql,
   enrichProductGovernance,
   getShopPublicStatus,
-  getSellerGovernanceSchema,
   sqlSellerDeletedAtSelect,
 } from "../modules/products/services/sellerProductGovernance.service.js";
+import { getSchemaCapabilities } from "../utils/schemaCapabilities.js";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.js";
 
@@ -544,10 +544,10 @@ export async function updateProduct(data) {
    DELETE (single / bulk)
 ================================ */
 export async function deleteProduct({ id, shopId }) {
-  const schema = await getSellerGovernanceSchema();
+  const caps = await getSchemaCapabilities();
   let rs;
 
-  if (schema.hasSellerDeletedAt) {
+  if (caps.hasSellerDeletedAt) {
     [rs] = await pool.query(
       `
       UPDATE products
@@ -576,10 +576,10 @@ export async function deleteProduct({ id, shopId }) {
 }
 
 export async function deleteProducts({ shopId, ids }) {
-  const schema = await getSellerGovernanceSchema();
+  const caps = await getSchemaCapabilities();
   let rs;
 
-  if (schema.hasSellerDeletedAt) {
+  if (caps.hasSellerDeletedAt) {
     [rs] = await pool.query(
       `
       UPDATE products
@@ -696,13 +696,13 @@ export async function getProductsByShop(shopId, opts = {}) {
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 20));
   const offset = (page - 1) * limit;
   const lifecycle = (opts.lifecycle && String(opts.lifecycle).trim()) || "";
-  const schema = await getSellerGovernanceSchema();
-  const sellerDeletedSelect = sqlSellerDeletedAtSelect(schema.hasSellerDeletedAt, "p");
+  const caps = await getSchemaCapabilities();
+  const sellerDeletedSelect = sqlSellerDeletedAtSelect(caps.hasSellerDeletedAt, "p");
 
   const { whereSql, params: whereParams } = buildShopProductWhereClause(
     shopId,
     opts,
-    schema,
+    caps,
   );
 
   const isDev = process.env.NODE_ENV === "development";
@@ -733,8 +733,8 @@ export async function getProductsByShop(shopId, opts = {}) {
     console.info("[seller-products:governance]", {
       shopId,
       lifecycle: lifecycle || "(none)",
-      hasSellerDeletedAt: schema.hasSellerDeletedAt,
-      lifecycleFilter: lifecycle ? buildLifecycleFilterSql(lifecycle, schema) : null,
+      hasSellerDeletedAt: caps.hasSellerDeletedAt,
+      lifecycleFilter: lifecycle ? buildLifecycleFilterSql(lifecycle, caps) : null,
       totalBeforeGovernance,
       totalAfterGovernance: total,
     });

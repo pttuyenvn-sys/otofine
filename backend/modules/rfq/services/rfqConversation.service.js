@@ -11,6 +11,7 @@ import {
   validateMessageText,
 } from "../utils/rfqMessageValidation.js";
 import { saveConversationImageBuffer } from "../utils/rfqConversationImageStorage.js";
+import { resolveCanonicalRfqMediaUrlList } from "../utils/rfqImageUrls.js";
 import { notifyConversationMessagePush } from "./rfqConversationPush.service.js";
 import { tryAttributeReminderConversion } from "./rfqReminderAttribution.service.js";
 
@@ -412,14 +413,15 @@ export async function seedRequestImagesForConversation(conversation, conn = null
   }
   if (!Array.isArray(urls) || !urls.length) return { skipped: true };
 
-  const valid = urls
-    .map((u) => String(u || "").trim())
-    .filter(
-      (u) =>
-        u.startsWith("/uploads/rfq/") ||
-        u.startsWith("http://") ||
-        u.startsWith("https://"),
-    );
+  const resolvedUrls = await resolveCanonicalRfqMediaUrlList(
+    urls.map((u) => String(u || "").trim()),
+  );
+  const valid = resolvedUrls.filter(
+    (u) =>
+      u.startsWith("/uploads/rfq/") ||
+      u.startsWith("http://") ||
+      u.startsWith("https://"),
+  );
   if (!valid.length) return { skipped: true };
 
   const ownConn = conn ? null : await pool.getConnection();

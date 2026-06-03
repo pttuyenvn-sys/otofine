@@ -12,6 +12,8 @@ import {
   deriveRfqThumbnailCandidates,
   buildRfqImageUploadResponse,
   filenameFromMediaUrl,
+  canonicalizeRfqMediaUrl,
+  buildPossibleRfqR2Urls,
 } from "../modules/rfq/utils/rfqImageUrls.js";
 import {
   buildRfqThumbPath,
@@ -150,6 +152,43 @@ async function main() {
       if (label === "original" && r.ok && r.contentType && !r.contentType.includes("jpeg")) {
         console.warn(`WARN: original Content-Type expected image/jpeg, got ${r.contentType}`);
       }
+    }
+  }
+
+  console.info("\n--- Phase 6C.2: read-time canonicalization ---");
+  const legacyLocal = "/uploads/rfq/abc.jpg";
+  const r2Candidates = buildPossibleRfqR2Urls("abc.jpg");
+  if (!r2Candidates.length && rfqR2Configured()) {
+    throw new Error("expected R2 candidates when RFQ R2 configured");
+  }
+  if (r2Candidates.length) {
+    console.info("first candidate:", r2Candidates[0]);
+    const canonical = canonicalizeRfqMediaUrl(legacyLocal);
+    if (canonical === legacyLocal) {
+      throw new Error("canonicalize should rewrite legacy local path when R2 base configured");
+    }
+    if (!canonical.includes("/rfq/chat/") && !canonical.includes("/rfq/request/")) {
+      throw new Error("canonical URL must use rfq/chat or rfq/request layout");
+    }
+    const derivedFromCanonical = deriveRfqThumbnailUrls(canonical);
+    if (!derivedFromCanonical.small?.includes("thumb_100_")) {
+      throw new Error("derived thumbs must follow canonical R2 prefix");
+    }
+    if (derivedFromCanonical.small?.includes("/uploads/rfq/")) {
+      throw new Error("derived thumbs must not use legacy /uploads/rfq prefix");
+    }
+  } else {
+    console.info("SKIP canonical rewrite — RFQ_R2_PUBLIC_BASE_URL not configured");
+    if (canonicalizeRfqMediaUrl(legacyLocal) !== legacyLocal) {
+      throw new Error("canonicalize must preserve legacy URL when R2 base missing");
+    }
+  }
+
+  const apexLegacy = "https://otofine.com/uploads/rfq/abc.jpg";
+  if (rfqR2Configured() && r2Candidates.length) {
+    const apexCanonical = canonicalizeRfqMediaUrl(apexLegacy);
+    if (apexCanonical === apexLegacy) {
+      throw new Error("canonicalize should rewrite apex legacy path");
     }
   }
 

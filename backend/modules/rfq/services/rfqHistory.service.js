@@ -16,6 +16,7 @@ import {
   isValidVietnamMobileE164,
 } from "../utils/rfqCreateValidation.js";
 import { formatRfqOtpSmsBody } from "../utils/rfqOtpSms.js";
+import { resolveCanonicalRfqMediaUrl } from "../utils/rfqImageUrls.js";
 import { getRfqForViewer } from "./rfqPublic.service.js";
 import { buildBuyerEngagementPayload } from "../utils/rfqBuyerEngagement.js";
 import { rfqLog } from "../utils/rfqLogger.js";
@@ -188,10 +189,17 @@ export async function listHistoryRequests(session) {
   const latestMap = await reqRepo.latestMessagesForRequestIds(ids);
   const unreadMap = await reqRepo.countUnreadByRequestIds(ids);
 
-  const items = rows.map((row) =>
-    mapHistoryListItem(row, {
-      latestMsg: latestMap.get(Number(row.id)),
-      unreadCount: unreadMap.get(Number(row.id)) || 0,
+  const items = await Promise.all(
+    rows.map(async (row) => {
+      const item = mapHistoryListItem(row, {
+        latestMsg: latestMap.get(Number(row.id)),
+        unreadCount: unreadMap.get(Number(row.id)) || 0,
+      });
+      const rawImage = firstImageUrl(row.images_json);
+      if (rawImage) {
+        item.image = await resolveCanonicalRfqMediaUrl(rawImage);
+      }
+      return item;
     }),
   );
 

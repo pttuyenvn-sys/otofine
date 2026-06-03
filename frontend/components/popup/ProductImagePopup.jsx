@@ -2,6 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import axiosClient from "@/api/axiosClient";
+import AppImage from "@/components/common/AppImage";
+import {
+  normalizeSellerProductImageUrl,
+  sellerMediaContext,
+} from "@/lib/media/sellerProductMedia";
+import { PRODUCT_IMAGE_VARIANT, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media/productMediaUrl";
 import "./ProductImagePopup.css";
 
 export default function ProductImagePopup({
@@ -34,10 +40,18 @@ export default function ProductImagePopup({
         if (cancelled) return;
         const data = res.data || {};
         const raw = Array.isArray(data?.images) ? data.images : [];
-        const fixed = raw.map((img) => ({
-          ...img,
-          url: (img.url || img.image || img.ImageURL || "") + "?v=" + Date.now(),
-        }));
+        const mediaCtx = sellerMediaContext({
+          shopId: data?.product?.shopId ?? product?.shopId,
+          partNumber: data?.product?.partNumber ?? product?.partNumber,
+        });
+        const fixed = raw.map((img) => {
+          const base = img.url || img.image || img.ImageURL || "";
+          const normalized = normalizeSellerProductImageUrl(base, mediaCtx);
+          return {
+            ...img,
+            url: normalized ? `${normalized}?v=${Date.now()}` : "",
+          };
+        });
         setImages(fixed);
       })
       .catch((err) => {
@@ -51,7 +65,13 @@ export default function ProductImagePopup({
   if (!show) return null;
 
   // KHÔNG ép reload khi chuyển ảnh → slider mượt
-  const getUrl = (img) => img?.url || img?.image || img?.ImageURL || "";
+  const getUrl = (img) => {
+    const raw = img?.url || img?.image || img?.ImageURL || "";
+    const stable = String(raw || "").split("?")[0];
+    const mediaCtx = sellerMediaContext(product);
+    return normalizeSellerProductImageUrl(stable, mediaCtx) || PRODUCT_IMAGE_PLACEHOLDER;
+  };
+  const getStableUrl = (img) => getUrl(img);
 
   const prev = () => {
     if (!images.length) return;
@@ -127,7 +147,16 @@ export default function ProductImagePopup({
                       setIndex(i);
                     }}
                   >
-                    <img src={getUrl(img)} alt="thumb" className="p-thumb" />
+                    <AppImage
+                      mode="img"
+                      src={getStableUrl(img)}
+                      variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+                      allowOriginalFallback={false}
+                      width={64}
+                      height={64}
+                      alt=""
+                      className="p-thumb"
+                    />
                   </button>
                 ))}
               </div>

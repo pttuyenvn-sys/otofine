@@ -21,7 +21,7 @@ const MAX_PER_PAGE = 48;
  * storefront. The directory's job is to convince a buyer to click
  * through; once they do, the full SSR storefront takes over.
  */
-function toShopCardDto(row, rank = null) {
+export function toShopCardDto(row, rank = null) {
   const intro = (row.bio || stripHtml(row.intro_html) || stripHtml(row.descriptionHtml) || "")
     .toString()
     .trim();

@@ -1,22 +1,48 @@
 import { pool } from "../config/db.js";
+import { deleteAdminShop } from "../services/adminShopDelete.service.js";
+import { getAdminShopDetail } from "../services/adminShopDetail.service.js";
+import {
+  hasOperationalQuery,
+  listAdminShops,
+  listAdminShopsLegacyArray,
+  parseAdminShopListQuery,
+} from "../services/adminShopList.service.js";
 
 /**
  * Lấy danh sách shop (admin)
+ *
+ * Row `id` is shop_accounts.id (legacy approve/block/delete).
+ * `governanceShopId` is shops.id — use that for enforcement / platform governance APIs.
  */
 export async function getAllShops(req, res) {
-  const [rows] = await pool.query(`
-    SELECT
-      sa.id, sa.shopId, sa.name, sa.email, sa.phone,
-      sa.status, sa.createdAt, sa.approvedAt, sa.approvedByAdminId,
-      s.id AS governanceShopId,
-      s.public_status AS shopPublicStatus
-    FROM shop_accounts sa
-    LEFT JOIN shops s ON s.accountId = sa.id
-    WHERE sa.status != 'deleted'
-    ORDER BY sa.createdAt DESC
-  `);
+  try {
+    if (hasOperationalQuery(req.query)) {
+      const result = await listAdminShops(parseAdminShopListQuery(req.query));
+      return res.json(result);
+    }
+    const rows = await listAdminShopsLegacyArray();
+    return res.json(rows);
+  } catch (err) {
+    console.error("[admin:getAllShops]", err);
+    return res.status(500).json({ message: "Không thể tải danh sách shop" });
+  }
+}
 
-  res.json(rows);
+/**
+ * Aggregated admin shop drawer payload.
+ * :id is shop_accounts.id (legacy admin list id).
+ */
+export async function getShopDetail(req, res) {
+  try {
+    const detail = await getAdminShopDetail(req.params.id);
+    if (!detail) {
+      return res.status(404).json({ message: "Shop không tồn tại" });
+    }
+    return res.json(detail);
+  } catch (err) {
+    console.error("[admin:getShopDetail]", err);
+    return res.status(500).json({ message: "Không thể tải chi tiết shop" });
+  }
 }
 
 /**
@@ -49,27 +75,10 @@ export async function updateShopStatus(req, res) {
 }
 
 /**
- * Xóa shop (xóa mềm)
+ * Xóa shop (xóa mềm) — storefront-aware: suspends public visibility + cache bust.
  */
 export async function deleteShop(req, res) {
   const { id } = req.params;
-
-  // Không cho xóa shop đang active (bắt buộc phải khóa trước)
-  const [[shop]] = await pool.query("SELECT status FROM shop_accounts WHERE id = ?", [
-    id,
-  ]);
-
-  if (!shop) {
-    return res.status(404).json({ message: "Shop không tồn tại" });
-  }
-
-  if (shop.status === "active") {
-    return res.status(400).json({
-      message: "Phải khóa shop trước khi xóa",
-    });
-  }
-
-  await pool.query("UPDATE shop_accounts SET status = 'deleted' WHERE id = ?", [id]);
-
-  res.json({ ok: true });
+  const result = await deleteAdminShop(id);
+  return res.status(result.status).json(result.body);
 }

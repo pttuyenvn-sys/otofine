@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { getProductDetailCached } from "@/lib/product/getProductDetailCached";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { buildServerCanonicalProductUrl } from "@/lib/marketplace/serverCanonicalSlug";
 
 /**
  * Short product-id fallback namespace.
@@ -29,15 +29,20 @@ import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
  * see it as a pure canonicalization step. The destination canonical
  * carries the index-able content.
  */
-export default async function ProductIdRedirect({ params }) {
+export default async function ProductIdRedirect({ params, searchParams }) {
   const { id: idRaw } = await params;
+  const query = await searchParams;
   const n = Number(idRaw);
   if (!Number.isFinite(n) || n <= 0) notFound();
 
   const data = await getProductDetailCached(n);
   if (!data?.product) notFound();
 
-  const canonical = buildProductSeoUrl({ ...data.product, cars: data.cars });
+  const canonical = buildServerCanonicalProductUrl(
+    data.product,
+    data.cars,
+    query,
+  );
   if (!canonical || canonical === "/" || canonical === `/p/${n}`) {
     // The canonical builder degraded to `/p/<id>` itself (no slug
     // fields available) — avoid a redirect loop by rendering 404.

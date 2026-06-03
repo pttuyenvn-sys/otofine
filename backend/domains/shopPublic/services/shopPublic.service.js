@@ -1,14 +1,19 @@
 import {
   findPublicShopBySlug,
-  countPublicShopProducts,
+  fetchShopIndexabilityContext,
   listShopCategories,
   listShopTopBrands,
 } from "../repositories/shopPublic.repository.js";
+import { resolveSlugRedirectTarget } from "../repositories/shopSlugHistory.repository.js";
 import {
   listShopProducts,
   listShopFitmentOptions,
 } from "../repositories/shopPublicProducts.repository.js";
 import { resolveShopZalo } from "../../../utils/resolveShopZalo.js";
+import {
+  evaluateContentSeoEligibility,
+  evaluateStorefrontSeoIndexability,
+} from "../utils/storefrontSeoIndexability.util.js";
 
 /**
  * Project a raw `shops` row into the public-API DTO. Backwards-
@@ -115,6 +120,13 @@ function toPublicDto(row, extras = {}) {
      */
     seoEligible: extras.seoEligible ?? false,
     seoReasons: extras.seoReasons || [],
+    /** Phase 6B.6 — full indexing gate (content + governance health). */
+    seoIndexable: extras.seoIndexable ?? false,
+    seoIndexReasons: extras.seoIndexReasons || [],
+    healthScore: extras.healthScore ?? null,
+    healthLabel: extras.healthLabel ?? null,
+    attentionFlags: extras.attentionFlags || [],
+    indexBlockingFlags: extras.indexBlockingFlags || [],
   };
 }
 
@@ -172,8 +184,37 @@ function splitWorkingHoursLines(value) {
 }
 
 /**
+ * Resolve a request slug to a public shop row, following slug history
+ * when the storefront was renamed. Returns null when unavailable.
+ */
+async function resolvePublicShopRow(requestedSlug) {
+  const normalized = String(requestedSlug || "").trim();
+  if (!normalized) return { row: null, redirectSlug: null };
+
+  let row = await findPublicShopBySlug(normalized);
+  if (row) {
+    return { row, redirectSlug: null };
+  }
+
+  const target = await resolveSlugRedirectTarget(normalized);
+  if (!target || target === normalized) {
+    return { row: null, redirectSlug: null };
+  }
+
+  row = await findPublicShopBySlug(target);
+  if (!row) {
+    return { row: null, redirectSlug: null };
+  }
+
+  return { row, redirectSlug: target };
+}
+
+/**
  * Resolve slug → enriched public shop DTO (with product count).
  * Returns null when the shop is missing OR not in `public` status.
+ *
+ * When `requestedSlug` differs from the current slug (rename history),
+ * the DTO includes `redirectSlug` so callers can emit a 308/301.
  *
  * The shop row lookup AND the product count are now fetched in
  * parallel — count is independent of any field on `row` (it only
@@ -181,62 +222,56 @@ function splitWorkingHoursLines(value) {
  * `findPublicShopBySlug` (cached) + a fresh count.
  */
 export async function getPublicShopBySlug(slug) {
-  const row = await findPublicShopBySlug(slug);
+  const { row, redirectSlug } = await resolvePublicShopRow(slug);
   if (!row) return null;
   // Both queries are independent of each other and only depend on
   // `row.id` — fan them out in parallel so the trust-badge data
   // doesn't add a serial round-trip.
-  const [productCount, topBrands] = await Promise.all([
-    countPublicShopProducts(row.id),
+  const [indexCtx, topBrands] = await Promise.all([
+    fetchShopIndexabilityContext(row.id),
     listShopTopBrands(row.id, 3),
   ]);
-  const { eligible, reasons } = evaluateSeoEligibility(row, productCount);
-  return toPublicDto(row, {
+  const productCount = indexCtx.productCount;
+  const content = evaluateContentSeoEligibility(row, productCount);
+  const indexEval = evaluateStorefrontSeoIndexability({
+    row,
+    productCount,
+    approvedModerationCount: indexCtx.approvedModerationCount,
+    rejectedModerationCount: indexCtx.rejectedModerationCount,
+    lastStorefrontActivityAt: indexCtx.lastStorefrontActivityAt,
+    latestProductAt: indexCtx.latestProductAt,
+  });
+  const dto = toPublicDto(row, {
     productCount,
     topBrands,
-    seoEligible: eligible,
-    seoReasons: reasons,
+    seoEligible: content.eligible,
+    seoReasons: content.reasons,
+    seoIndexable: indexEval.indexable,
+    seoIndexReasons: indexEval.reasons,
+    healthScore: indexEval.breakdown.healthScore,
+    healthLabel: indexEval.breakdown.healthLabel,
+    attentionFlags: indexEval.breakdown.attentionFlags,
+    indexBlockingFlags: indexEval.breakdown.blockingFlags,
   });
+  if (redirectSlug) {
+    dto.redirectSlug = redirectSlug;
+  }
+  return dto;
 }
 
 /**
- * Server-side SEO eligibility gate.
- *
- * A shop is eligible for indexing iff all of the following hold:
- *   1. `public_status` is exactly "public"
- *   2. `slug` is present and at least 4 characters long
- *   3. shop has either an avatar OR a cover image (something for OG)
- *   4. shop has either rich intro html OR a bio (something for the
- *      meta description)
- *   5. shop has a phone number (LocalBusiness JSON-LD requires one)
- *   6. shop has at least 1 product live
- *
- * The function NEVER throws; on unexpected input it returns
- * `{ eligible: false, reasons: ['internal'] }` so the SSR path always
- * has a defined gate.
- *
- * Reasons use stable string IDs so the frontend can render its own
- * localised explanation without trusting server-side copy.
+ * Server-side SEO content gate — see storefrontSeoIndexability.util.js.
+ * @deprecated Use evaluateContentSeoEligibility / evaluateStorefrontSeoIndexability.
  */
 function evaluateSeoEligibility(row, productCount) {
-  if (!row) return { eligible: false, reasons: ["internal"] };
-  const reasons = [];
-  if ((row.public_status || "").toLowerCase() !== "public") reasons.push("not_public");
-  const slug = (row.slug || "").trim();
-  if (!slug || slug.length < 4) reasons.push("bad_slug");
-  if (!row.avatar && !row.cover && !row.cover_image) reasons.push("no_image");
-  const hasIntro = (row.intro_html || row.descriptionHtml || row.bio || "").toString().trim().length > 0;
-  if (!hasIntro) reasons.push("no_description");
-  if (!(row.phone || "").toString().trim()) reasons.push("no_phone");
-  if (!productCount || Number(productCount) < 1) reasons.push("no_products");
-  return { eligible: reasons.length === 0, reasons };
+  return evaluateContentSeoEligibility(row, productCount);
 }
 
 /**
  * Resolve slug → list of categories (with product counts).
  */
 export async function getPublicShopCategories(slug) {
-  const row = await findPublicShopBySlug(slug);
+  const { row } = await resolvePublicShopRow(slug);
   if (!row) return null;
   const categories = await listShopCategories(row.id);
   return categories.map((c) => ({
@@ -254,7 +289,7 @@ export async function getPublicShopCategories(slug) {
  * shop id; we do parallelize total + items inside `listShopProducts`.
  */
 export async function getPublicShopProducts(slug, query = {}) {
-  const row = await findPublicShopBySlug(slug);
+  const { row } = await resolvePublicShopRow(slug);
   if (!row) return null;
   const data = await listShopProducts({
     shopId: row.id,
@@ -276,6 +311,7 @@ export async function getPublicShopProducts(slug, query = {}) {
       name: p.partName,
       partNumber: p.partNumber,
       price: p.price != null ? Number(p.price) : null,
+      stock: p.stock != null ? Number(p.stock) : 0,
       image: p.image_url || null,
       category: p.categoryLabel || null,
       // Canonical "loại hàng" sourced from the parts knowledge base
@@ -311,7 +347,7 @@ function numOrNull(v) {
  * year range). Returns null for unknown / not-public slugs.
  */
 export async function getPublicShopFitments(slug) {
-  const row = await findPublicShopBySlug(slug);
+  const { row } = await resolvePublicShopRow(slug);
   if (!row) return null;
   return listShopFitmentOptions(row.id);
 }
@@ -326,7 +362,7 @@ export async function getPublicShopFitments(slug) {
  * a redundant product table scan when the shop has many products).
  */
 export async function getPublicShopContact(slug) {
-  const row = await findPublicShopBySlug(slug);
+  const { row } = await resolvePublicShopRow(slug);
   if (!row) return null;
   const dto = toPublicDto(row, { productCount: null });
   return {

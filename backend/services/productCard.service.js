@@ -9,11 +9,16 @@ import { getOrSetCache } from "./listCache.service.js";
 import { stripHtml, formatVND } from "../utils/textFormat.js";
 import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
 import { legacySlugForId } from "../utils/productSlug.js";
+import { stabilizeLegacyProductMediaUrl } from "../utils/legacyProductMediaUrl.util.js";
 
-function normalizeThumbnailUrl(raw) {
+function normalizeThumbnailUrl(raw, ctx = {}) {
   if (!raw) return null;
-  const u = String(raw).trim();
+  let u = String(raw).trim();
   if (!u) return null;
+
+  u = stabilizeLegacyProductMediaUrl(u, ctx);
+  if (!u) return null;
+
   if (u.startsWith("http")) return u;
   const base = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
   if (!base) return u.startsWith("/") ? u : `/${u}`;
@@ -49,10 +54,11 @@ function decodeCursor(raw) {
 }
 
 function mapRowToCard(row) {
+  const mediaCtx = { shopId: row.shopId, partNumber: row.partNumber };
   const thumb =
     row.thumbnail != null
-      ? row.thumbnail
-      : normalizeThumbnailUrl(row.thumbRaw);
+      ? stabilizeLegacyProductMediaUrl(row.thumbnail, mediaCtx) || null
+      : normalizeThumbnailUrl(row.thumbRaw, mediaCtx);
 
   const updatedAt =
     row.updatedAt instanceof Date
@@ -80,7 +86,10 @@ function mapRowToCard(row) {
 function mapRowToHomeListItem(row) {
   const id = row.id;
   const slug = row.slug || legacySlugForId(id);
-  const image = normalizeThumbnailUrl(row.thumbRaw);
+  const image = normalizeThumbnailUrl(row.thumbRaw, {
+    shopId: row.shopId,
+    partNumber: row.partNumber,
+  });
   const shortDescription = stripHtml(row.shortDescription);
   const sub = buildProductCardHighlights({
     productTitle: shortDescription,

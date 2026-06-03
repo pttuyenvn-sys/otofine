@@ -55,29 +55,50 @@ function foldVi(str = "") {
  */
 
 /**
- * From-clause for home listing (pcm/pc + optional fitment + shop + address).
- * Omit fitment joins when WHERE does not reference pa/cm (category-only, keyword-only, etc.).
+ * From-clause for marketplace listing — conditional pcm/pc and pa/cm joins.
  * @param {ProductsSchemaAdapter} pc
- * @param {boolean} joinVehicleFitment
+ * @param {boolean | { joinVehicleFitment?: boolean, joinCategoryMap?: boolean }} opts
+ *   Boolean second arg (legacy): `{ joinVehicleFitment: opts, joinCategoryMap: true }`
+ *   for category-controller paths that always aggregate on `pc`.
  */
-export function buildProductListingJoinSql(pc) {
+export function buildProductListingJoinSql(pc, opts = {}) {
   const pid = pc.idExpr("p");
 
-  return `
-    FROM products p
+  let joinVehicleFitment = false;
+  let joinCategoryMap = false;
 
+  if (typeof opts === "boolean") {
+    joinVehicleFitment = opts;
+    joinCategoryMap = true;
+  } else if (opts && typeof opts === "object") {
+    joinVehicleFitment = Boolean(opts.joinVehicleFitment);
+    joinCategoryMap = Boolean(opts.joinCategoryMap);
+  }
+
+  const categoryJoinSql = joinCategoryMap
+    ? `
     LEFT JOIN product_category_map pcm
       ON pcm.product_id = ${pid}
 
     LEFT JOIN product_categories pc
       ON pc.id = pcm.category_id
+    `
+    : "";
 
+  const fitmentJoinSql = joinVehicleFitment
+    ? `
     LEFT JOIN product_car_applications pa
       ON pa.productId = ${pid}
 
     LEFT JOIN car_models cm
       ON cm.id = pa.carModelId
+    `
+    : "";
 
+  return `
+    FROM products p
+    ${categoryJoinSql}
+    ${fitmentJoinSql}
     JOIN shops s
       ON ${pc.shopJoinOn("p", "s")}
 
@@ -133,7 +154,8 @@ export async function buildProductListFiltersWithVisibility(pc, query) {
   return { ...base, where: base.where + vis.sql };
 }
 
-export function buildProductListFilters(pc, query) {
+export function buildProductListFilters(pc, query, options = {}) {
+  const omitKeyword = Boolean(options.omitKeyword);
   const q = normalizeListingQuery(query || {});
   const { brand, model, year, category, keyword, cityId, city, location } = q;
   const locationName = String(city || location || "").trim();
@@ -196,7 +218,7 @@ export function buildProductListFilters(pc, query) {
       `%${categoryFolded}%`,
       `%${categoryFolded}%`
     );
-  } if (keyword) {
+  } if (keyword && !omitKeyword) {
     const kw = normalizeText(keyword);
     const words = kw.split(/\s+/).filter(Boolean);
 
@@ -277,40 +299,8 @@ export function buildListOrderBy({ keywordOrder, sort, freshnessExpr, pc }) {
         `;
 }
 
-/**
- * @param {object} args
- * @param {ProductsSchemaAdapter} args.pc
- */
-export async function selectProductListRows({
-  pc,
-  where,
-  params,
-  keywordOrder,
-  limit,
-  offset,
-  sort = "popular",
-  joinVehicleFitment = false,
-}) {
-  const freshnessExpr = pc.orderExprQualified("p");
-  const orderSql = buildListOrderBy({ keywordOrder, sort, freshnessExpr, pc });
-  const fromSql = buildProductListingJoinSql(pc);
-  const sql = `
-        SELECT
-          ${pc.idExpr("p")},
-          ${pc.shopIdSqlSelect("p")},
-          ${pc.partNumberSqlSelect("p")},
-          ${pc.nameSqlSelect("p")},
-          ${pc.priceSqlSelect("p")},
-          ${pc.shortDescriptionSqlSelect("p")},
-          ${pc.descriptionSqlSelect("p")},
-          ${pc.originSqlSelect("p")},
-          ${pc.stockSqlSelect("p")},
-          ${freshnessExpr} AS updatedAt,
-          MAX(s.name) AS shopName,
-          MAX(s.phone) AS phone,
-          MAX(a.tinh_tp) AS provinceName,
-          (
-            SELECT TRIM(BOTH ' ' FROM CONCAT_WS(' ',
+const COMPATIBILITY_LINE_EXPR = `
+            TRIM(BOTH ' ' FROM CONCAT_WS(' ',
               NULLIF(TRIM(cmx.hang_xe), ''),
               NULLIF(TRIM(cmx.ten_xe), ''),
               NULLIF(
@@ -325,13 +315,182 @@ export async function selectProductListRows({
                 ),
                 ''
               )
-            ))
+            ))`;
+
+/**
+ * Fitment filter params aligned with buildProductListFilters brand/model/year.
+ * @param {{ brand?: string, model?: string, year?: unknown }} vehicleFilters
+ */
+function resolveListingVehicleFilterParams(vehicleFilters = {}) {
+  const q = normalizeListingQuery(vehicleFilters || {});
+  const brand = q.brand ? String(q.brand).trim().toLowerCase() : null;
+  const model = q.model ? String(q.model).trim().toLowerCase() : null;
+  const year =
+    q.year != null && Number.isFinite(Number(q.year)) ? Number(q.year) : null;
+  const hasVehicleFilter = Boolean(brand || model || year != null);
+  return { brand, model, year, hasVehicleFilter };
+}
+
+/**
+ * Correlated fitment subqueries for listing card hydration.
+ * When vehicle filters are active, compatibilityLine + matchedFitment come
+ * from the SAME fitment row that satisfied the listing filter — not cars[0].
+ *
+ * @param {ProductsSchemaAdapter} pc
+ * @param {{ brand?: string, model?: string, year?: unknown }} [vehicleFilters]
+ * @returns {{ sql: string, params: unknown[], hasVehicleFilter: boolean }}
+ */
+export function buildListingFitmentSelectSql(pc, vehicleFilters = {}) {
+  const pid = pc.idExpr("p");
+  const { brand, model, year, hasVehicleFilter } =
+    resolveListingVehicleFilterParams(vehicleFilters);
+
+  const primaryFitmentSubquery = `
             FROM product_car_applications pax
             LEFT JOIN car_models cmx ON cmx.id = pax.carModelId
-            WHERE pax.productId = ${pc.idExpr("p")}
+            WHERE pax.productId = ${pid}
             ORDER BY pax.id ASC
-            LIMIT 1
-          ) AS compatibilityLine
+            LIMIT 1`;
+
+  if (!hasVehicleFilter) {
+    return {
+      sql: `
+          (
+            SELECT ${COMPATIBILITY_LINE_EXPR}
+            ${primaryFitmentSubquery}
+          ) AS compatibilityLine`,
+      params: [],
+      hasVehicleFilter: false,
+    };
+  }
+
+  const matchedFitmentFilterSql = `
+            AND (? IS NULL OR ${sqlLowerTrim("cmx.hang_xe")} = ?)
+            AND (? IS NULL OR ${sqlLowerTrim("cmx.ten_xe")} = ?)
+            AND (
+              ? IS NULL
+              OR (
+                (pax.year_from IS NULL OR pax.year_from <= ?)
+                AND
+                (pax.year_to IS NULL OR pax.year_to >= ?)
+              )
+            )`;
+
+  const matchedFitmentParams = [brand, brand, model, model, year, year, year];
+
+  const matchedFitmentSubquery = `
+            FROM product_car_applications pax
+            LEFT JOIN car_models cmx ON cmx.id = pax.carModelId
+            WHERE pax.productId = ${pid}
+            ${matchedFitmentFilterSql}
+            ORDER BY pax.id ASC
+            LIMIT 1`;
+
+  return {
+    sql: `
+          (
+            SELECT JSON_OBJECT(
+              'brand', cmx.hang_xe,
+              'model', cmx.ten_xe,
+              'yearFrom', pax.year_from,
+              'yearTo', pax.year_to
+            )
+            ${matchedFitmentSubquery}
+          ) AS matchedFitment,
+          (
+            SELECT ${COMPATIBILITY_LINE_EXPR}
+            ${matchedFitmentSubquery}
+          ) AS compatibilityLine`,
+    params: [...matchedFitmentParams, ...matchedFitmentParams],
+    hasVehicleFilter: true,
+  };
+}
+
+/** @param {unknown} raw */
+export function parseMatchedFitmentJson(raw) {
+  if (raw == null) return null;
+  if (typeof raw === "object") return raw;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Map SQL row → listing DTO vehicle fields from matchedFitment when filtered.
+ * @param {Record<string, unknown>} row
+ * @param {{ brand?: string, model?: string, year?: unknown }} [vehicleFilters]
+ */
+export function hydrateListingRowVehicleFields(row, vehicleFilters = {}) {
+  const { hasVehicleFilter } = resolveListingVehicleFilterParams(vehicleFilters);
+  const out = { ...row };
+
+  if (!hasVehicleFilter) {
+    delete out.matchedFitment;
+    return out;
+  }
+
+  const mf = parseMatchedFitmentJson(out.matchedFitment);
+  if (!mf) {
+    delete out.matchedFitment;
+    return out;
+  }
+
+  out.matchedFitment = {
+    brand: mf.brand ?? undefined,
+    model: mf.model ?? undefined,
+    yearFrom: mf.yearFrom ?? undefined,
+    yearTo: mf.yearTo ?? undefined,
+  };
+
+  if (out.matchedFitment.brand) out.brand = out.matchedFitment.brand;
+  if (out.matchedFitment.model) out.model = out.matchedFitment.model;
+  if (out.matchedFitment.yearFrom != null) out.yearFrom = out.matchedFitment.yearFrom;
+  if (out.matchedFitment.yearTo != null) out.yearTo = out.matchedFitment.yearTo;
+
+  return out;
+}
+
+/**
+ * @param {object} args
+ * @param {ProductsSchemaAdapter} args.pc
+ * @param {{ brand?: string, model?: string, year?: unknown }} [args.vehicleFilters]
+ */
+export async function selectProductListRows({
+  pc,
+  where,
+  params,
+  keywordOrder,
+  limit,
+  offset,
+  sort = "popular",
+  joinVehicleFitment = false,
+  joinCategoryMap = false,
+  vehicleFilters = {},
+}) {
+  const freshnessExpr = pc.orderExprQualified("p");
+  const orderSql = buildListOrderBy({ keywordOrder, sort, freshnessExpr, pc });
+  const fromSql = buildProductListingJoinSql(pc, { joinVehicleFitment, joinCategoryMap });
+  const fitmentSelect = buildListingFitmentSelectSql(pc, vehicleFilters);
+  const sql = `
+        SELECT
+          ${pc.idExpr("p")},
+          ${pc.shopIdSqlSelect("p")},
+          ${pc.partNumberSqlSelect("p")},
+          ${pc.nameSqlSelect("p")},
+          ${pc.priceSqlSelect("p")},
+          ${pc.shortDescriptionSqlSelect("p")},
+          ${pc.originSqlSelect("p")},
+          ${pc.stockSqlSelect("p")},
+          ${freshnessExpr} AS updatedAt,
+          MAX(s.name) AS shopName,
+          MAX(s.phone) AS phone,
+          MAX(a.tinh_tp) AS provinceName,
+          ${fitmentSelect.sql}
 
         ${fromSql}
 
@@ -340,7 +499,7 @@ export async function selectProductListRows({
         GROUP BY
           ${pc.idExpr("p")}, ${pc.shopIdExpr("p")}, ${pc.partNumberExpr("p")}, ${pc.partNameExpr("p")},
           ${pc.priceExpr("p")},
-          ${pc.shortDescriptionExpr("p")}, ${pc.descriptionExpr("p")},
+          ${pc.shortDescriptionExpr("p")},
           ${pc.originExpr("p")},
           ${pc.stockExpr("p")},
           ${freshnessExpr}
@@ -349,11 +508,11 @@ export async function selectProductListRows({
 
         LIMIT ? OFFSET ?
         `;
-  const execParams = [...params, limit, offset];
+  const execParams = [...fitmentSelect.params, ...params, limit, offset];
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log(
       "[listing SQL] /products selectProductListRows",
-      JSON.stringify({ joinVehicleFitment }),
+      JSON.stringify({ joinVehicleFitment, joinCategoryMap }),
       sql.replace(/\s+/g, " ").trim(),
       execParams,
     );
@@ -365,9 +524,15 @@ export async function selectProductListRows({
 /**
  * @param {{ pc: ProductsSchemaAdapter, where: string, params: unknown[] }} args
  */
-export async function countProductList({ pc, where, params, joinVehicleFitment = false }) {
+export async function countProductList({
+  pc,
+  where,
+  params,
+  joinVehicleFitment = false,
+  joinCategoryMap = false,
+}) {
   const pid = pc.idExpr("p");
-  const fromSql = buildProductListingJoinSql(pc);
+  const fromSql = buildProductListingJoinSql(pc, { joinVehicleFitment, joinCategoryMap });
   const sql = `
       SELECT COUNT(DISTINCT ${pid}) total
       ${fromSql}
@@ -376,7 +541,7 @@ export async function countProductList({ pc, where, params, joinVehicleFitment =
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log(
       "[listing SQL] /products countProductList",
-      JSON.stringify({ joinVehicleFitment }),
+      JSON.stringify({ joinVehicleFitment, joinCategoryMap }),
       sql.replace(/\s+/g, " ").trim(),
       params,
     );

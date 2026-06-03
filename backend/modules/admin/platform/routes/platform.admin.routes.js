@@ -26,6 +26,7 @@ import { resetModerationStatus, getModerationStats } from "../controllers/produc
 import { listShopRisk } from "../../../governance/controllers/shopRisk.admin.controller.js";
 import { getGovernanceDashboard, getGovernanceHealth } from "../controllers/governance.admin.controller.js";
 import { getShopGovernance, postShopGovernanceAction } from "../controllers/shopGovernance.admin.controller.js";
+import { getShopStorefront, postShopStorefront } from "../controllers/shopStorefront.admin.controller.js";
 import { isFeatureEnabled } from "../../index.js";
 
 const router = express.Router();
@@ -186,6 +187,7 @@ router.get(
   requirePermission("governance:read"),
   getShopGovernance,
 );
+// :id above is shops.id (integer PK), not shop_accounts.id.
 
 router.post(
   "/shops/:id/governance/actions",
@@ -195,6 +197,27 @@ router.post(
   requireAdminSession,
   requirePermission("governance:write"),
   postShopGovernanceAction,
+);
+
+router.get(
+  "/shops/:id/storefront",
+  requireModerationEnabled,
+  requireAuth,
+  requireAdmin,
+  requireAdminSession,
+  requirePermission("governance:read"),
+  getShopStorefront,
+);
+// :id is shops.id (integer PK), not shop_accounts.id.
+
+router.post(
+  "/shops/:id/storefront",
+  requireModerationEnabled,
+  requireAuth,
+  requireAdmin,
+  requireAdminSession,
+  requirePermission("governance:write"),
+  postShopStorefront,
 );
 
 // Step 3 — Platform-enabled gate for all future routes (Slice 3+).

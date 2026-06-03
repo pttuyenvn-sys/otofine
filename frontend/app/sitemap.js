@@ -2,7 +2,24 @@ import { API_BASE } from "@/lib/config";
 import { buildVehicleSlug } from "@/lib/seo/buildVehicleSlug";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
 import { SEO_BASE_SLUG, categoryLandingSlugFromName } from "@/lib/seo/slugify";
+import { buildShopsiteSitemap } from "@/lib/shopsite/shopSitemapBuilder";
 
+/**
+ * Apex sitemap (`/sitemap.xml`) — dynamic, revalidated daily.
+ *
+ * Architecture:
+ *   1. Static apex entries (homepage, SEO hub)
+ *   2. Remote catalog from GET /api/seo/sitemap-data (products, vehicles,
+ *      category landings) — all apex URLs
+ *   3. Storefront tab pages from `storefronts[]` — subdomain canonical
+ *      URLs only (`https://{slug}.otofine.com/...`)
+ *
+ * Storefront rows are pre-filtered server-side: public_status=public,
+ * SEO-eligible (avatar/cover, intro, phone, ≥1 public product), valid
+ * DNS slug, non-reserved label. Suspended/pending shops never appear.
+ *
+ * Product PDPs intentionally remain on apex — see shopSitemapBuilder.js.
+ */
 /** @type {import('next').MetadataRoute.Sitemap} */
 export default async function sitemap() {
   const base = getSiteUrl();
@@ -32,6 +49,7 @@ export default async function sitemap() {
     products: [],
     brandModels: [],
     partNames: [],
+    storefronts: [],
   };
 
   try {
@@ -90,6 +108,15 @@ export default async function sitemap() {
   for (const name of remote.partNames || []) {
     const slug = categoryLandingSlugFromName(name);
     if (slug) add(`${base}/${slug}`, { priority: 0.65 });
+  }
+
+  // Phase 6B.5 — subdomain storefront tabs (never apex /shops/{slug}).
+  for (const entry of buildShopsiteSitemap(remote.storefronts || [])) {
+    add(entry.url, {
+      lastModified: entry.lastModified || now,
+      changeFrequency: entry.changeFrequency,
+      priority: entry.priority,
+    });
   }
 
   return out;

@@ -1,7 +1,7 @@
 "use client";
 
-import { rfqThumbSmallSrc, rfqThumbSmallFallbackSrcs } from "@/lib/rfq/rfqMediaUrl";
 import RfqLazyImage from "@/components/rfq/RfqLazyImage";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 
 const PHASE_LABEL = {
   quoted: { label: "Đã có báo giá", tone: "quoted" },
@@ -77,8 +77,8 @@ export default function BuyerHistoryCard({ item, onOpen, opening }) {
       {item.image ? (
         <div className="rfq-history-card__thumb" aria-hidden>
           <RfqLazyImage
-            src={rfqThumbSmallSrc(item.image)}
-            fallbackSrcs={rfqThumbSmallFallbackSrcs(item.image)}
+            originalUrl={item.image}
+            variant={RFQ_MEDIA_VARIANT.SMALL}
             alt=""
             loading="lazy"
             decoding="async"

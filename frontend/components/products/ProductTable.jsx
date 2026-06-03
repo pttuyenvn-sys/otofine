@@ -1,11 +1,12 @@
 "use client";
 
 import { memo } from "react";
+import AppImage from "../common/AppImage";
+import { PRODUCT_IMAGE_VARIANT } from "@/lib/media/productMediaUrl";
 import ProductHeatChip from "./ProductHeatChip";
 import { SellerLifecycleBadge, SellerVisibilityBadge } from "./SellerProductStatusBadges";
 import SellerProductRowActions from "./SellerProductRowActions";
 import {
-  FALLBACK_PRODUCT_IMG,
   pickProductThumb,
   formatProductCarLine,
 } from "./sellerProductUi";
@@ -48,16 +49,13 @@ const ProductTableRow = memo(function ProductTableRow({
       <td className="seller-dash-col-product">
         <div className="seller-dash-product-cell">
           <div className="seller-dash-product-thumb">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={thumb || FALLBACK_PRODUCT_IMG}
+            <AppImage
+              mode="img"
+              src={thumb || null}
+              variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+              allowOriginalFallback={false}
               alt=""
-              loading="lazy"
-              onError={(e) => {
-                if (e.currentTarget.src !== FALLBACK_PRODUCT_IMG) {
-                  e.currentTarget.src = FALLBACK_PRODUCT_IMG;
-                }
-              }}
+              className="seller-dash-product-thumb__img"
             />
           </div>
           <div className="seller-dash-product-meta">

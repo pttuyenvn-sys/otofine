@@ -5,6 +5,8 @@ import { executeShopGovernanceAction } from "../../../../modules/governance/serv
 /**
  * GET /api/admin/platform/shops/:id/governance
  * Read-only aggregated shop governance view.
+ *
+ * :id is shops.id (integer PK) — NOT shop_accounts.id, NOT shop_accounts.shopId UUID.
  */
 export async function getShopGovernance(req, res) {
   try {
@@ -110,6 +112,8 @@ export async function getShopGovernance(req, res) {
 /**
  * POST /api/admin/platform/shops/:id/governance/actions
  * Body: { action, note?, idempotencyKey? }
+ *
+ * :id is shops.id (integer PK) — NOT shop_accounts.id, NOT shop_accounts.shopId UUID.
  */
 export async function postShopGovernanceAction(req, res) {
   try {

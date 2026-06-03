@@ -40,3 +40,11 @@ export function isValidShopSlug(slug) {
 export function normalizeSlugParam(raw) {
   return String(raw ?? "").trim().toLowerCase();
 }
+
+/**
+ * Admin governance slug normalization — spaces/diacritics → hyphenated slug.
+ * "Phu Tung Toyota" → "phu-tung-toyota"
+ */
+export function normalizeAdminGovernanceSlug(raw) {
+  return slugify(raw, { compact: false });
+}

@@ -16,7 +16,7 @@ import {
   validateRfqCreateBody,
 } from "../utils/rfqCreateValidation.js";
 import { buildBuyerEngagementPayload } from "../utils/rfqBuyerEngagement.js";
-import { mergeRfqImageUrlLists } from "../utils/rfqImageUrls.js";
+import { mergeRfqImageUrlLists, resolveCanonicalRfqMediaUrlList } from "../utils/rfqImageUrls.js";
 
 function randomOtp6() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -288,6 +288,11 @@ export async function getRfqForViewer(rfqRow) {
   try {
     images = typeof images === "string" ? JSON.parse(images) : images;
   } catch {
+    images = [];
+  }
+  if (Array.isArray(images) && images.length) {
+    images = await resolveCanonicalRfqMediaUrlList(images);
+  } else if (!Array.isArray(images)) {
     images = [];
   }
 

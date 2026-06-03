@@ -3,17 +3,19 @@
  *
  * A product is publicly visible only when ALL of:
  *   - moderation_status = 'approved' (when column exists)
- *   - product listing is active (when a status column exists)
- *   - shop.public_status = 'public' (active shop, not governance-suspended)
+ *   - shop.public_status = 'public' (when shop gate is applied)
+ *   - seller_deleted_at IS NULL (when column exists)
  *
- * Rejected / draft / hidden / pending_review products must not appear on
- * public surfaces. Direct detail access for non-public products returns 404.
+ * Rejected / draft / hidden / pending_review / seller-deleted products must
+ * not appear on public surfaces. Stock level, price, and image do not affect
+ * storefront listing visibility.
+ * Direct detail access for non-public products returns 404.
  */
 
 import { pool } from "../config/db.js";
 import { getProductsColumnsResolved } from "./productsTableColumns.server.js";
 
-/** @type {Promise<{ hasModerationStatus: boolean, productActiveSql: string | null }> | null} */
+/** @type {Promise<{ hasModerationStatus: boolean, hasSellerDeletedAt: boolean, productActiveSql: string | null }> | null} */
 let metaCache = null;
 
 function qual(alias, col) {
@@ -36,6 +38,7 @@ async function resolveMeta() {
       );
       const productCols = new Set(rows.map((r) => String(r.COLUMN_NAME)));
       const hasModerationStatus = productCols.has("moderation_status");
+      const hasSellerDeletedAt = productCols.has("seller_deleted_at");
 
       const statusCol = pc.physical.status;
       let productActiveSql = null;
@@ -47,7 +50,7 @@ async function resolveMeta() {
         }
       }
 
-      return { pc, hasModerationStatus, productActiveSql };
+      return { pc, hasModerationStatus, hasSellerDeletedAt, productActiveSql };
     })();
   }
   return metaCache;
@@ -82,13 +85,9 @@ export async function getProductPublicVisibilityClauses(
       clauses.push(`TRIM(LOWER(${qual(aliasP, "moderation_status")})) = 'approved'`);
     }
 
-    // Optional stock check: include if a physical stock column exists.
-    try {
-      const stockCol = meta?.pc?.physical?.stock;
-      if (stockCol) {
-        clauses.push(`${qual(aliasP, stockCol)} > 0`);
-      }
-    } catch {}
+    if (meta.hasSellerDeletedAt) {
+      clauses.push(`${qual(aliasP, "seller_deleted_at")} IS NULL`);
+    }
 
     return clauses;
   } catch (err) {

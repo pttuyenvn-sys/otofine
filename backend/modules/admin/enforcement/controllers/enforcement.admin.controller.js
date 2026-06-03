@@ -65,6 +65,7 @@ export async function getCase(req, res) {
 
 export async function openCase(req, res) {
   try {
+    // For target_type "shop", target_id MUST be shops.id (integer), not shop_accounts.id.
     const result = await enforcementService.createCase(req.body, req.user.id);
     logAdminAction(req, {
       action: "enforcement.case.open",
@@ -128,6 +129,7 @@ export async function suspendShop(req, res) {
       suspend_login,
     } = req.body;
 
+    // shopId MUST be shops.id (integer PK), NOT shop_accounts.id or shop_accounts.shopId UUID.
     if (!shopId) {
       return res.status(400).json({ error: "shopId is required" });
     }
@@ -184,6 +186,7 @@ export async function reinstateShop(req, res) {
   try {
     const { shopId, lift_reason } = req.body;
 
+    // shopId MUST be shops.id (integer PK), NOT shop_accounts.id or shop_accounts.shopId UUID.
     if (!shopId) {
       return res.status(400).json({ error: "shopId is required" });
     }
@@ -225,6 +228,7 @@ export async function terminateShop(req, res) {
     const caseId = Number(req.params.id);
     const { shopId } = req.body;
 
+    // shopId MUST be shops.id (integer PK), NOT shop_accounts.id or shop_accounts.shopId UUID.
     if (!shopId) {
       return res.status(400).json({ error: "shopId is required" });
     }

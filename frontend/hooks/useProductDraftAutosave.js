@@ -30,6 +30,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  normalizeSellerDraftSnapshot,
+  sellerMediaContext,
+} from "@/lib/media/sellerProductMedia";
 
 const DRAFT_VERSION = 1;
 const STORAGE_PREFIX = "otofine.draft.";
@@ -111,7 +115,11 @@ export default function useProductDraftAutosave({
     if (typeof window === "undefined") return;
     const stored = safeReadJSON(key);
     if (stored) {
-      setRestored(stored.data);
+      const normalized = normalizeSellerDraftSnapshot(
+        stored.data,
+        sellerMediaContext(null, stored.data),
+      );
+      setRestored(normalized);
       setSavedAt(stored.savedAt);
     }
   }, [key]);
@@ -132,7 +140,10 @@ export default function useProductDraftAutosave({
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
-      const snapshot = dataRef.current;
+      const snapshot = normalizeSellerDraftSnapshot(
+        dataRef.current,
+        sellerMediaContext(null, dataRef.current),
+      );
       if (!snapshot || typeof snapshot !== "object") return;
       // Quick skip: empty new-product form (nothing meaningful entered)
       // → don't bother writing a draft.

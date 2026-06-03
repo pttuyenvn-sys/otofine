@@ -1,4 +1,5 @@
 import { absoluteUrl } from "@/lib/seo/siteUrl";
+import { buildShopPrimaryCanonicalUrl } from "@/lib/shopHost";
 
 /**
  * Build the JSON-LD payload for a storefront page.
@@ -25,7 +26,10 @@ import { absoluteUrl } from "@/lib/seo/siteUrl";
 export function buildShopJsonLd({ shop, canonicalUrl }) {
   if (!shop) return null;
 
-  const url = canonicalUrl || absoluteUrl(`/shops/${shop.slug || ""}`);
+  const url =
+    canonicalUrl ||
+    buildShopPrimaryCanonicalUrl(shop.slug || "", "") ||
+    absoluteUrl(`/shops/${shop.slug || ""}`);
   const logo = absolutize(shop.avatar);
   const image = absolutize(shop.cover || shop.avatar);
   const address = composeAddress(shop);

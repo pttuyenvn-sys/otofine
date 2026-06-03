@@ -2,29 +2,17 @@
 
 import { useEffect } from "react";
 import { API_BASE } from "@/lib/config";
+import {
+  ANALYTICS_DEDUPE_WINDOW_MS,
+  createAnalyticsBatchQueue,
+} from "@/lib/analytics/analyticsEventQueue";
 
 /**
  * Bridges the in-app `window` "shopsite:event" CustomEvent bus to the
  * backend ingest endpoint `/api/storefront-events/track`.
  *
- * Why a separate forwarder (not built into `shopsiteAnalytics.js`)?
- *   - The analytics bus is intentionally network-free and dep-free.
- *     Anything that touches `fetch` or `axios` belongs in a client
- *     island that we can mount/unmount independently.
- *   - SSR-safe: the bus emits in the browser only, and this island
- *     subscribes in `useEffect` so the server build is untouched.
- *   - Defensive: every network call is fire-and-forget. A 5xx, an
- *     adblocker swallowing the POST, or a CSP block must NEVER stop
- *     a CTA click or product card navigation. We pass `keepalive`
- *     so the browser still flushes the request on page unload.
- *
- * Rate-control:
- *   - The client de-dupes by (type + key) inside a short rolling
- *     window so a buyer who taps "Gọi ngay" 3× in 200ms only ships
- *     one event. Real bursts go through; spurious double-fires
- *     don't pollute the seller dashboard.
- *   - The backend has its own per-IP cap; the client cap is just
- *     a courtesy.
+ * Phase 7J — events are deduped and batched (≤10 or 500ms) before
+ * JSON serialization / fetch so scroll/click bursts stay off the hot path.
  */
 
 const ALLOWED_TYPES = new Set([
@@ -39,29 +27,9 @@ const ALLOWED_TYPES = new Set([
   "rfq_cta_click",
 ]);
 
-const DEDUPE_WINDOW_MS = 800;
-
 export default function StorefrontAnalyticsForwarder({ shopSlug }) {
   useEffect(() => {
     if (typeof window === "undefined" || !shopSlug) return undefined;
-
-    const recent = new Map();
-
-    function shouldShip(type, key) {
-      const k = `${type}|${key}`;
-      const now = Date.now();
-      const seen = recent.get(k);
-      if (seen && now - seen < DEDUPE_WINDOW_MS) return false;
-      recent.set(k, now);
-      // Cheap-and-cheerful GC so the map doesn't grow forever in
-      // a single-page-app navigation.
-      if (recent.size > 64) {
-        for (const [mk, ts] of recent) {
-          if (now - ts > DEDUPE_WINDOW_MS * 4) recent.delete(mk);
-        }
-      }
-      return true;
-    }
 
     function ship(type, detail) {
       const body = {
@@ -71,8 +39,6 @@ export default function StorefrontAnalyticsForwarder({ shopSlug }) {
       };
       try {
         const url = `${API_BASE}/storefront-events/track`;
-        // `fetch` over `navigator.sendBeacon` keeps us compatible
-        // with the Content-Type contract the backend expects.
         fetch(url, {
           method: "POST",
           credentials: "omit",
@@ -87,22 +53,45 @@ export default function StorefrontAnalyticsForwarder({ shopSlug }) {
       }
     }
 
+    const queue = createAnalyticsBatchQueue({
+      flush(batch) {
+        for (const item of batch) {
+          ship(item.type, item.detail);
+        }
+      },
+      dedupeKey: (item) =>
+        `${item.type}|${String(
+          item.detail?.productId || item.detail?.shopSlug || item.detail?.page || "",
+        )}`,
+      dedupeWindowMs: ANALYTICS_DEDUPE_WINDOW_MS,
+    });
+
     function onEvent(e) {
       const detail = e?.detail;
       if (!detail || typeof detail !== "object") return;
       const type = String(detail.type || "");
       if (!ALLOWED_TYPES.has(type)) return;
-      // Per-type "key" for dedupe — products use productId, others
-      // use page path. Falsy → empty string so equal events still
-      // collapse within the window.
-      const key = String(detail.productId || detail.shopSlug || detail.page || "");
-      if (!shouldShip(type, key)) return;
-      ship(type, detail);
+      queue.enqueue({ type, detail });
+    }
+
+    function onPageHide() {
+      queue.flushNow();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") queue.flushNow();
     }
 
     window.addEventListener("shopsite:event", onEvent);
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
+      queue.flushNow();
+      queue.destroy();
       window.removeEventListener("shopsite:event", onEvent);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [shopSlug]);
 

@@ -13,6 +13,8 @@ import { useDebouncedValue } from "@/lib/shopsite/useDebouncedValue";
 import ModerationQueueTabs from "@/components/moderation/ModerationQueueTabs";
 import ModerationFilters, { RISK_LEVELS, REJECT_REASON_LABELS, RISK_FLAG_LABELS } from "@/components/moderation/ModerationFilters";
 import ProductReviewDrawer from "@/components/moderation/ProductReviewDrawer";
+import AppImage from "@/components/common/AppImage";
+import { PRODUCT_IMAGE_VARIANT } from "@/lib/media/productMediaUrl";
 import { prefetchModerationDetail } from "@/lib/moderation/moderationDetailCache";
 import styles from "./AdminProductModerationQueue.module.css";
 
@@ -163,9 +165,14 @@ function Thumbnail({ url, onClick }) {
       }}
     >
       {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <AppImage
+          mode="next"
           src={url}
+          variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+          allowOriginalFallback={false}
+          width={52}
+          height={52}
+          sizes="52px"
           alt=""
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
@@ -201,8 +208,17 @@ function MultiThumbs({ images = [], onClick, compact = false }) {
             flexShrink: 0,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={u} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <AppImage
+            mode="next"
+            src={u}
+            variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+            allowOriginalFallback={false}
+            width={size}
+            height={size}
+            sizes={`${size}px`}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
         </button>
       ))}
       {extra > 0 && (
@@ -253,9 +269,18 @@ function GalleryModal({ images = [], index = 0, onClose }) {
         </div>
         <div style={{ display: "flex", gap: 8, padding: 8, overflowX: "auto", background: "#fff" }}>
           {imgs.map((u, idx) => (
-            <button key={idx} type="button" onClick={() => setI(idx)} style={{ border: i === idx ? "2px solid #059669" : "1px solid #e5e7eb", padding: 0, borderRadius: 6, overflow: "hidden" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u} alt="" loading="lazy" style={{ width: 80, height: 60, objectFit: "cover", display: "block" }} />
+            <button key={idx} type="button" onClick={() => setI(idx)} style={{ border: i === idx ? "2px solid #059669" : "1px solid #e5e7eb", padding: 0, borderRadius: 6, overflow: "hidden", width: 80, height: 60, flexShrink: 0 }}>
+              <AppImage
+                mode="next"
+                src={u}
+                variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+                allowOriginalFallback={false}
+                width={80}
+                height={60}
+                sizes="80px"
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
             </button>
           ))}
         </div>

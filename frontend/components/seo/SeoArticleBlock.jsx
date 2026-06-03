@@ -4,8 +4,14 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { API_ORIGIN } from "@/lib/config";
 import { getProductDetailHref } from "@/lib/productDetailHref";
+import { marketplaceContextFromFilters } from "@/lib/marketplace/marketplaceContext";
 import { SEO_BASE_SLUG } from "@/lib/seo/slugify";
-import { enhanceSeoArticleHtml } from "./seoArticleBodyEnhance";
+import { planSeoArticleEnhancements } from "./seoArticleBodyEnhance";
+import {
+  SeoInlineProductFigure,
+  SeoTopProductsRail,
+  SeoTopShopsRail,
+} from "./SeoArticleCommerceRails";
 import "./seo-article-card.css";
 import "./seo-article-block-shell.css";
 
@@ -350,6 +356,17 @@ export default function SeoArticleBlock({
       .filter((item) => item?.href && item?.label)
     : [];
 
+  const marketplaceContext = useMemo(
+    () =>
+      marketplaceContextFromFilters({
+        brand: context?.parsed?.brand || context?.brand,
+        model: context?.parsed?.model || context?.model,
+        year: context?.parsed?.year ?? context?.year,
+        province: context?.parsed?.locationName || context?.location,
+      }),
+    [context],
+  );
+
   const partLabel =
     stripHtml(String(partDisplayName || "Phụ tùng")) || "Phụ tùng";
   const shopLabel = [
@@ -370,9 +387,9 @@ export default function SeoArticleBlock({
     faqHasContent(enhancedFaq) ||
     relatedItems.length > 0;
 
-  const richArticleHtml = useMemo(
+  const articlePlan = useMemo(
     () =>
-      enhanceSeoArticleHtml(articleHtml, {
+      planSeoArticleEnhancements(articleHtml, {
         products: productList,
         imageProducts: imageProductList,
         productThumbnails,
@@ -380,11 +397,68 @@ export default function SeoArticleBlock({
         partDisplayName: partLabel,
         shopDisplayName: shopLabel,
         vehicleLabel: context?.vehicleLabel,
-        getProductDetailHref,
-        formatMoney,
       }),
-    [articleHtml, productList, imageProductList, productThumbnails, partLabel, shopLabel, context?.vehicleLabel],
+    [
+      articleHtml,
+      productList,
+      imageProductList,
+      productThumbnails,
+      partLabel,
+      shopLabel,
+      context?.vehicleLabel,
+    ],
   );
+
+  const renderArticleSegment = (segment, index) => {
+    if (!segment) return null;
+
+    if (segment.kind === "html") {
+      const chunk = String(segment.html ?? "");
+      if (!chunk.trim()) return null;
+      return (
+        <div
+          key={`html-${index}`}
+          dangerouslySetInnerHTML={{ __html: chunk }}
+        />
+      );
+    }
+
+    if (segment.kind === "inlineFigure") {
+      return (
+        <SeoInlineProductFigure
+          key={`fig-${index}`}
+          imageSrc={segment.imageSrc}
+          caption={segment.caption}
+        />
+      );
+    }
+
+    if (segment.kind === "topProducts") {
+      return (
+        <SeoTopProductsRail
+          key={`top-${index}`}
+          products={segment.products}
+          partLabel={segment.partLabel}
+          vehicleLabel={segment.vehicleLabel}
+          getProductDetailHref={getProductDetailHref}
+          formatMoney={formatMoney}
+          marketplaceContext={marketplaceContext}
+        />
+      );
+    }
+
+    if (segment.kind === "topShops") {
+      return (
+        <SeoTopShopsRail
+          key={`shops-${index}`}
+          shops={segment.shops}
+          label={segment.label}
+        />
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="seo-ab-root">
@@ -396,13 +470,23 @@ export default function SeoArticleBlock({
         />
       ) : null}
 
-      {richArticleHtml.trim() ? (
+      {articlePlan.segments.length > 0 ? (
         <section className="seo-ab-unified-card" aria-label="Nội dung tư vấn">
           <article
             className="seo-article-content"
             itemScope
             itemType="https://schema.org/Article"
-            dangerouslySetInnerHTML={{ __html: richArticleHtml }}
+          >
+            {articlePlan.segments.map(renderArticleSegment)}
+          </article>
+        </section>
+      ) : articleHtml.trim() ? (
+        <section className="seo-ab-unified-card" aria-label="Nội dung tư vấn">
+          <article
+            className="seo-article-content"
+            itemScope
+            itemType="https://schema.org/Article"
+            dangerouslySetInnerHTML={{ __html: articleHtml }}
           />
         </section>
       ) : null}

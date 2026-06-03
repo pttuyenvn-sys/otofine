@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { getProductDetailCached } from "@/lib/product/getProductDetailCached";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { buildServerCanonicalProductUrl } from "@/lib/marketplace/serverCanonicalSlug";
 
 /**
  * Legacy product detail URL.
@@ -36,14 +36,19 @@ import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
  * crawlers don't end up redirected to a 404 (worse for crawl budget
  * than the 404 directly).
  */
-export default async function LegacyProductRedirect({ params }) {
+export default async function LegacyProductRedirect({ params, searchParams }) {
   const { id } = await params;
+  const query = await searchParams;
   if (!id) notFound();
 
   const data = await getProductDetailCached(id);
   if (!data?.product) notFound();
 
-  const canonical = buildProductSeoUrl({ ...data.product, cars: data.cars });
+  const canonical = buildServerCanonicalProductUrl(
+    data.product,
+    data.cars,
+    query,
+  );
   if (!canonical || canonical === "/") notFound();
 
   permanentRedirect(canonical);

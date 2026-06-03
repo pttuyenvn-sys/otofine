@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
 import FaqPageJsonLd from "@/components/seo/FaqPageJsonLd";
+import FeaturedShops from "@/components/shopsite/FeaturedShops";
 
 export const metadata = {
   title: "Tìm phụ tùng đúng xe trong 10 giây | Otofine",
@@ -73,6 +74,11 @@ export default function Page() {
       <Suspense fallback={homeLoading}>
         <Home />
       </Suspense>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 pb-8">
+        <Suspense fallback={null}>
+          <FeaturedShops limit={12} />
+        </Suspense>
+      </div>
     </>
   );
 }

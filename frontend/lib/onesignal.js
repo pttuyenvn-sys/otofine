@@ -1,7 +1,26 @@
 import OneSignal from "react-onesignal";
+import { extractShopSlugFromHost } from "@/lib/shopHost";
 
 /** @type {Promise<void> | null} */
 let initPromise = null;
+
+/**
+ * True on wildcard shop storefront hosts (*.otofine.com tenant).
+ * Reuses centralized host parsing — no duplicate logic.
+ */
+export function isStorefrontSubdomainHost(host) {
+  if (!host) return false;
+  return Boolean(extractShopSlugFromHost(host));
+}
+
+/**
+ * OneSignal is disabled on shop storefront subdomains (Phase 6B.3b.1).
+ * Enabled on apex, admin, seller dashboard, RFQ buyer flows on apex.
+ */
+export function shouldInitOneSignal() {
+  if (typeof window === "undefined") return false;
+  return !isStorefrontSubdomainHost(window.location.host);
+}
 
 /**
  * OneSignal chỉ được init một lần trong lifecycle (StrictMode không gọi lại SDK).
@@ -9,6 +28,13 @@ let initPromise = null;
  */
 export async function initOneSignal() {
   if (typeof window === "undefined") return;
+
+  if (!shouldInitOneSignal()) {
+    if (!initPromise) {
+      initPromise = Promise.resolve();
+    }
+    return initPromise;
+  }
 
   if (initPromise) return initPromise;
 

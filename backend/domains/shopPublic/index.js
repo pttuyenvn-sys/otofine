@@ -67,7 +67,10 @@ export {
   handleUploadAvatar,
   handleUploadCover,
   handleUploadContent,
+  handleSubmitStorefrontReview,
 } from "./controllers/sellerPublicPage.controller.js";
+
+export { handleGetFeaturedStorefronts } from "./controllers/featuredStorefront.controller.js";
 
 export { handleGetCacheDebug } from "./controllers/cacheDebug.controller.js";
 

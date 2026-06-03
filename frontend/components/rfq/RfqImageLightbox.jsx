@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { rfqOriginalSrc } from "@/lib/rfq/rfqMediaUrl";
+import RfqLazyImage from "@/components/rfq/RfqLazyImage";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 
 /**
  * Mobile-first fullscreen image viewer — always loads original/full size.
@@ -41,7 +43,7 @@ export default function RfqImageLightbox({ urls = [], initialIndex = 0, onClose 
 
   if (!safeUrls.length) return null;
 
-  const src = safeUrls[index];
+  const originalUrl = urls[index] || urls[0];
 
   return (
     <div
@@ -89,12 +91,13 @@ export default function RfqImageLightbox({ urls = [], initialIndex = 0, onClose 
         ) : null}
 
         <div className="rfq-lightbox__zoom-wrap">
-          <img
-            src={src}
-            alt=""
+          <RfqLazyImage
+            key={originalUrl}
+            originalUrl={originalUrl}
+            variant={RFQ_MEDIA_VARIANT.ORIGINAL}
             className="rfq-lightbox__img"
             decoding="async"
-            draggable={false}
+            loading="eager"
           />
         </div>
 

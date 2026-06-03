@@ -8,17 +8,15 @@ import {
   fetchPublicShop,
   fetchPublicShopSafe,
   fetchPublicShopProductsSafe,
-  getShopCanonicalUrl,
+  getShopStorefrontCanonical,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
-    fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, "gioi-thieu"),
-  ]);
+  const shop = await fetchPublicShopSafe(slug);
+  const canonical = await getShopStorefrontCanonical(shop, slug, "gioi-thieu");
   return buildShopMetadata({ shop, page: { subtitle: "Giới thiệu" }, canonical });
 }
 

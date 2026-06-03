@@ -1,5 +1,7 @@
 /** Shared display helpers for seller product dashboard (UI only). */
 
+import { normalizeSellerProductImageUrl, sellerMediaContext } from "@/lib/media/sellerProductMedia";
+
 export const FALLBACK_PRODUCT_IMG =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -9,7 +11,9 @@ export const FALLBACK_PRODUCT_IMG =
 export function pickProductThumb(product) {
   const arr = Array.isArray(product?.images) ? product.images : [];
   const first = arr.find((i) => i && i.url) || arr[0];
-  return first?.url || null;
+  const raw = first?.url || null;
+  if (!raw) return null;
+  return normalizeSellerProductImageUrl(raw, sellerMediaContext(product)) || null;
 }
 
 export function stripProductHtml(html) {

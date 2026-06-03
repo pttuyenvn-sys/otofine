@@ -1,9 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { getProductDetailCached } from "@/lib/product/getProductDetailCached";
-import {
-  buildProductSeoUrl,
-  extractProductIdFromSeoSlug,
-} from "@/lib/seo/productSeoUrl";
+import { extractProductIdFromSeoSlug } from "@/lib/seo/productSeoUrl";
+import { buildServerCanonicalProductUrl } from "@/lib/marketplace/serverCanonicalSlug";
 
 /**
  * Legacy /phu-tung/<slug>-<id> URL.
@@ -28,15 +26,20 @@ import {
  * canonicalization and link-equity transfer (Google's own docs
  * since 2020).
  */
-export default async function LegacyPhuTungRedirect({ params }) {
+export default async function LegacyPhuTungRedirect({ params, searchParams }) {
   const { slug } = await params;
+  const query = await searchParams;
   const id = extractProductIdFromSeoSlug(slug);
   if (id == null) notFound();
 
   const data = await getProductDetailCached(id);
   if (!data?.product) notFound();
 
-  const canonical = buildProductSeoUrl({ ...data.product, cars: data.cars });
+  const canonical = buildServerCanonicalProductUrl(
+    data.product,
+    data.cars,
+    query,
+  );
   if (!canonical || canonical === "/") notFound();
 
   permanentRedirect(canonical);

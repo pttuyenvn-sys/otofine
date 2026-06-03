@@ -19,6 +19,29 @@ export function normalizePartNumber(partNumber) {
     .trim();
 }
 
+/**
+ * True when the keyword should use strict part-number search (no fuzzy %LIKE%).
+ * Examples: 17801, 0447802270, 04465-0K340
+ * @param {unknown} keyword
+ */
+export function isStrictSkuKeyword(keyword) {
+  const raw = String(keyword || "").trim();
+  if (!raw || /\s/.test(raw)) return false;
+
+  const compact = raw.replace(/\s/g, "");
+  if (!/^[a-z0-9][a-z0-9.\-/]*$/i.test(compact)) return false;
+
+  const partNorm = normalizePartNumber(raw);
+  if (partNorm.length < 4) return false;
+
+  const digitCount = (partNorm.match(/[0-9]/g) || []).length;
+  if (digitCount === 0) return false;
+
+  if (digitCount / partNorm.length >= 0.4) return true;
+
+  return partNorm.length >= 5;
+}
+
 /** @param {unknown} value */
 export function cleanHttpQueryValue(value) {
   if (value == null) return null;
@@ -95,6 +118,38 @@ export function listingQueryNeedsVehicleFitmentJoin(raw = {}) {
     n.model ||
     (n.year != null && Number.isFinite(Number(n.year)))
   );
+}
+
+/**
+ * JOIN product_category_map + product_categories only when WHERE references pc/pcm.
+ * @param {Record<string, unknown>} raw
+ */
+export function listingQueryNeedsCategoryMapJoin(raw = {}) {
+  const n = normalizeListingQuery(raw);
+  return Boolean(n.category);
+}
+
+/**
+ * True when keyword text filter is active on a listing query.
+ * @param {Record<string, unknown>} raw
+ */
+export function listingQueryHasKeyword(raw = {}) {
+  return Boolean(normalizeListingQuery(raw).keyword);
+}
+
+/**
+ * Cacheable home listing: page 1, popular sort, no facet filters.
+ * @param {Record<string, unknown>} raw
+ */
+export function listingQueryIsHomePopularFirstPage(raw = {}) {
+  const pageRaw = cleanHttpQueryValue(raw.page);
+  const pageN = Number(pageRaw || 1);
+  if (!Number.isFinite(pageN) || pageN !== 1) return false;
+
+  const sortRaw = cleanHttpQueryValue(raw.sort) || "popular";
+  if (String(sortRaw).toLowerCase() !== "popular") return false;
+
+  return !listingQueryHasAnyFacetFilter(raw);
 }
 
 /**

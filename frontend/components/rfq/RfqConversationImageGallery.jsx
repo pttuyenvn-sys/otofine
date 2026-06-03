@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState } from "react";
 import { attachmentsStable } from "@/lib/rfq/rfqConversationMessages";
-import { rfqOriginalSrc, rfqThumbMediumSrc, rfqThumbMediumFallbackSrcs } from "@/lib/rfq/rfqMediaUrl";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 import RfqLazyImage from "@/components/rfq/RfqLazyImage";
 import RfqImageLightbox from "@/components/rfq/RfqImageLightbox";
 
@@ -34,7 +34,6 @@ function RfqConversationImageGallery({ attachments = [], className = "" }) {
       <div className={`${gridClass} ${className}`.trim()} role="group" aria-label="Ảnh đính kèm">
         {sorted.map((att, i) => {
           const original = att.url;
-          const mediumResolved = rfqThumbMediumSrc(original, att.thumbnails || null);
           return (
             <button
               key={att.id || att.url}
@@ -43,8 +42,9 @@ function RfqConversationImageGallery({ attachments = [], className = "" }) {
               onClick={() => setLightboxIndex(i)}
             >
               <RfqLazyImage
-                src={mediumResolved}
-                fallbackSrcs={rfqThumbMediumFallbackSrcs(original, att.thumbnails || null)}
+                originalUrl={original}
+                variant={RFQ_MEDIA_VARIANT.MEDIUM}
+                explicitThumbnails={att.thumbnails || null}
                 className="rfq-conv-gallery__img"
                 loading="lazy"
                 decoding="async"

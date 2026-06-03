@@ -42,10 +42,12 @@ import { mountRfqRoutes, rfqFlags } from "./modules/rfq/index.js";
 import rfqAdminRoutes from "./modules/rfq/routes/rfq.admin.routes.js";
 import rfqPushRoutes from "./routes/rfqPush.routes.js";
 import publicShopRoutes from "./routes/publicShop.routes.js";
+import featuredStorefrontRoutes from "./routes/featuredStorefront.routes.js";
 import sellerPublicPageRoutes from "./routes/sellerPublicPage.routes.js";
 import { publicShopConfig } from "./domains/shopPublic/index.js";
 import storefrontEventsRoutes from "./domains/storefrontEvents/storefrontEvents.routes.js";
 import shopMetricsRoutes from "./routes/shopMetrics.routes.js";
+import { resolveCorsOrigin } from "./utils/corsOrigin.util.js";
 
 const app = express();
 app.use(express.json());
@@ -69,9 +71,17 @@ const extraOrigins = (process.env.CORS_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
+const staticCorsOrigins = [...new Set([...defaultOrigins, ...extraOrigins])];
+
 app.use(
   cors({
-    origin: [...new Set([...defaultOrigins, ...extraOrigins])],
+    origin(origin, callback) {
+      if (resolveCorsOrigin(origin, staticCorsOrigins)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
   }),
 );
@@ -156,8 +166,9 @@ app.use("/api/storefront-events", storefrontEventsRoutes);
 /** Public read-only shopsite API (Phase 2 endpoints). */
 if (publicShopConfig.enabled) {
   app.use("/api/public/shops", publicShopRoutes);
+  app.use("/api/storefronts", featuredStorefrontRoutes);
   console.info(
-    "[publicShop] routes mounted at /api/public/shops + /api/shop/public-page",
+    "[publicShop] routes mounted at /api/public/shops + /api/storefronts + /api/shop/public-page",
   );
 } else {
   console.info("[publicShop] disabled (PUBLIC_SHOPSITE_ENABLED=false)");

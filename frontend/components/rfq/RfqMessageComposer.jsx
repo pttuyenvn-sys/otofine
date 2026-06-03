@@ -4,7 +4,8 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { RFQ_MESSAGE_TEXT_MAX } from "@/lib/rfq/rfqConversationConstants";
 import { RFQ_UPLOAD_ACCEPT } from "@/lib/rfq/rfqUploadImage";
 import { useRfqChatImageUpload } from "@/hooks/useRfqChatImageUpload";
-import { rfqImageSrc } from "@/lib/rfq/rfqMediaUrl";
+import RfqLazyImage from "@/components/rfq/RfqLazyImage";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 
 /**
  * Text + image composer for RFQ conversations (poll transport; websocket deferred).
@@ -103,14 +104,20 @@ export default function RfqMessageComposer({
       {images.items.length > 0 ? (
         <ul className="rfq-msg-composer__previews" aria-label="Ảnh sẽ gửi">
           {images.items.map((it) => {
-            const src =
-              it.status === "done" && it.url
-                ? rfqImageSrc(it.url)
-                : it.previewUrl || "";
+            const previewSrc = it.previewUrl || "";
             return (
               <li key={it.clientId} className="rfq-msg-composer__preview">
-                {src ? (
-                  <img src={src} alt="" loading="lazy" decoding="async" />
+                {it.status === "done" && it.url ? (
+                  <RfqLazyImage
+                    originalUrl={it.url}
+                    variant={RFQ_MEDIA_VARIANT.ORIGINAL}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : previewSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewSrc} alt="" loading="lazy" decoding="async" />
                 ) : null}
                 {(it.status === "pending" || it.status === "uploading") && (
                   <span className="rfq-msg-composer__preview-status">…</span>

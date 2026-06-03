@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getShopRisk } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+} from "@/components/admin/AdminLoadState";
 
 function RiskBadge({ level }) {
   const theme = (() => {
@@ -28,16 +34,25 @@ export default function AdminShopRisk() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadState, setLoadState] = useState("loading");
 
   async function load() {
     try {
       setLoading(true);
       setError("");
+      setLoadState("loading");
       const res = await getShopRisk({ limit: 500 });
-      setRows(res.data?.rows || []);
+      const next = res.data?.rows || [];
+      setRows(next);
+      setLoadState(next.length ? "ready" : "empty");
     } catch (e) {
       console.error(e);
-      setError("Failed to load shop risk data");
+      setRows([]);
+      setError(formatAdminApiError(e, {
+        module: "shop-risk",
+        permissionDenied: "You do not have permission to view shop risk scores.",
+      }));
+      setLoadState("error");
     } finally {
       setLoading(false);
     }
@@ -50,15 +65,24 @@ export default function AdminShopRisk() {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700 }}>Shop Risk</h1>
-        <div style={{ opacity: 0.7 }}>Deterministic risk signals for governance review</div>
+        <h1 style={{ fontSize: 32, fontWeight: 700 }}>Shop Risk Scores</h1>
+        <div style={{ opacity: 0.7, lineHeight: 1.5 }}>
+          Deterministic shop-level risk signals from <code>/api/admin/platform/shop-risk</code>.
+        </div>
       </div>
 
-      {loading && <div style={{ background: "white", padding: 24, borderRadius: 12 }}>Loading...</div>}
-      {!loading && error && <div style={{ background: "#fee2e2", color: "#991b1b", padding: 24 }}>{error}</div>}
-      {!loading && !error && rows.length === 0 && <div style={{ background: "white", padding: 24, borderRadius: 12 }}>No shop risk data</div>}
+      {loading && <AdminLoadingState message="Loading shop risk scores..." />}
+      {!loading && loadState === "error" && (
+        <AdminErrorState title="Shop risk unavailable" message={error} onRetry={load} />
+      )}
+      {!loading && loadState === "empty" && (
+        <AdminEmptyState
+          title="No shop risk data"
+          message="The endpoint responded successfully, but no shop risk rows are available yet."
+        />
+      )}
 
-      {!loading && rows.length > 0 && (
+      {!loading && loadState === "ready" && (
         <div style={{ background: "white", borderRadius: 12, padding: 12 }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -103,4 +127,3 @@ export default function AdminShopRisk() {
     </div>
   );
 }
-

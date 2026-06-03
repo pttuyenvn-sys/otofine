@@ -8,6 +8,7 @@ import {
 
 import {
   getAllShops,
+  getShopDetail,
   updateShopStatus,
   deleteShop,
 } from "../controllers/adminController.js";
@@ -26,6 +27,7 @@ router.post("/admin-forgot-password", adminForgotPassword);
 
 /* ===== ADMIN SHOP MANAGEMENT ===== */
 router.get("/shops", requireAuth, requireAdmin, getAllShops);
+router.get("/shops/:id/detail", requireAuth, requireAdmin, getShopDetail);
 router.patch("/shops/:id/status", requireAuth, requireAdmin, updateShopStatus);
 router.delete("/shops/:id", requireAuth, requireAdmin, deleteShop);
 

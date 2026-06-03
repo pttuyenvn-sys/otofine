@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getShopGovernance, postShopGovernanceAction } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import { AdminErrorState, AdminLoadingState } from "@/components/admin/AdminLoadState";
 
 const GOVERNANCE_ACTIONS = [
   {
@@ -248,7 +250,10 @@ export default function ShopGovernancePage() {
       setData(res.data || {});
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || e.message || "Failed to load shop governance");
+      setError(formatAdminApiError(e, {
+        module: "shop-governance",
+        permissionDenied: "You do not have permission to view this shop's governance profile.",
+      }));
       setData(null);
     } finally {
       setLoading(false);
@@ -344,8 +349,16 @@ export default function ShopGovernancePage() {
     }
   }
 
-  if (loading) return <div>Loading shop governance...</div>;
-  if (error) return <div style={{ color: "#991b1b" }}>{error}</div>;
+  if (loading) return <AdminLoadingState message="Loading shop governance..." />;
+  if (error) {
+    return (
+      <AdminErrorState
+        title="Shop governance unavailable"
+        message={error}
+        onRetry={load}
+      />
+    );
+  }
 
   const { overview, moderation, risk, recentActivity, timeline, internalNotes } = data || {};
   const timelineEntries = (timeline?.length ? timeline : [

@@ -1,4 +1,5 @@
 import { pool } from "../../../config/db.js";
+import { getSchemaCapabilities } from "../../../utils/schemaCapabilities.js";
 
 /** Vietnamese reject reason labels for sellers */
 export const SELLER_REJECT_REASON_LABELS = {
@@ -60,24 +61,10 @@ export function resolvePublicVisibility({ moderationStatus, stock, shopPublicSta
   return visible ? "public" : "hidden";
 }
 
-/** Cached schema capabilities for backward-compatible SQL. */
-let governanceSchemaCache = null;
-
+/** Backward-compatible seller governance schema probe. */
 export async function getSellerGovernanceSchema() {
-  if (governanceSchemaCache) return governanceSchemaCache;
-  const [[row]] = await pool.query(
-    `
-      SELECT COUNT(*) AS hasSellerDeletedAt
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = 'products'
-        AND COLUMN_NAME = 'seller_deleted_at'
-    `,
-  );
-  governanceSchemaCache = {
-    hasSellerDeletedAt: Number(row?.hasSellerDeletedAt || 0) > 0,
-  };
-  return governanceSchemaCache;
+  const caps = await getSchemaCapabilities();
+  return { hasSellerDeletedAt: caps.hasSellerDeletedAt };
 }
 
 /** SQL expression: legacy NULL/empty/published/active → approved for filters. */

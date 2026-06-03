@@ -1,5 +1,9 @@
 import { absoluteUrl, getSiteUrl } from "@/lib/seo/siteUrl";
+import { buildShopPrimaryCanonicalUrl } from "@/lib/shopHost";
 import { normalizeRichHtml } from "./normalizeRichHtml";
+import {
+  isStorefrontPageIndexable,
+} from "./evaluateStorefrontSeoIndexability";
 
 /**
  * Centralised storefront metadata builder used by every storefront
@@ -13,18 +17,15 @@ import { normalizeRichHtml } from "./normalizeRichHtml";
  *   - Twitter card (X.com preview)
  *   - Robots (HARD-NOINDEX during Phase 5.5 — see notes below)
  *
- * Index gating (Phase 5.5 rollout safety):
+ * Index gating (Phase 6B.6 rollout safety):
  *   Indexing only flips ON when BOTH of the following are true:
  *     1. `process.env.NEXT_PUBLIC_SHOPSITE_INDEX_ENABLED === "1"`
  *        (global feature flag — single env flip to start rollout)
- *     2. `shop.seoEligible === true`
- *        (per-shop quality gate computed on the backend)
- *   Until either condition is false, every storefront page emits
- *   `robots: { index: false, follow: false }`. This means:
- *     - the OG / Twitter / JSON-LD tags can ship today as cosmetic
- *       polish (social previews work fine while noindex stays)
- *     - go-live is a one-liner env change, with zero risk of low-
- *       quality shops getting indexed by mistake
+ *     2. `shop.seoIndexable === true`
+ *        (per-shop gate: content completeness + healthScore ≥ 60 +
+ *         no blocking governance flags — computed on the backend)
+ *   Ineligible storefronts emit `robots: { index: false, follow: true }`
+ *   so link equity can flow without indexing thin or inactive shops.
  *
  * SSR-safe — the function is a pure projection of its `shop` and
  * `page` arguments; it does NOT touch `headers()` / `cookies()` / DB.
@@ -42,10 +43,16 @@ export function buildShopMetadata({ shop, page, canonical }) {
   const title = composeTitle(safe, ctx);
   const description = composeDescription(safe, ctx);
   const imageUrl = pickImage(safe);
-  const canonicalUrl = canonical || absoluteUrl(`/shops/${safe.slug}`);
+  const canonicalUrl =
+    canonical ||
+    buildShopPrimaryCanonicalUrl(safe.slug, "") ||
+    absoluteUrl(`/shops/${safe.slug}`);
 
-  // Robots gate — see header comment.
-  const indexable = isIndexable(safe);
+  // Robots gate — see header comment (Phase 6B.6).
+  const indexEval = isStorefrontPageIndexable(safe, {
+    log: process.env.NODE_ENV === "development",
+    slug: safe.slug,
+  });
 
   return {
     title,
@@ -53,9 +60,9 @@ export function buildShopMetadata({ shop, page, canonical }) {
     alternates: {
       canonical: canonicalUrl,
     },
-    robots: indexable
+    robots: indexEval.indexable
       ? { index: true, follow: true }
-      : { index: false, follow: false },
+      : { index: false, follow: true },
     openGraph: {
       type: "website",
       siteName: "Otofine",
@@ -93,7 +100,17 @@ function projectShop(shop) {
     topBrands: Array.isArray(shop.trust?.topBrands)
       ? shop.trust.topBrands.map((b) => b?.brand).filter(Boolean)
       : [],
-    seoEligible: shop.seoEligible !== false,
+    seoEligible: shop.seoEligible === true,
+    seoIndexable: shop.seoIndexable === true,
+    seoIndexReasons: Array.isArray(shop.seoIndexReasons) ? shop.seoIndexReasons : [],
+    healthScore: Number(shop.healthScore) || 0,
+    healthLabel: shop.healthLabel || null,
+    attentionFlags: Array.isArray(shop.attentionFlags) ? shop.attentionFlags : [],
+    indexBlockingFlags: Array.isArray(shop.indexBlockingFlags)
+      ? shop.indexBlockingFlags
+      : [],
+    phone: shop.phone || "",
+    publicStatus: shop.publicStatus || shop.public_status || "public",
   };
 }
 
@@ -161,9 +178,4 @@ function stripRich(html) {
 function clamp(s, n) {
   if (!s) return "";
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
-}
-
-function isIndexable(s) {
-  const envOn = (process.env.NEXT_PUBLIC_SHOPSITE_INDEX_ENABLED || "").trim() === "1";
-  return envOn && s.seoEligible;
 }

@@ -1,5 +1,7 @@
 /** UI-only helpers for AddProductPopup (no business logic). */
 
+import { normalizeSellerDraftSnapshot } from "@/lib/media/sellerProductMedia";
+
 export function getCarChipLabel(row, models = []) {
   if (!row?.carModelId) return "";
   const model = models.find((m) => String(m.id) === String(row.carModelId));
@@ -14,14 +16,15 @@ export function isCarRowComplete(row) {
   return Boolean(row?.carModelId && row?.year_from && row?.year_to);
 }
 
-export function flushProductDraft(productId, snapshot) {
+export function flushProductDraft(productId, snapshot, mediaCtx = {}) {
   const key = productId ? `otofine.draft.${productId}` : "otofine.draft.new";
+  const payload = normalizeSellerDraftSnapshot(snapshot, mediaCtx);
   localStorage.setItem(
     key,
     JSON.stringify({
       v: 1,
       savedAt: new Date().toISOString(),
-      data: snapshot,
+      data: payload,
     }),
   );
 }

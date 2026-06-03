@@ -13,16 +13,19 @@ import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildShopJsonLd } from "@/lib/shopsite/buildShopJsonLd";
 import {
-  fetchPublicShop,
-  fetchPublicShopSafe,
-  getShopBasePath,
-  getShopCanonicalUrl,
-} from "@/services/shopPublic.service";
+  canonicalShopSlug,
+  ensureCanonicalShopSlug,
+} from "@/lib/shopsite/ensureCanonicalShopSlug";
 // Bug-fix Phase A.1: shared normalization for the Zalo contact. Even
 // though the backend now COALESCEs zalo over zalo_phone, we run the
 // header + CTA through the same helper so any future DTO refactor
 // (or transient API skew during a deploy) can't reintroduce drift.
 import { resolveShopZalo } from "@/lib/shopsite/resolveShopZalo";
+import {
+  fetchPublicShopSafe,
+  getShopBasePath,
+  getShopStorefrontCanonical,
+} from "@/services/shopPublic.service";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -42,7 +45,7 @@ export async function generateMetadata({ params }) {
   return buildShopMetadata({
     shop,
     page: { subtitle: "Phụ tùng ô tô" },
-    canonical: await getShopCanonicalUrl(slug, ""),
+    canonical: await getShopStorefrontCanonical(shop, slug, ""),
   });
 }
 
@@ -56,7 +59,7 @@ export async function generateMetadata({ params }) {
  */
 export default async function ShopTenantLayout({ children, params }) {
   const { slug } = await params;
-  const shop = await fetchPublicShop(slug);
+  const shop = await ensureCanonicalShopSlug(slug);
   if (!shop) {
     // Single source of "unknown shop" observability. The backend
     // logs its own cache hit/miss separately; this line tells us
@@ -79,7 +82,7 @@ export default async function ShopTenantLayout({ children, params }) {
   // simply won't read it until indexing flips on.
   const jsonLd = buildShopJsonLd({
     shop,
-    canonicalUrl: await getShopCanonicalUrl(shop.slug, ""),
+    canonicalUrl: await getShopStorefrontCanonical(shop, slug, ""),
   });
 
   return (

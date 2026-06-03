@@ -1,25 +1,24 @@
 "use client";
 
+import ListingProductImage from "@/components/common/ListingProductImage";
+
 /**
- * Ảnh card listing SEO — cần client vì xử lý onError (Server Component không cho event handler).
+ * SEO listing card image — direct CDN thumb (Phase 7A).
  */
-export default function SeoListingProductImage({ src, alt = "", sizes }) {
+export default function SeoListingProductImage({
+  src,
+  alt = "",
+}) {
+  const normalized = src && String(src).trim() ? String(src).trim() : "";
+
+  if (!normalized) return null;
+
   return (
-    <img
-      src={src}
+    <ListingProductImage
+      slot="grid"
+      fill
+      src={normalized}
       alt={alt}
-      loading="lazy"
-      decoding="async"
-      sizes={sizes}
-      onError={(e) => {
-        const img = e.currentTarget;
-        img.onerror = null;
-        img.style.opacity = "0";
-        img.src = "/no-image.png";
-        img.onload = () => {
-          img.style.opacity = "1";
-        };
-      }}
     />
   );
 }

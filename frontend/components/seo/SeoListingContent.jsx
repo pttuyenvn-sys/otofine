@@ -7,14 +7,18 @@ import "./seo-landing.css";
 import "./seo-article.css";
 import { SEO_BASE_SLUG } from "@/lib/seo/slugify";
 import { absoluteUrl } from "@/lib/seo/siteUrl";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { getProductDetailHref } from "@/lib/productDetailHref";
+import { marketplaceContextFromFilters } from "@/lib/marketplace/marketplaceContext";
+import { traceRenderedProductHref } from "@/lib/marketplace/marketplaceHrefTrace";
 
-function productHref(item) {
-  // Root-level canonical /<slug>-<id>; apex `[slug]/page.js` canonical-
-  // enforce branch repairs any slug drift, internal APIs remain
-  // id-based. Falls back to short `/p/<id>` when item has no slug
-  // fields — that route 308s to canonical in a single hop.
-  return buildProductSeoUrl(item);
+function productHref(item, marketplaceContext) {
+  const raw = getProductDetailHref(item, { marketplaceContext });
+  return traceRenderedProductHref({
+    src: "seolisting",
+    href: raw,
+    item,
+    marketplaceContext,
+  });
 }
 
 function pageHref(slug, n) {
@@ -41,11 +45,16 @@ export default function SeoListingContent({
   const products = list?.data || [];
   const totalPages = Math.max(1, Number(list?.totalPages) || 1);
   const currentPage = Math.min(Math.max(1, page), totalPages);
+  const marketplaceContext = marketplaceContextFromFilters({
+    brand: parsed?.filters?.brand,
+    model: parsed?.filters?.model,
+    year: parsed?.filters?.year,
+  });
 
   const itemListElements = products.map((p, i) => ({
     "@type": "ListItem",
     position: (currentPage - 1) * 16 + i + 1,
-    url: absoluteUrl(productHref(p)),
+    url: absoluteUrl(productHref(p, marketplaceContext)),
     name: p.shortDescription || p.partName || "Sản phẩm",
   }));
 
@@ -140,7 +149,7 @@ export default function SeoListingContent({
                         style={{ textDecoration: "none", color: "inherit" }}
                       >
                         <Link
-                          href={productHref(item)}
+                          href={productHref(item, marketplaceContext)}
                           className="seo-product-card__overlay"
                           aria-label={
                             item.shortDescription || "Xem chi tiết sản phẩm"

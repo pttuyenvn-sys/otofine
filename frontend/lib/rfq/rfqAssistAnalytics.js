@@ -1,4 +1,8 @@
 import { postRfqAssistEvent } from "@/lib/rfq/rfqAssistApi";
+import {
+  ANALYTICS_DEDUPE_WINDOW_MS,
+  createAnalyticsBatchQueue,
+} from "@/lib/analytics/analyticsEventQueue";
 
 /**
  * Phase 8.2 — RFQ Assist analytics tracker.
@@ -17,12 +21,34 @@ import { postRfqAssistEvent } from "@/lib/rfq/rfqAssistApi";
  *      cross-module wiring. Future ML feedback pipeline subscribes
  *      to the CustomEvent stream the same way Phase 5.1+ does.
  *
- * No batching yet — interactions in this UI are user-initiated and
- * low-volume (≤ 6 cards × few actions). If we ever go high-frequency
- * we'll add a microtask-queued flush here.
+ * Phase 7J — network POSTs are batched (≤10 or 500ms) with rolling
+ * dedupe so rapid card interactions don't spam the main thread.
  */
 
 const impressionsSeen = new Set();
+
+/** @type {ReturnType<typeof createAnalyticsBatchQueue> | null} */
+let assistPostQueue = null;
+
+function getAssistPostQueue() {
+  if (assistPostQueue) return assistPostQueue;
+  assistPostQueue = createAnalyticsBatchQueue({
+    flush(batch) {
+      for (const item of batch) {
+        void postRfqAssistEvent(item.viewerToken, item.payload);
+      }
+    },
+    dedupeKey: (item) => item.dedupeKey || "",
+    dedupeWindowMs: ANALYTICS_DEDUPE_WINDOW_MS,
+  });
+  return assistPostQueue;
+}
+
+/** @internal — test reset */
+export function resetAssistPostQueueForTests() {
+  assistPostQueue?.destroy();
+  assistPostQueue = null;
+}
 
 function dedupeKey(rfqId, shopId) {
   return `${rfqId}::${shopId}`;
@@ -87,7 +113,10 @@ export async function trackAssistEvent({
     }
   }
 
-  return postRfqAssistEvent(viewerToken, payload);
+  const dedupeKey = `${rfqId}|${action}|${shopId ?? ""}`;
+  getAssistPostQueue().enqueue({ viewerToken, payload, dedupeKey });
+
+  return { ok: true, reason: "queued" };
 }
 
 /**

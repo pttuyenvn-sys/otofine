@@ -6,11 +6,12 @@ import { getVehicleSeoPage } from "@/lib/seo/getVehicleSeoPage";
 import { getProductDetailCached } from "@/lib/product/getProductDetailCached";
 import { absoluteUrl } from "@/lib/seo/siteUrl";
 import {
-  buildProductSeoSlug,
   buildProductSeoUrl,
   extractProductIdFromSeoSlug,
   looksLikeProductSlug,
 } from "@/lib/seo/productSeoUrl";
+import { isMarketplaceListingSlug } from "@/lib/marketplace/isMarketplaceListingSlug";
+import { buildServerCanonicalProductPath } from "@/lib/marketplace/serverCanonicalSlug";
 
 import ProductDetail from "@/components/pages/ProductDetail";
 import ProductJsonLd from "@/components/seo/ProductJsonLd";
@@ -81,32 +82,35 @@ async function tryRenderProduct(slug) {
 export async function generateMetadata({ params }) {
   const { slug } = await params;
 
-  // Product first — only when the discriminator + DB lookup confirm
-  // the slug is a real product. Otherwise fall through to the
-  // existing vehicle-SEO metadata path.
-  const productMatch = await tryRenderProduct(slug);
-  if (productMatch) {
-    const p = productMatch.data.product;
-    const cars = productMatch.data.cars;
-    const titleBase = stripHtml(p.shortDescription || p.partName) || "Sản phẩm";
-    const title = `${titleBase} | Otofine`;
-    const desc = `Mua ${titleBase} — mã ${p.partNumber || ""}. Xem giá và liên hệ cửa hàng trên Otofine.`;
-    const canonical = absoluteUrl(buildProductSeoUrl({ ...p, cars }));
-    return {
-      title,
-      description: desc.slice(0, 320),
-      alternates: { canonical },
-      robots: { index: true, follow: true },
-      openGraph: {
+  // Marketplace listing URLs must never enter product lookup / canonical logic.
+  if (!isMarketplaceListingSlug(slug)) {
+    // Product first — only when the discriminator + DB lookup confirm
+    // the slug is a real product. Otherwise fall through to the
+    // existing vehicle-SEO metadata path.
+    const productMatch = await tryRenderProduct(slug);
+    if (productMatch) {
+      const p = productMatch.data.product;
+      const cars = productMatch.data.cars;
+      const titleBase = stripHtml(p.shortDescription || p.partName) || "Sản phẩm";
+      const title = `${titleBase} | Otofine`;
+      const desc = `Mua ${titleBase} — mã ${p.partNumber || ""}. Xem giá và liên hệ cửa hàng trên Otofine.`;
+      const canonical = absoluteUrl(buildProductSeoUrl({ ...p, cars }));
+      return {
         title,
-        description: desc.slice(0, 200),
-        url: canonical,
-        siteName: "Otofine",
-        locale: "vi_VN",
-        type: "website",
-        images: p.image ? [{ url: p.image }] : [{ url: "/logo.png" }],
-      },
-    };
+        description: desc.slice(0, 320),
+        alternates: { canonical },
+        robots: { index: true, follow: true },
+        openGraph: {
+          title,
+          description: desc.slice(0, 200),
+          url: canonical,
+          siteName: "Otofine",
+          locale: "vi_VN",
+          type: "website",
+          images: p.image ? [{ url: p.image }] : [{ url: "/logo.png" }],
+        },
+      };
+    }
   }
 
   const vehicleSeo = await getVehicleSeoPage(slug);
@@ -150,32 +154,42 @@ function stripHtml(html = "") {
 
 export default async function SlugHomePage({
   params,
+  searchParams,
 }) {
   const { slug } = await params;
+  const query = await searchParams;
 
-  // ─── Product-detail branch ──────────────────────────────────────
-  const productMatch = await tryRenderProduct(slug);
-  if (productMatch) {
-    // Canonical enforcement: any drift between the URL's slug and the
-    // freshly-computed canonical slug → single 308 hop. Same single-
-    // hop chain the legacy `/phu-tung/[slug]` page provided.
-    const canonicalSlug = buildProductSeoSlug({
-      ...productMatch.data.product,
-      cars: productMatch.data.cars,
-    });
-    const canonicalPath = canonicalSlug
-      ? `/${canonicalSlug}-${productMatch.data.product.id}`
-      : `/p/${productMatch.data.product.id}`;
-    const requestedPath = `/${slug}`;
-    if (requestedPath !== canonicalPath) {
-      permanentRedirect(canonicalPath);
+  // Marketplace listing URLs must reach Home.jsx / parseUrlState() untouched.
+  if (!isMarketplaceListingSlug(slug)) {
+    // ─── Product-detail branch ──────────────────────────────────────
+    const productMatch = await tryRenderProduct(slug);
+    if (productMatch) {
+      const canonicalPath = buildServerCanonicalProductPath(
+        productMatch.data.product,
+        productMatch.data.cars,
+        query,
+      );
+      const requestedPath = `/${slug}`;
+      if (requestedPath !== canonicalPath.split("?")[0]) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[CanonicalRedirect]", {
+            productId: productMatch.data.product.id,
+            requestedPath,
+            canonicalPath,
+            marketplaceQuery: query || null,
+          });
+        }
+        permanentRedirect(canonicalPath);
+      }
+      return (
+        <>
+          <ProductJsonLd data={productMatch.data} />
+          <Suspense fallback={homeLoading}>
+            <ProductDetail productId={productMatch.data.product.id} />
+          </Suspense>
+        </>
+      );
     }
-    return (
-      <>
-        <ProductJsonLd data={productMatch.data} />
-        <ProductDetail productId={productMatch.data.product.id} />
-      </>
-    );
   }
 
   // ─── Existing SEO / vehicle landing branch (unchanged) ──────────

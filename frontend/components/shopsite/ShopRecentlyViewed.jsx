@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ListingProductImage from "@/components/common/ListingProductImage";
 import {
   readRecentlyViewed,
   excludeCurrent,
@@ -80,15 +81,14 @@ export default function ShopRecentlyViewed({
             rel="noopener"
             className="snap-start shrink-0 w-[44%] sm:w-[180px] flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-[#e60012] hover:shadow-md transition-all"
           >
-            <div className="aspect-square bg-gray-50 overflow-hidden">
+            <div className="relative aspect-square bg-gray-50 overflow-hidden">
               {it.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <ListingProductImage
+                  slot="grid"
                   src={it.image}
+                  fill
                   alt={it.title || ""}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
+                  className="object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200" />

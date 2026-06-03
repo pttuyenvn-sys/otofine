@@ -1,71 +1,99 @@
-import { getSiteUrl } from "@/lib/seo/siteUrl";
+import { buildShopPrimaryCanonicalUrl } from "@/lib/shopHost";
 
 /**
- * Storefront sitemap builder — PREPARED but NOT exposed.
+ * Storefront sitemap builder — wired from `app/sitemap.js` (Phase 6B.5).
  *
- * This module is intentionally NOT imported from `app/sitemap.js`
- * during Phase 5.5. The existing apex `/sitemap.xml` keeps its
- * current contents untouched so we don't disturb the live SEO
- * surface.
+ * ## Sitemap architecture
  *
- * When wildcard DNS + indexing flip on (Phase 5.6+), `app/sitemap.js`
- * will:
- *   1. fetch the list of `seoEligible` shops from the public API
- *   2. call `buildShopSitemapEntries(shop)` for each
- *   3. merge the results into the global sitemap
+ * | Surface | Source | URL host |
+ * |---------|--------|----------|
+ * | Apex catalog (products, vehicles, categories) | `/api/seo/sitemap-data` | `otofine.com` |
+ * | Storefront pages (4 tabs per shop) | same endpoint → `storefronts[]` | `{slug}.otofine.com` |
  *
- * Until then the function is pure / testable / dormant.
+ * ## Phase 6B.6 index / sitemap alignment
  *
- * @param {{ slug:string, productCount?:number }} shop
- * @param {{ categories?: Array<{slug:string}> }} [opts]
+ * Only shops passing `evaluateStorefrontSeoIndexability()` on the backend
+ * are emitted in `/api/seo/sitemap-data` → `storefronts[]`. Pages that
+ * fail the gate stay `noindex,follow` and are excluded from the sitemap.
+ *
+ * ## Scalability (100k+ shops)
+ *
+ * Google caps sitemaps at 50,000 URLs per file. At 4 URLs/shop that
+ * is ~12,500 shops before the combined apex+storefront sitemap risks
+ * oversize. Mitigation when needed (not implemented yet):
+ *   - Next.js `generateSitemaps()` chunking (`/sitemap/[id].xml`)
+ *   - or a dedicated storefront sitemap index
+ *
+ * Data is fetched in one backend query (`listSitemapEligibleStorefronts`)
+ * — no N+1 per shop.
+ *
+ * @param {{ slug:string, shopUpdatedAt?:string|null, latestProductAt?:string|null, lastModified?:string|null }} shop
  * @returns {import('next').MetadataRoute.Sitemap}
  */
-export function buildShopSitemapEntries(shop, opts = {}) {
+export function buildShopSitemapEntries(shop) {
   if (!shop || !shop.slug) return [];
-  const base = getSiteUrl();
-  const root = `${base}/shops/${encodeURIComponent(shop.slug)}`;
-  const now = new Date();
 
-  // Default page set per storefront — matches the four real route
-  // segments under `app/(shopsite)/shops/[slug]/`.
+  const root = buildShopPrimaryCanonicalUrl(shop.slug, "");
+  if (!root) return [];
+
+  const pageUrl = (subPath) =>
+    subPath ? buildShopPrimaryCanonicalUrl(shop.slug, subPath) : root;
+
+  const shopMod = parseLastModified(shop.shopUpdatedAt || shop.lastModified);
+  const catalogMod = parseLastModified(
+    shop.latestProductAt || shop.lastModified || shop.shopUpdatedAt,
+  );
+  const fallback = parseLastModified(shop.lastModified) || new Date();
+
   const pages = [
-    { url: root,                  priority: 0.7, changeFrequency: "weekly" },
-    { url: `${root}/gioi-thieu`,  priority: 0.5, changeFrequency: "monthly" },
-    { url: `${root}/san-pham`,    priority: 0.6, changeFrequency: "weekly" },
-    { url: `${root}/lien-he`,     priority: 0.4, changeFrequency: "monthly" },
+    {
+      url: root,
+      lastModified: shopMod || fallback,
+      priority: 0.7,
+      changeFrequency: "weekly",
+    },
+    {
+      url: pageUrl("gioi-thieu"),
+      lastModified: shopMod || fallback,
+      priority: 0.5,
+      changeFrequency: "monthly",
+    },
+    {
+      url: pageUrl("san-pham"),
+      lastModified: catalogMod || fallback,
+      priority: 0.6,
+      changeFrequency: "weekly",
+    },
+    {
+      url: pageUrl("lien-he"),
+      lastModified: shopMod || fallback,
+      priority: 0.4,
+      changeFrequency: "monthly",
+    },
   ];
 
-  // Categories — each becomes `/san-pham?category=<slug>`. We DO NOT
-  // emit product pages here: those live on apex `/<slug>-<id>`
-  // (root-level canonical) and are already covered by the global
-  // sitemap (canonical safety per Phase 5.5 spec — legacy /product/
-  // <id> AND /phu-tung/<slug>-<id> apex URLs 308-redirect to the
-  // root canonical so cross-host link equity is preserved end-to-end).
-  if (Array.isArray(opts.categories)) {
-    for (const c of opts.categories) {
-      if (!c?.slug) continue;
-      pages.push({
-        url: `${root}/san-pham?category=${encodeURIComponent(c.slug)}`,
-        priority: 0.4,
-        changeFrequency: "weekly",
-      });
-    }
-  }
-
-  return pages.map((p) => ({ ...p, lastModified: now }));
+  return pages.filter((p) => p.url);
 }
 
 /**
- * Convenience iterator used by the future global sitemap builder.
- *
- * @param {Array} shops  shops with `slug` + `seoEligible`
+ * @param {Array} shops rows from `/api/seo/sitemap-data` → `storefronts`
  */
 export function buildShopsiteSitemap(shops) {
   if (!Array.isArray(shops)) return [];
   const out = [];
+  const seen = new Set();
   for (const s of shops) {
-    if (!s?.seoEligible) continue;
-    out.push(...buildShopSitemapEntries(s));
+    for (const entry of buildShopSitemapEntries(s)) {
+      if (seen.has(entry.url)) continue;
+      seen.add(entry.url);
+      out.push(entry);
+    }
   }
   return out;
+}
+
+function parseLastModified(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d : null;
 }

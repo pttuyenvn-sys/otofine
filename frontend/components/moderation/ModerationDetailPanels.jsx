@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import AppImage from "@/components/common/AppImage";
+import { PRODUCT_IMAGE_VARIANT } from "@/lib/media/productMediaUrl";
 import { RISK_FLAG_LABELS, REJECT_REASON_LABELS } from "@/components/moderation/ModerationFilters";
 
 export const sectionStyle = {
@@ -110,8 +112,17 @@ export function ModerationGallery({ images = [], compact = false }) {
                 cursor: "pointer",
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <AppImage
+                mode="next"
+                src={img}
+                variant={PRODUCT_IMAGE_VARIANT.THUMB_400}
+                allowOriginalFallback={false}
+                width={52}
+                height={52}
+                sizes="52px"
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             </button>
           ))}
         </div>

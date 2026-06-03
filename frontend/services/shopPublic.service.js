@@ -9,7 +9,8 @@
  */
 import { headers } from "next/headers";
 import { API_BASE } from "@/lib/config";
-import { isShopSubdomainHost } from "@/lib/shopHost";
+import { buildShopPrimaryCanonicalUrl, isShopSubdomainHost } from "@/lib/shopHost";
+import { canonicalShopSlug } from "@/lib/shopsite/ensureCanonicalShopSlug";
 
 const REVALIDATE_SECONDS = 60;
 
@@ -159,6 +160,24 @@ export async function fetchPublicShopDirectorySafe(params = {}) {
   }
 }
 
+/** Phase 6E.1 — featured storefront discovery (read-only, capped). */
+export async function fetchFeaturedStorefronts(params = {}) {
+  return publicFetch("/storefronts/featured", params);
+}
+
+export async function fetchFeaturedStorefrontsSafe(params = {}) {
+  try {
+    return await fetchFeaturedStorefronts(params);
+  } catch (err) {
+    console.warn("[shopPublic.service] featured fallback", { err: err?.message });
+    return {
+      items: [],
+      total: 0,
+      limit: Number(params?.limit) || 12,
+    };
+  }
+}
+
 export async function fetchPublicShopProvinces() {
   return publicFetch(`/public/shops/_facets/provinces`);
 }
@@ -221,20 +240,21 @@ export async function getShopBasePath(slug) {
 /**
  * Compute the self-canonical URL for a shop subpage.
  *
- * Rules (Phase 4 SEO contract):
- *   - On a real shop subdomain (`cuahangoto355.otofine.com`) the
- *     canonical points to the subdomain version of the page.
- *     `cuahangoto355.otofine.com/san-pham`.
- *   - When the page is reached via apex `/shops/<slug>/<sub>` the
- *     canonical points back to the apex URL — we treat that as the
- *     authoritative version for cross-linked discovery.
- *   - We still keep robots = noindex,nofollow until Phase 5 flips it
- *     on. The canonical is harmless under noindex but ensures we have
- *     ZERO duplicate canonical surface ready for go-live.
+ * Phase 6B.4 contract:
+ *   - Storefront canonical is ALWAYS the subdomain primary URL:
+ *     `https://{slug}.otofine.com[/subPath]`
+ *   - Apex `/shops/{slug}` remains functional for navigation but must
+ *     NOT be emitted as canonical (duplicate-content safety).
+ *   - When the request is already on a matching subdomain, the canonical
+ *     still points at the primary subdomain host (not apex).
  *
  * `subPath` is the path BELOW the slug, e.g. "" / "san-pham" / "gioi-thieu" / "lien-he".
  */
 export async function getShopCanonicalUrl(slug, subPath = "") {
+  const primary = buildShopPrimaryCanonicalUrl(slug, subPath);
+  if (primary) return primary;
+
+  // Defensive fallback for invalid slugs — preserve request host semantics.
   const h = await headers();
   const hostHeader = h.get("host") || "";
   const proto = h.get("x-forwarded-proto") || "https";
@@ -245,4 +265,15 @@ export async function getShopCanonicalUrl(slug, subPath = "") {
     return `${proto}://${cleanedHostHeader}${sub || "/"}`;
   }
   return `https://otofine.com/shops/${slug}${sub}`;
+}
+
+/**
+ * Storefront canonical with slug-rename awareness for metadata/JSON-LD.
+ * @param {object|null|undefined} shop
+ * @param {string} requestedSlug
+ * @param {string} [subPath]
+ */
+export async function getShopStorefrontCanonical(shop, requestedSlug, subPath = "") {
+  const slug = canonicalShopSlug(shop, requestedSlug);
+  return getShopCanonicalUrl(slug, subPath);
 }

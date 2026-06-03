@@ -12,26 +12,24 @@ import {
   validateSlugForUpdate,
 } from "../validators/sellerPublicPage.validators.js";
 import { resolveShopZalo } from "../../../utils/resolveShopZalo.js";
+import { buildStorefrontPreviewUrl } from "../utils/storefrontPreviewUrl.util.js";
+import { pool } from "../../../config/db.js";
+import {
+  compactStorefrontReadiness,
+  evaluateStorefrontReadiness,
+} from "../../../utils/storefrontReadiness.util.js";
 
-const FRONTEND_BASE =
-  process.env.FRONTEND_URL?.replace(/\/$/, "") || "https://otofine.com";
-
-function apexHost() {
-  try {
-    return new URL(FRONTEND_BASE).hostname.replace(/^www\./, "");
-  } catch {
-    return "otofine.com";
-  }
-}
-
-function buildPreviewUrl(slug, publicStatus) {
-  if (!slug) return null;
-  const previewBase = `https://${slug}.${apexHost()}`;
-  return {
-    subdomain: previewBase,
-    apex: `${FRONTEND_BASE}/shops/${slug}`,
-    isLive: publicStatus === "public",
-  };
+async function countApprovedProducts(shopId) {
+  const [[row]] = await pool.query(
+    `
+      SELECT COUNT(*) AS c
+      FROM products
+      WHERE shopId = ?
+        AND TRIM(LOWER(moderation_status)) = 'approved'
+    `,
+    [shopId],
+  );
+  return Number(row?.c) || 0;
 }
 
 /** Project a raw shop row into the seller-facing DTO. */
@@ -66,13 +64,34 @@ function toSellerDto(row) {
     // renders an empty placeholder and the storefront falls back to
     // `createdAt` for the "X+ năm" derivation.
     foundedYear: row.founded_year != null ? Number(row.founded_year) : null,
-    preview: buildPreviewUrl(row.slug, sellerStatus),
+    preview: buildStorefrontPreviewUrl(row.slug, row.public_status),
   };
 }
 
 export async function getMyPublicPage(shopId) {
   const row = await findOwnedShop(shopId);
-  return toSellerDto(row);
+  if (!row) return null;
+  const approvedModerationCount = await countApprovedProducts(shopId);
+  const readiness = evaluateStorefrontReadiness({
+    name: row.name,
+    accountName: row.name,
+    avatar: row.avatar,
+    cover_image: row.cover_image,
+    cover: row.cover,
+    intro_html: row.intro_html,
+    bio: row.bio,
+    descriptionHtml: row.descriptionHtml,
+    shopPhone: row.phone,
+    accountPhone: row.phone,
+    zalo: row.zalo,
+    zaloPhone: row.zalo_phone,
+    slug: row.slug,
+    approvedModerationCount,
+  });
+  return {
+    ...toSellerDto(row),
+    storefrontReadiness: compactStorefrontReadiness(readiness),
+  };
 }
 
 export async function checkSlugAvailability(shopId, rawSlug) {

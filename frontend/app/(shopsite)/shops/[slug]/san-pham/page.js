@@ -4,7 +4,7 @@ import ShopFilters from "@/components/shopsite/ShopFilters";
 import ShopMobileFilters from "@/components/shopsite/ShopMobileFilters";
 import ShopMobileCategories from "@/components/shopsite/ShopMobileCategories";
 import ShopSection from "@/components/shopsite/ShopSection";
-import ShopProductCard from "@/components/shopsite/ShopProductCard";
+import ShopProductVirtualGrid from "@/components/listing/ShopProductVirtualGrid";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
 import {
   ShopActiveFilterChips,
@@ -25,16 +25,14 @@ import {
   fetchPublicShopCategoriesSafe,
   fetchPublicShopFitmentsSafe,
   getShopBasePath,
-  getShopCanonicalUrl,
+  getShopStorefrontCanonical,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
-    fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, "san-pham"),
-  ]);
+  const shop = await fetchPublicShopSafe(slug);
+  const canonical = await getShopStorefrontCanonical(shop, slug, "san-pham");
   return buildShopMetadata({ shop, page: { subtitle: "Sản phẩm" }, canonical });
 }
 
@@ -136,16 +134,11 @@ export default async function ShopTenantProductsPage({ params, searchParams }) {
               </Suspense>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                  {items.map((product) => (
-                    <ShopProductCard
-                      key={product.id}
-                      product={product}
-                      shopSlug={shop?.slug || slug}
-                      shopPhone={shop?.phone || null}
-                    />
-                  ))}
-                </div>
+                <ShopProductVirtualGrid
+                  items={items}
+                  shopSlug={shop?.slug || slug}
+                  shopPhone={shop?.phone || null}
+                />
                 <Suspense fallback={null}>
                   <ShopProductsPagination
                     page={page}

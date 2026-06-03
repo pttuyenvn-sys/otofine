@@ -74,7 +74,15 @@ export async function getProductsColumnsResolved() {
     const orderColSure =
       pick(["updatedAt", "updated_at", "createdAt", "created_at", "id"]) ?? "id";
 
-    const imageCol = pick(["image_path", "image", "thumbnail_url", "photo"]);
+    const imageCol = pick([
+      "image_path",
+      "image",
+      "image_url",
+      "thumbnail_url",
+      "thumbnail",
+      "photo",
+      "main_image",
+    ]);
     const brandCol = pick(["oem_brand", "brand", "manufacturer"]);
 
     /** status-like single column OR boolean-ish */

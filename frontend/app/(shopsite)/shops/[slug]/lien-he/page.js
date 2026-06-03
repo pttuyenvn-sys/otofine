@@ -4,16 +4,14 @@ import ShopMapVisualBlock from "@/components/shopsite/ShopMapVisualBlock";
 import {
   fetchPublicShopContactSafe,
   fetchPublicShopSafe,
-  getShopCanonicalUrl,
+  getShopStorefrontCanonical,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
-    fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, "lien-he"),
-  ]);
+  const shop = await fetchPublicShopSafe(slug);
+  const canonical = await getShopStorefrontCanonical(shop, slug, "lien-he");
   return buildShopMetadata({ shop, page: { subtitle: "Liên hệ" }, canonical });
 }
 

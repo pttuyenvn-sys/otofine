@@ -1,5 +1,14 @@
 /** Shared RFQ media URL helpers — legacy local paths + R2/CDN absolute URLs. */
+import { rfqR2Config } from "../../../config/rfqR2.config.js";
 import { rfqMediaFilenameStem } from "./rfqImageThumbnails.js";
+
+const LEGACY_RFQ_UPLOADS_RE = /\/uploads\/rfq\/([^/?#]+)$/i;
+const RFQ_R2_CATEGORIES = ["chat", "request"];
+const RFQ_R2_MONTH_LOOKBACK = 12;
+const RESOLVE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** @type {Map<string, { url: string, at: number }>} */
+const resolveCache = new Map();
 
 export function isAbsoluteMediaUrl(url) {
   const u = String(url || "").trim();
@@ -10,8 +19,181 @@ export function isLegacyLocalRfqUrl(url) {
   return String(url || "").trim().startsWith("/uploads/rfq/");
 }
 
+export function isRfqR2PublicUrl(url) {
+  const base = String(rfqR2Config.publicBaseUrl || "").replace(/\/+$/, "");
+  const u = String(url || "").trim();
+  if (!base || !u) return false;
+  return u.startsWith(`${base}/`);
+}
+
+/** Legacy absolute URL on apex/static host, e.g. https://otofine.com/uploads/rfq/x.jpg */
+export function isLegacyApexRfqUrl(url) {
+  const u = String(url || "").trim();
+  if (!isAbsoluteMediaUrl(u)) return false;
+  return LEGACY_RFQ_UPLOADS_RE.test(u.split("?")[0]);
+}
+
+export function isLegacyRfqMediaUrl(url) {
+  return isLegacyLocalRfqUrl(url) || isLegacyApexRfqUrl(url);
+}
+
 export function filenameFromMediaUrl(url) {
   return String(url || "").split("/").pop()?.split("?")[0]?.toLowerCase() || "";
+}
+
+/** Extract original filename from legacy local or apex RFQ upload paths. */
+export function extractLegacyRfqFilename(url) {
+  const u = String(url || "").trim();
+  if (!u) return "";
+
+  if (isLegacyLocalRfqUrl(u)) {
+    return filenameFromMediaUrl(u);
+  }
+
+  const match = u.split("?")[0].match(LEGACY_RFQ_UPLOADS_RE);
+  return match?.[1]?.toLowerCase() || "";
+}
+
+/**
+ * Deterministic R2 CDN URL candidates for a flat legacy filename.
+ * Newest month first; both chat + request categories; 12-month lookback.
+ * @param {string} filename
+ * @returns {string[]}
+ */
+export function buildPossibleRfqR2Urls(filename) {
+  const fname = String(filename || "").trim().toLowerCase();
+  if (!fname || fname.startsWith("thumb_100_") || fname.startsWith("thumb_400_")) {
+    return [];
+  }
+
+  const base = String(rfqR2Config.publicBaseUrl || "").replace(/\/+$/, "");
+  const prefix = String(rfqR2Config.keyPrefix || "rfq").replace(/^\/+|\/+$/g, "");
+  if (!base || !prefix) return [];
+
+  const urls = [];
+  const anchor = new Date();
+
+  for (let i = 0; i < RFQ_R2_MONTH_LOOKBACK; i += 1) {
+    const d = new Date(
+      Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - i, 1),
+    );
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    for (const category of RFQ_R2_CATEGORIES) {
+      urls.push(`${base}/${prefix}/${category}/${year}/${month}/${fname}`);
+    }
+  }
+
+  return urls;
+}
+
+/**
+ * Read-time legacy → R2 rewrite (sync best-effort).
+ * Never throws; preserves original when rewrite is not possible.
+ */
+export function canonicalizeRfqMediaUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+
+  if (isRfqR2PublicUrl(raw)) return raw;
+  if (isAbsoluteMediaUrl(raw) && !isLegacyRfqMediaUrl(raw)) return raw;
+
+  const fname = extractLegacyRfqFilename(raw);
+  if (!fname) return raw;
+
+  const candidates = buildPossibleRfqR2Urls(fname);
+  if (!candidates.length) return raw;
+
+  return candidates[0];
+}
+
+/** Canonicalize a list of RFQ image URLs (read-time only). */
+export function canonicalizeRfqMediaUrlList(urls) {
+  if (!Array.isArray(urls)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of urls) {
+    const u = canonicalizeRfqMediaUrl(String(raw || "").trim());
+    if (!u || seen.has(u)) continue;
+    seen.add(u);
+    out.push(u);
+  }
+  return out;
+}
+
+function readResolveCache(raw) {
+  const hit = resolveCache.get(raw);
+  if (!hit) return null;
+  if (Date.now() - hit.at > RESOLVE_CACHE_TTL_MS) {
+    resolveCache.delete(raw);
+    return null;
+  }
+  return hit.url;
+}
+
+function writeResolveCache(raw, resolved) {
+  resolveCache.set(raw, { url: resolved, at: Date.now() });
+}
+
+/**
+ * Async read-time resolver — probes deterministic R2 candidates via HEAD.
+ * Falls back to original URL when no candidate exists publicly.
+ */
+export async function resolveCanonicalRfqMediaUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+
+  if (isRfqR2PublicUrl(raw)) return raw;
+  if (isAbsoluteMediaUrl(raw) && !isLegacyRfqMediaUrl(raw)) return raw;
+
+  const cached = readResolveCache(raw);
+  if (cached != null) return cached;
+
+  const fname = extractLegacyRfqFilename(raw);
+  if (!fname) {
+    writeResolveCache(raw, raw);
+    return raw;
+  }
+
+  const candidates = buildPossibleRfqR2Urls(fname);
+  if (!candidates.length) {
+    writeResolveCache(raw, raw);
+    return raw;
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(candidate, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(4000),
+      });
+      if (res.ok) {
+        writeResolveCache(raw, candidate);
+        return candidate;
+      }
+    } catch {
+      /* try next candidate */
+    }
+  }
+
+  writeResolveCache(raw, raw);
+  return raw;
+}
+
+/** Resolve a list of RFQ image URLs (read-time). */
+export async function resolveCanonicalRfqMediaUrlList(urls) {
+  if (!Array.isArray(urls)) return [];
+  const resolved = await Promise.all(
+    urls.map((u) => resolveCanonicalRfqMediaUrl(String(u || "").trim())),
+  );
+  const out = [];
+  const seen = new Set();
+  for (const u of resolved) {
+    if (!u || seen.has(u)) continue;
+    seen.add(u);
+    out.push(u);
+  }
+  return out;
 }
 
 const EMPTY_CANDIDATES = {
@@ -72,7 +254,24 @@ export function resolveRfqThumbnailSet(originalUrl, explicit = null) {
   };
 }
 
-/** API upload response — backward compatible { url } + optional thumbnails. */
+/** Phase 6C — enrich API attachment with derived thumbnail URLs; original url unchanged. */
+export function enrichRfqAttachmentMedia(attachment) {
+  let url = String(attachment?.url || "").trim();
+  if (!url) return attachment;
+  if (isLegacyRfqMediaUrl(url)) {
+    url = canonicalizeRfqMediaUrl(url);
+  }
+  const thumbnails = resolveRfqThumbnailSet(url, attachment?.thumbnails);
+  return {
+    ...attachment,
+    url,
+    thumbnails: {
+      small: thumbnails.small,
+      medium: thumbnails.medium,
+    },
+  };
+}
+
 export function buildRfqImageUploadResponse(saved) {
   const url = String(saved?.url || "").trim();
   const thumbnails = resolveRfqThumbnailSet(url, saved?.thumbnails);

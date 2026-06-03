@@ -1,14 +1,19 @@
 "use client";
 
-import { formatPrice } from "@/data/shop-demo";
+import { memo, useCallback, useMemo } from "react";
 import { apexProductUrl } from "@/lib/apexOrigin";
+import {
+  deriveStockAvailabilityLabel,
+  deriveStockAvailabilityTone,
+  formatStorefrontPrice,
+} from "@/lib/shopsite/productAvailability";
 import { deriveProductTrustBadge } from "@/lib/shopsite/productTrust";
 import {
   deriveProductInventorySignals,
   INVENTORY_SIGNAL_TONES,
 } from "@/lib/shopsite/productInventorySignals";
 import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
-import ShopImage from "./ShopImage";
+import ListingProductImage from "@/components/common/ListingProductImage";
 
 /**
  * Decoupled launcher for the page-level Quick-RFQ modal.
@@ -55,45 +60,96 @@ function openQuickRfqEvent(detail) {
  * The fitment line uses `line-clamp-1` + `truncate` so it never
  * pushes the price below the fold on narrow mobile widths.
  */
-export default function ShopProductCard({
+export default memo(ShopProductCardInner, shopProductCardAreEqual);
+
+function ShopProductCardInner({
   product,
   shopSlug,
   priority = false,
   shopPhone = null,
 }) {
-  if (!product) return null;
-  // Pass the full product shape (name + brand + model + year + part
-  // number) so the apex URL the visitor crosses to is already the
-  // root canonical `/<slug>-<id>` — no redirect hop on click. Falls
-  // back to short `/p/<id>` form when the card has minimal data,
-  // and the dedicated redirect route handles canonical repair in
-  // a single 308 hop.
-  const href = product.productId
-    ? apexProductUrl({ id: product.productId, ...product })
-    : "#";
-  const fitmentLine = formatVehicleLine(product);
-  // "Loại hàng" — prefer the canonical part-knowledge label (e.g.
-  // "Phớt trục số") over the legacy `category` field, which in seed
-  // data is often a Title-Case clone of the product name. Falls back
-  // to `category`, and finally renders nothing if both are absent so
-  // the chip degrades gracefully.
-  const partTypeLabel = (product.partType || product.category || "").trim();
-  // Phase 5.1 — optional trust pill (Chính hãng / OEM / Aftermarket)
-  // derived from the seller-provided `origin` string. null → not shown.
-  const trustBadge = deriveProductTrustBadge(product);
-  // Conversion engine — "Mới đăng" / "Cập nhật hôm nay" inventory
-  // signal. Pure derivation from createdAt/updatedAt; the helper
-  // returns [] when the data is missing so cards without timestamps
-  // render exactly as before (no fake "recently updated" claim).
-  const inventorySignals = deriveProductInventorySignals(product);
-  const primarySignal = inventorySignals[0] || null;
+  const href = useMemo(
+    () =>
+      product?.productId
+        ? apexProductUrl({ id: product.productId, ...product })
+        : "#",
+    [product],
+  );
 
-  const handleClick = () => {
+  const fitmentLine = useMemo(
+    () => (product ? formatVehicleLine(product) : null),
+    [product?.brand, product?.model, product?.yearFrom, product?.yearTo],
+  );
+
+  const partTypeLabel = useMemo(
+    () => (product?.partType || product?.category || "").trim(),
+    [product?.partType, product?.category],
+  );
+
+  const trustBadge = useMemo(
+    () => (product ? deriveProductTrustBadge(product) : null),
+    [product?.origin, product?.partType, product?.category],
+  );
+
+  const primarySignal = useMemo(() => {
+    if (!product) return null;
+    const inventorySignals = deriveProductInventorySignals(product);
+    return inventorySignals[0] || null;
+  }, [product?.createdAt, product?.updatedAt]);
+
+  const priceDisplay = useMemo(
+    () => formatStorefrontPrice(product?.price),
+    [product?.price],
+  );
+
+  const stockLabel = useMemo(
+    () => deriveStockAvailabilityLabel(product?.stock),
+    [product?.stock],
+  );
+
+  const stockTone = useMemo(
+    () => deriveStockAvailabilityTone(product?.stock),
+    [product?.stock],
+  );
+
+  const handleClick = useCallback(() => {
+    if (!product) return;
     trackShopsiteEvent(ShopsiteEvents.PRODUCT_CLICK, {
       shopSlug,
       productId: product.productId || product.id || null,
     });
-  };
+  }, [shopSlug, product?.productId, product?.id]);
+
+  const handleQuickRfq = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!product) return;
+      openQuickRfqEvent({
+        source: "product_card",
+        shopSlug,
+        productId: product.productId || product.id || null,
+        part: product.name || "",
+        vehicle: fitmentLine || "",
+      });
+    },
+    [shopSlug, product?.productId, product?.id, product?.name, fitmentLine],
+  );
+
+  const handlePhoneClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (typeof window !== "undefined") {
+        trackShopsiteEvent(ShopsiteEvents.PHONE_CLICK, {
+          shopSlug,
+          source: "product_card",
+        });
+      }
+    },
+    [shopSlug],
+  );
+
+  if (!product) return null;
 
   return (
     <a
@@ -103,12 +159,23 @@ export default function ShopProductCard({
       className="group flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden hover:border-[#e60012] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150"
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
-        <ShopImage
+        <ListingProductImage
+          slot="grid"
           src={product.image || ""}
+          fill
           alt={product.name || "Sản phẩm"}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          fallbackClassName="h-full w-full"
           priority={priority}
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          emptyFallback={
+            <div
+              aria-hidden={product.name ? undefined : true}
+              role={product.name ? "img" : undefined}
+              aria-label={product.name || undefined}
+              className="flex items-center justify-center h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 text-gray-400 text-xs"
+            >
+              <span>Không có ảnh</span>
+            </div>
+          }
         />
         {trustBadge && (
           <span
@@ -211,9 +278,22 @@ export default function ShopProductCard({
           </p>
         )}
 
-        <div className="mt-1 sm:mt-1 text-[#e60012] font-extrabold text-[15px] sm:text-base tabular-nums">
-          {formatPrice(product.price)}
+        <div
+          className={`mt-1 sm:mt-1 font-extrabold text-[15px] sm:text-base tabular-nums ${
+            priceDisplay.type === "price"
+              ? "text-[#e60012]"
+              : "text-gray-600 text-[13px] sm:text-sm font-semibold"
+          }`}
+        >
+          {priceDisplay.label}
         </div>
+
+        <p
+          className={`mt-0.5 text-[11px] sm:text-[12px] font-medium ${stockTone}`}
+          title={stockLabel}
+        >
+          {stockLabel}
+        </p>
 
         {/* Part-type chip — desktop only; mobile suppresses to keep
             the card visually quieter and let the CTA row dominate. */}
@@ -234,17 +314,7 @@ export default function ShopProductCard({
         <div className="mt-2 flex items-center gap-1.5">
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openQuickRfqEvent({
-                source: "product_card",
-                shopSlug,
-                productId: product.productId || product.id || null,
-                part: product.name || "",
-                vehicle: fitmentLine || "",
-              });
-            }}
+            onClick={handleQuickRfq}
             className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-[#e60012] hover:bg-[#c1000f] text-white text-[11px] sm:text-[12px] font-semibold px-2 py-1.5 shadow-sm"
             aria-label="Hỏi nhanh về sản phẩm"
           >
@@ -254,15 +324,7 @@ export default function ShopProductCard({
           {shopPhone && (
             <a
               href={`tel:${shopPhone}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (typeof window !== "undefined") {
-                  trackShopsiteEvent(ShopsiteEvents.PHONE_CLICK, {
-                    shopSlug,
-                    source: "product_card",
-                  });
-                }
-              }}
+              onClick={handlePhoneClick}
               className="inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 w-9 h-7 sm:h-[30px] shrink-0"
               aria-label="Gọi shop"
               title="Gọi shop"
@@ -273,6 +335,29 @@ export default function ShopProductCard({
         </div>
       </div>
     </a>
+  );
+}
+
+function shopProductCardAreEqual(prev, next) {
+  return (
+    prev.priority === next.priority &&
+    prev.shopSlug === next.shopSlug &&
+    prev.shopPhone === next.shopPhone &&
+    prev.product?.id === next.product?.id &&
+    prev.product?.productId === next.product?.productId &&
+    prev.product?.name === next.product?.name &&
+    prev.product?.price === next.product?.price &&
+    prev.product?.stock === next.product?.stock &&
+    prev.product?.image === next.product?.image &&
+    prev.product?.brand === next.product?.brand &&
+    prev.product?.model === next.product?.model &&
+    prev.product?.yearFrom === next.product?.yearFrom &&
+    prev.product?.yearTo === next.product?.yearTo &&
+    prev.product?.partType === next.product?.partType &&
+    prev.product?.category === next.product?.category &&
+    prev.product?.origin === next.product?.origin &&
+    prev.product?.createdAt === next.product?.createdAt &&
+    prev.product?.updatedAt === next.product?.updatedAt
   );
 }
 

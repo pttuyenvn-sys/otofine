@@ -20,7 +20,7 @@ import {
   fetchPublicShopCategoriesSafe,
   fetchPublicShopFitmentsSafe,
   getShopBasePath,
-  getShopCanonicalUrl,
+  getShopStorefrontCanonical,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
@@ -42,10 +42,8 @@ const SIDEBAR_FALLBACK = (
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
-    fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, ""),
-  ]);
+  const shop = await fetchPublicShopSafe(slug);
+  const canonical = await getShopStorefrontCanonical(shop, slug, "");
   return buildShopMetadata({ shop, page: { subtitle: "Phụ tùng ô tô" }, canonical });
 }
 

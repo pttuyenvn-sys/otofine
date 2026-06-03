@@ -6,6 +6,7 @@ import {
 } from "../cache/caches.js";
 import { shopsiteLog } from "../observability/logger.js";
 import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
+import { getSchemaCapabilities } from "../../../utils/schemaCapabilities.js";
 
 /**
  * Read-only repository for the public shop site.
@@ -118,6 +119,79 @@ export async function countPublicShopProducts(shopId) {
 }
 
 /**
+ * Phase 6B.6 — moderation + activity inputs for indexing eligibility.
+ * Single round-trip; reuses public product visibility rules.
+ */
+export async function fetchShopIndexabilityContext(shopId) {
+  if (!shopId) {
+    return {
+      productCount: 0,
+      approvedModerationCount: 0,
+      rejectedModerationCount: 0,
+      lastStorefrontActivityAt: null,
+      latestProductAt: null,
+    };
+  }
+
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const caps = await getSchemaCapabilities();
+  const hasModeration = caps.hasProductGovernance;
+
+  const metricPromise = pool.query(
+    `
+      SELECT COUNT(*) AS productCount,
+             MAX(p.updatedAt) AS latestProductAt
+      FROM products p
+      WHERE p.shopId = ?
+      ${vis.sql}
+    `,
+    [shopId],
+  );
+
+  const moderationPromise = hasModeration
+    ? pool.query(
+        `
+          SELECT
+            SUM(CASE WHEN TRIM(LOWER(moderation_status)) = 'approved' THEN 1 ELSE 0 END) AS approvedModerationCount,
+            SUM(CASE WHEN TRIM(LOWER(moderation_status)) = 'rejected' THEN 1 ELSE 0 END) AS rejectedModerationCount
+          FROM products
+          WHERE shopId = ?
+        `,
+        [shopId],
+      )
+    : Promise.resolve([[{ approvedModerationCount: 0, rejectedModerationCount: 0 }]]);
+
+  const activityPromise = caps.hasStorefrontEvents
+    ? pool.query(
+        `
+          SELECT MAX(occurred_at) AS lastStorefrontActivityAt
+          FROM shop_storefront_events
+          WHERE shop_id = ?
+        `,
+        [shopId],
+      )
+    : Promise.resolve([[{ lastStorefrontActivityAt: null }]]);
+
+  const [[metricRows], [modRows], [activityRows]] = await Promise.all([
+    metricPromise,
+    moderationPromise,
+    activityPromise,
+  ]);
+
+  const metrics = metricRows[0] || {};
+  const moderation = modRows[0] || {};
+  const activity = activityRows[0] || {};
+
+  return {
+    productCount: Number(metrics.productCount) || 0,
+    approvedModerationCount: Number(moderation.approvedModerationCount) || 0,
+    rejectedModerationCount: Number(moderation.rejectedModerationCount) || 0,
+    lastStorefrontActivityAt: activity.lastStorefrontActivityAt || null,
+    latestProductAt: metrics.latestProductAt || null,
+  };
+}
+
+/**
  * Distinct categories that this shop has products in.
  * Joins via the existing `product_category_map` ↔ `product_categories`.
  *
@@ -184,4 +258,100 @@ export async function listShopCategories(shopId) {
     ...r,
     slug: r.slug && String(r.slug).trim() ? String(r.slug).trim() : `c-${r.id}`,
   }));
+}
+
+/**
+ * Phase 6B.5/6B.6 — batch storefront rows for the apex sitemap builder.
+ *
+ * Returns candidate public shops with health inputs. Final indexability
+ * filtering happens in seo.controller via evaluateStorefrontSeoIndexability
+ * so sitemap URLs align with robots metadata.
+ */
+export async function listSitemapEligibleStorefronts() {
+  const vis = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const caps = await getSchemaCapabilities();
+
+  const activityJoin = caps.hasStorefrontEvents
+    ? `LEFT JOIN (
+        SELECT shop_id, MAX(occurred_at) AS lastStorefrontActivityAt
+        FROM shop_storefront_events
+        GROUP BY shop_id
+      ) sse ON sse.shop_id = s.id`
+    : "";
+  const activitySelect = caps.hasStorefrontEvents
+    ? "sse.lastStorefrontActivityAt,"
+    : "NULL AS lastStorefrontActivityAt,";
+
+  const moderationJoin = caps.hasProductGovernance
+    ? `LEFT JOIN (
+        SELECT
+          shopId,
+          SUM(CASE WHEN TRIM(LOWER(moderation_status)) = 'approved' THEN 1 ELSE 0 END) AS approvedModerationCount,
+          SUM(CASE WHEN TRIM(LOWER(moderation_status)) = 'rejected' THEN 1 ELSE 0 END) AS rejectedModerationCount
+        FROM products
+        WHERE shopId IS NOT NULL
+        GROUP BY shopId
+      ) pm ON pm.shopId = s.id`
+    : "";
+  const moderationSelect = caps.hasProductGovernance
+    ? `COALESCE(pm.approvedModerationCount, 0) AS approvedModerationCount,
+       COALESCE(pm.rejectedModerationCount, 0) AS rejectedModerationCount,`
+    : `0 AS approvedModerationCount,
+       0 AS rejectedModerationCount,`;
+
+  const groupActivity = caps.hasStorefrontEvents ? ", sse.lastStorefrontActivityAt" : "";
+  const groupModeration = caps.hasProductGovernance
+    ? ", pm.approvedModerationCount, pm.rejectedModerationCount"
+    : "";
+
+  const [rows] = await pool.query(
+    `
+      SELECT
+        s.slug,
+        s.public_status,
+        s.phone,
+        s.avatar,
+        COALESCE(s.cover_image, s.cover) AS cover,
+        s.intro_html,
+        s.descriptionHtml,
+        s.bio,
+        s.updatedAt AS shopUpdatedAt,
+        ${activitySelect}
+        ${moderationSelect}
+        MAX(p.updatedAt) AS latestProductAt,
+        COUNT(p.id) AS publicProductCount
+      FROM shops s
+      INNER JOIN products p ON p.shopId = s.id
+      ${activityJoin}
+      ${moderationJoin}
+      WHERE s.public_status = 'public'
+        AND s.slug IS NOT NULL
+        AND CHAR_LENGTH(TRIM(s.slug)) >= 4
+        AND (
+          (s.avatar IS NOT NULL AND TRIM(s.avatar) <> '')
+          OR (s.cover_image IS NOT NULL AND TRIM(s.cover_image) <> '')
+          OR (s.cover IS NOT NULL AND TRIM(s.cover) <> '')
+        )
+        AND TRIM(COALESCE(s.intro_html, s.descriptionHtml, s.bio, '')) <> ''
+        AND TRIM(COALESCE(s.phone, '')) <> ''
+        ${vis.sql}
+      GROUP BY
+        s.id,
+        s.slug,
+        s.public_status,
+        s.phone,
+        s.avatar,
+        s.cover_image,
+        s.cover,
+        s.intro_html,
+        s.descriptionHtml,
+        s.bio,
+        s.updatedAt
+        ${groupActivity}
+        ${groupModeration}
+      HAVING COUNT(p.id) >= 1
+      ORDER BY s.slug ASC
+    `,
+  );
+  return rows;
 }

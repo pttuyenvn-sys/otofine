@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AppImage from "../../common/AppImage";
+import { PRODUCT_IMAGE_VARIANT } from "@/lib/media/productMediaUrl";
 import { updateProductStock } from "../../../services/product.api";
 import SellerProductStatusBadges from "../../products/SellerProductStatusBadges";
 import SellerProductRowActions from "../../products/SellerProductRowActions";
 import { sellerToast } from "../../ui/SellerToaster";
 import {
-  FALLBACK_PRODUCT_IMG,
   pickProductThumb,
   formatProductCarLine,
 } from "../../products/sellerProductUi";
@@ -88,16 +89,13 @@ export default function ProductMobileCard({
           className="seller-dash-mobile-thumb"
           aria-label="Xem sản phẩm"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={thumb || FALLBACK_PRODUCT_IMG}
+          <AppImage
+            mode="img"
+            src={thumb || null}
+            variant={PRODUCT_IMAGE_VARIANT.THUMB_100}
+            allowOriginalFallback={false}
             alt=""
-            loading="lazy"
-            onError={(e) => {
-              if (e.currentTarget.src !== FALLBACK_PRODUCT_IMG) {
-                e.currentTarget.src = FALLBACK_PRODUCT_IMG;
-              }
-            }}
+            className="seller-dash-mobile-thumb__img"
           />
         </button>
 

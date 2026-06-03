@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getAuditLog } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+} from "@/components/admin/AdminLoadState";
 
 function formatTime(iso) {
   try {
@@ -98,15 +104,13 @@ export default function AdminAuditPage() {
         }
       } catch (err) {
         console.error(err);
-        const httpStatus = err?.response?.status;
         if (!cancelled) {
-          if (httpStatus === 404) {
-            setError("Audit log endpoint is not available (platform disabled or not deployed).");
-          } else if (httpStatus === 403) {
-            setError("You do not have permission to view the audit log.");
-          } else {
-            setError(err?.response?.data?.error || err.message || "Failed to load audit log");
-          }
+          setRows([]);
+          setTotal(0);
+          setError(formatAdminApiError(err, {
+            module: "audit",
+            permissionDenied: "You do not have permission to view the audit log.",
+          }));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -261,23 +265,17 @@ export default function AdminAuditPage() {
         </div>
       </div>
 
-      {loading && (
-        <div style={{ background: "white", padding: 24, borderRadius: 16 }}>
-          Loading audit log...
-        </div>
-      )}
+      {loading && <AdminLoadingState message="Loading audit log..." />}
 
       {!loading && error && (
-        <div style={{ background: "#fee2e2", color: "#991b1b", padding: 24, borderRadius: 16 }}>
-          {error}
-        </div>
+        <AdminErrorState title="Audit log unavailable" message={error} />
       )}
 
       {!loading && !error && rows.length === 0 && (
-        <div style={{ background: "white", padding: 32, borderRadius: 16 }}>
-          <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>No audit entries</div>
-          <div style={{ opacity: 0.7 }}>No administrative actions have been recorded yet.</div>
-        </div>
+        <AdminEmptyState
+          title="No audit entries"
+          message="The audit log API is reachable, but no administrative actions have been recorded yet."
+        />
       )}
 
       {!loading && !error && rows.length > 0 && (

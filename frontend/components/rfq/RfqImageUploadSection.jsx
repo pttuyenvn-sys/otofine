@@ -1,8 +1,9 @@
 "use client";
 
 import { useId, useRef } from "react";
-import { rfqImageSrc } from "@/lib/rfq/rfqMediaUrl";
 import { RFQ_UPLOAD_ACCEPT } from "@/lib/rfq/rfqUploadImage";
+import RfqLazyImage from "@/components/rfq/RfqLazyImage";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 
 /**
  * Mobile-first image picker: separate camera vs gallery (no forced capture on gallery).
@@ -83,16 +84,23 @@ export default function RfqImageUploadSection({
       {items.length > 0 ? (
         <ul className="rfq-upload-grid" aria-label={title}>
           {items.map((it) => {
-            const src =
-              it.status === "done" && it.url
-                ? rfqImageSrc(it.url)
-                : it.previewUrl || "";
+            const previewSrc = it.previewUrl || "";
             return (
               <li key={it.clientId} className="rfq-upload-tile">
                 <div className="rfq-upload-tile__frame">
-                  {src ? (
+                  {it.status === "done" && it.url ? (
+                    <RfqLazyImage
+                      originalUrl={it.url}
+                      variant={RFQ_MEDIA_VARIANT.ORIGINAL}
+                      alt=""
+                      className="rfq-upload-tile__img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : previewSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={src}
+                      src={previewSrc}
                       alt=""
                       className="rfq-upload-tile__img"
                       loading="lazy"

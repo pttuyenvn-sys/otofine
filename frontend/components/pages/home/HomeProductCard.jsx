@@ -3,17 +3,34 @@
 import React, {
   useMemo,
   useCallback,
-  useEffect,
-  useState,
   memo,
 } from "react";
 import { FiPhoneCall } from "react-icons/fi";
 import Link from "next/link";
 import { getProductDetailHref } from "@/lib/productDetailHref";
+import { traceRenderedProductHref } from "@/lib/marketplace/marketplaceHrefTrace";
 import { ProductCardImage } from "./HomeImages";
+
+function marketplaceContextEqual(a, b) {
+  if (a === b) return true;
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    String(a.category || "") === String(b.category || "") &&
+    String(a.brand || "") === String(b.brand || "") &&
+    String(a.model || "") === String(b.model || "") &&
+    String(a.year ?? "") === String(b.year ?? "") &&
+    String(a.province || "") === String(b.province || "")
+  );
+}
 
 function areEqual(prev, next) {
   if (prev.index !== next.index) return false;
+  if (prev.onSelectPhone !== next.onSelectPhone) return false;
+  if (prev.onBeforeNavigate !== next.onBeforeNavigate) return false;
+  if (!marketplaceContextEqual(prev.marketplaceContext, next.marketplaceContext)) {
+    return false;
+  }
   const a = prev.item;
   const b = next.item;
   return (
@@ -46,26 +63,26 @@ function getCardHighlights(item) {
   return lines.slice(0, 3);
 }
 
-function HomeProductCardComponent({ item, index, onSelectPhone }) {
-  const [isMobile, setIsMobile] = useState(false);
+function HomeProductCardComponent({
+  item,
+  index,
+  onSelectPhone,
+  onBeforeNavigate,
+  marketplaceContext = null,
+}) {
+  const href = useMemo(() => {
+    const raw = getProductDetailHref(item, { marketplaceContext });
+    return traceRenderedProductHref({
+      src: "homecard",
+      href: raw,
+      item,
+      marketplaceContext,
+    });
+  }, [item, marketplaceContext]);
 
-    useEffect(() => {
-      const checkMobile = () => {
-        setIsMobile(window.innerWidth <= 768);
-      };
-
-      checkMobile();
-
-      window.addEventListener("resize", checkMobile);
-
-      return () => {
-        window.removeEventListener("resize", checkMobile);
-      };
-    }, []);
-  
-  const href = useMemo(
-    () => getProductDetailHref(item),
-    [item.slug, item.id],
+  const highlightRows = useMemo(
+    () => getCardHighlights(item),
+    [item.cardHighlights, item.summary, item.id],
   );
 
   const onPhone = useCallback(
@@ -77,6 +94,10 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
     [onSelectPhone, item.phone],
   );
 
+  const onProductNavigate = useCallback(() => {
+    onBeforeNavigate?.();
+  }, [onBeforeNavigate]);
+
   return (
     <article className="of-product of-product--row">
       <div className="of-product__row-inner">
@@ -85,6 +106,7 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
           className="of-product__main-link"
           prefetch={index < 6}
           aria-labelledby={`of-p-title-${item.id}`}
+          onClick={onProductNavigate}
         >
           <div className="of-product__media of-product__media--row">
             <div className="of-product__media-placeholder" aria-hidden>
@@ -95,7 +117,6 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
             <ProductCardImage
               src={item.image}
               alt={item.shortDescription || "Phụ tùng ô tô"}
-              sizes="(max-width: 640px) 100vw, 200px"
               priority={index < 2}
             />
           </div>
@@ -103,61 +124,55 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
             <h3 id={`of-p-title-${item.id}`} className="of-product__title">
               {item.shortDescription}
             </h3>
-            {(() => {
-              const rows = getCardHighlights(item);
-              if (rows.length === 0) return null;
-              return (
-                <div
-                  className="of-product__highlights"
-                  aria-label="Điểm nổi bật sản phẩm"
-                >
-                  {rows.map((line, i) => (
-                    <p
-                      key={`${item.id}-h-${i}`}
-                      className={
-                        i === 0
-                          ? "of-product__highlight of-product__highlight--r1"
-                          : i === 1
-                            ? "of-product__highlight of-product__highlight--r2"
-                            : "of-product__highlight of-product__highlight--r3"
-                      }
-                    >
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              );
-            })()}
+            {highlightRows.length > 0 ? (
+              <div
+                className="of-product__highlights"
+                aria-label="Điểm nổi bật sản phẩm"
+              >
+                {highlightRows.map((line, i) => (
+                  <p
+                    key={`${item.id}-h-${i}`}
+                    className={
+                      i === 0
+                        ? "of-product__highlight of-product__highlight--r1"
+                        : i === 1
+                          ? "of-product__highlight of-product__highlight--r2"
+                          : "of-product__highlight of-product__highlight--r3"
+                    }
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ) : null}
           </div>
         </Link>
         <div className="of-product__side">
           <p className="of-product__price" aria-label={`Giá ${item.priceText}`}>
             {item.priceText}
           </p>
-          {isMobile && (
-            <>
-              <div className="of-product__meta">
-                {item.partNumber && (
-                  <span className="of-product__code">{item.partNumber}</span>
-                )}
-                {item.origin && (
-                  <span className="of-product__origin">{item.origin}</span>
-                )}
-              </div>
+          <div className="of-product__meta-mobile-group">
+            <div className="of-product__meta">
+              {item.partNumber ? (
+                <span className="of-product__code">{item.partNumber}</span>
+              ) : null}
+              {item.origin ? (
+                <span className="of-product__origin">{item.origin}</span>
+              ) : null}
+            </div>
 
-              <div className="of-product__meta of-product__meta--l3">
-                {item.shopName && (
-                  <span className="of-product__shop">{item.shopName}</span>
-                )}
+            <div className="of-product__meta of-product__meta--l3">
+              {item.shopName ? (
+                <span className="of-product__shop">{item.shopName}</span>
+              ) : null}
 
-                {item.provinceName && (
-                  <span className="of-product__location">{item.provinceName}</span>
-                )}
+              {item.provinceName ? (
+                <span className="of-product__location">{item.provinceName}</span>
+              ) : null}
 
-                <span className="of-product__stock">Còn hàng</span>
-              </div>
-            </>
-          )}
+              <span className="of-product__stock">Còn hàng</span>
+            </div>
+          </div>
           <div className="of-product__side-cta">
             <button
               type="button"

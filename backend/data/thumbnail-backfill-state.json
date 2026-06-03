@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "afterId": 0,
+  "cycleCount": 896,
+  "scope": "public",
+  "startedAt": "2026-05-30T13:10:17.119Z",
+  "updatedAt": "2026-06-02T09:13:06.561Z",
+  "catalogTotal": 6998,
+  "catalogTotalAt": "2026-06-02T09:13:06.560Z",
+  "totals": {
+    "batches": 13437,
+    "processed": 11635,
+    "uploaded": 0,
+    "skipped": 0,
+    "failures": 11635,
+    "regenerated": 0
+  },
+  "lastBatch": {
+    "at": "2026-06-02T09:13:06.403Z",
+    "processed": 0,
+    "uploaded": 0,
+    "skipped": 0,
+    "failures": 0,
+    "durationMs": 8,
+    "cycleComplete": true,
+    "metrics": {
+      "thumb_generation_time_ms": 0,
+      "thumb_generation_count": 0,
+      "thumb_failure_count": 26,
+      "avg_thumb_size_bytes": 0,
+      "thumb_bytes_total": 0,
+      "thumbs_uploaded": 0,
+      "skipped_existing_count": 0,
+      "invalid_image_count": 0,
+      "originals_processed": 0,
+      "realtime_success_count": 0,
+      "realtime_failure_count": 0,
+      "realtime_queued_count": 0,
+      "avg_generation_ms_per_variant": 0,
+      "avg_thumb_size_kb": "0.0"
+    }
+  }
+}

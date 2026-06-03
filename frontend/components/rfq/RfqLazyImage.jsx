@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { rfqImageSrc } from "@/lib/rfq/rfqMediaUrl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  getRfqMediaFallbackChain,
+  RFQ_IMAGE_PLACEHOLDER,
+  RFQ_MEDIA_VARIANT,
+  rfqImageSrc,
+} from "@/lib/rfq/rfqMediaUrl";
 
 /**
- * Lazy RFQ image with thumb fallback chain on error.
- * Default chain: primary → fallbackSrcs → fallbackSrc (legacy prop).
+ * Lazy RFQ image with unified thumb → original → placeholder fallback.
  * Uses IntersectionObserver — only sets src when near viewport.
  */
 export default function RfqLazyImage({
   src,
+  originalUrl,
+  variant = RFQ_MEDIA_VARIANT.MEDIUM,
+  explicitThumbnails = null,
   fallbackSrc,
   fallbackSrcs = [],
+  placeholder = RFQ_IMAGE_PLACEHOLDER,
   alt = "",
   className = "",
   rootMargin = "120px",
@@ -23,28 +31,44 @@ export default function RfqLazyImage({
   const [visible, setVisible] = useState(false);
   const [chainIndex, setChainIndex] = useState(0);
   const [currentSrc, setCurrentSrc] = useState("");
+  const exhaustedLogged = useRef(false);
 
-  const primary = String(src || "").trim();
   const chainKey = useMemo(() => {
-    const parts = [primary, ...fallbackSrcs, fallbackSrc].map((u) => String(u || "").trim());
+    if (originalUrl) {
+      return getRfqMediaFallbackChain(originalUrl, variant, explicitThumbnails).join("\0");
+    }
+    const parts = [src, ...fallbackSrcs, fallbackSrc, placeholder].map((u) =>
+      String(u || "").trim(),
+    );
     return parts.join("\0");
-  }, [primary, fallbackSrc, fallbackSrcs]);
+  }, [originalUrl, variant, explicitThumbnails, src, fallbackSrc, fallbackSrcs, placeholder]);
 
   const chain = useMemo(() => {
+    if (originalUrl) {
+      const built = getRfqMediaFallbackChain(originalUrl, variant, explicitThumbnails);
+      const ph = placeholder || RFQ_IMAGE_PLACEHOLDER;
+      if (ph && !built.includes(ph)) built.push(ph);
+      return built.filter(Boolean);
+    }
+
     const list = [];
     const add = (raw) => {
       const resolved = rfqImageSrc(raw) || String(raw || "").trim();
       if (resolved && !list.includes(resolved)) list.push(resolved);
     };
-    add(primary);
+    add(src);
     for (const fb of fallbackSrcs) add(fb);
     if (fallbackSrc) add(fallbackSrc);
+    add(placeholder || RFQ_IMAGE_PLACEHOLDER);
     return list;
-  }, [chainKey, primary, fallbackSrc, fallbackSrcs]);
+  }, [chainKey, originalUrl, variant, explicitThumbnails, src, fallbackSrc, fallbackSrcs, placeholder]);
+
+  const primary = chain[0] || "";
 
   useEffect(() => {
     setChainIndex(0);
     setCurrentSrc("");
+    exhaustedLogged.current = false;
   }, [chainKey]);
 
   useEffect(() => {
@@ -76,12 +100,30 @@ export default function RfqLazyImage({
     }
   }, [visible, chainIndex, chain]);
 
-  function onError() {
+  const atFinal = chainIndex >= chain.length - 1;
+
+  const onError = useCallback(() => {
     setChainIndex((i) => {
-      if (i + 1 < chain.length) return i + 1;
+      const next = i + 1;
+      if (next < chain.length) return next;
+
+      if (process.env.NODE_ENV === "development" && !exhaustedLogged.current) {
+        exhaustedLogged.current = true;
+        console.debug("[rfq-media] fallback chain exhausted", {
+          originalUrl: originalUrl || src,
+          variant,
+          chain,
+        });
+      }
       return i;
     });
-  }
+  }, [chain, originalUrl, src, variant]);
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el) return;
+    el.onerror = atFinal ? null : onError;
+  }, [atFinal, onError, currentSrc]);
 
   if (!primary) return null;
 
@@ -93,7 +135,7 @@ export default function RfqLazyImage({
       className={className}
       loading={loading}
       decoding={decoding}
-      onError={onError}
+      onError={atFinal ? undefined : onError}
       {...rest}
     />
   );

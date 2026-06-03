@@ -1,8 +1,11 @@
 import React from "react";
 import Link from "next/link";
 import { FiPhoneCall, FiTruck, FiShield, FiCheckCircle } from "react-icons/fi";
+import ListingProductImage from "@/components/common/ListingProductImage";
 import { formatPrice, generateCategoryBreadcrumb } from "@/lib/seo/categorySeoContent";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { getProductDetailHref } from "@/lib/productDetailHref";
+import { marketplaceContextFromFilters } from "@/lib/marketplace/marketplaceContext";
+import { traceRenderedProductHref } from "@/lib/marketplace/marketplaceHrefTrace";
 import "./seo-landing.css";
 import "./seo-article.css";
 
@@ -311,6 +314,8 @@ export function CategorySeoContentWithProducts({
   filters = {},
   structuredData = null 
 }) {
+  const marketplaceContext = marketplaceContextFromFilters(filters);
+
   return (
     <div className="category-page-container">
       {/* SEO Content */}
@@ -330,10 +335,11 @@ export function CategorySeoContentWithProducts({
               <div key={product.id || index} className="product-card">
                 <div className="product-image">
                   {product.imageUrl ? (
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.partName || product.shortDescription || 'Sản phẩm'}
-                      loading="lazy"
+                    <ListingProductImage
+                      slot="grid"
+                      src={product.imageUrl}
+                      alt={product.partName || product.shortDescription || "Sản phẩm"}
+                      className="product-card-image"
                     />
                   ) : (
                     <div className="product-image-placeholder">
@@ -354,7 +360,12 @@ export function CategorySeoContentWithProducts({
                     </div>
                   )}
                   <Link 
-                    href={buildProductSeoUrl(product)}
+                    href={traceRenderedProductHref({
+                      src: "seo",
+                      href: getProductDetailHref(product, { marketplaceContext }),
+                      item: product,
+                      marketplaceContext,
+                    })}
                     className="product-link" prefetch={false}>
                     Xem chi tiết
                   </Link>

@@ -2,27 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { getEnforcementCases } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+} from "@/components/admin/AdminLoadState";
 
 export default function AdminEnforcementCases() {
   const [loading, setLoading] = useState(true);
   const [cases, setCases] = useState([]);
   const [error, setError] = useState("");
+  const [loadState, setLoadState] = useState("loading");
 
   async function loadCases() {
     try {
       setLoading(true);
       setError("");
+      setLoadState("loading");
 
       const response = await getEnforcementCases();
-
-      setCases(response.data?.cases || []);
+      const next = response.data?.cases || [];
+      setCases(next);
+      setLoadState(next.length ? "ready" : "empty");
     } catch (err) {
       console.error(err);
-
-      setError(
-        err?.response?.data?.message ||
-        "Failed to load enforcement cases"
-      );
+      setCases([]);
+      setError(formatAdminApiError(err, {
+        module: "enforcement",
+        permissionDenied: "You do not have permission to view enforcement cases.",
+      }));
+      setLoadState("error");
     } finally {
       setLoading(false);
     }
@@ -59,59 +69,25 @@ export default function AdminEnforcementCases() {
       </div>
 
       {loading && (
-        <div
-          style={{
-            background: "white",
-            padding: 24,
-            borderRadius: 16,
-          }}
-        >
-          Loading enforcement cases...
-        </div>
+        <AdminLoadingState message="Loading enforcement cases..." />
       )}
 
-      {!loading && error && (
-        <div
-          style={{
-            background: "#fee2e2",
-            color: "#991b1b",
-            padding: 24,
-            borderRadius: 16,
-          }}
-        >
-          {error}
-        </div>
+      {!loading && loadState === "error" && (
+        <AdminErrorState
+          title="Enforcement unavailable"
+          message={error}
+          onRetry={loadCases}
+        />
       )}
 
-      {!loading && !error && cases.length === 0 && (
-        <div
-          style={{
-            background: "white",
-            padding: 32,
-            borderRadius: 16,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 20,
-              fontWeight: 600,
-              marginBottom: 8,
-            }}
-          >
-            No enforcement cases
-          </div>
-
-          <div
-            style={{
-              opacity: 0.7,
-            }}
-          >
-            No moderation or enforcement actions exist yet.
-          </div>
-        </div>
+      {!loading && loadState === "empty" && (
+        <AdminEmptyState
+          title="No enforcement cases"
+          message="The enforcement API is reachable, but no cases exist yet."
+        />
       )}
 
-      {!loading && !error && cases.length > 0 && (
+      {!loading && loadState === "ready" && (
         <div
           style={{
             display: "grid",

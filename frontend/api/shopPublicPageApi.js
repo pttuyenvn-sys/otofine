@@ -28,4 +28,8 @@ export function uploadCover(file) {
   });
 }
 
+export function submitStorefrontForReview() {
+  return axiosClient.post("/shop/public-page/storefront", { action: "submit_review" });
+}
+
 export default axiosClient;

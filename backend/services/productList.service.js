@@ -4,13 +4,25 @@ import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
 import {
   cleanHttpQueryValue,
+  listingQueryHasKeyword,
+  listingQueryIsHomePopularFirstPage,
+  listingQueryNeedsCategoryMapJoin,
   listingQueryNeedsVehicleFitmentJoin,
   normalizeListingQuery,
 } from "../utils/listingQueryNormalize.js";
+import { resolveKeywordListingPagination } from "../utils/listingKeywordPagination.js";
+import {
+  discoverKeywordProductIds,
+  parseKeywordIntent,
+  selectProductListRowsByIdsInOrder,
+} from "../utils/keywordSearchQuery.js";
 import { getOrSetCache } from "./listCache.service.js";
 import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
 
 const FACET_TTL = 5 * 60 * 1000;
+/** Home page 1 popular listing — short TTL, no event invalidation yet. */
+const HOME_LISTING_CACHE_TTL = 90 * 1000;
+const HOME_LISTING_CACHE_KEY = "products:list:home:popular:p1";
 
 function mapImageUrl(url) {
   if (!url) return null;
@@ -19,6 +31,15 @@ function mapImageUrl(url) {
 }
 
 export async function getProductList(query) {
+  if (listingQueryIsHomePopularFirstPage(query)) {
+    return getOrSetCache(HOME_LISTING_CACHE_KEY, HOME_LISTING_CACHE_TTL, () =>
+      loadProductList(query),
+    );
+  }
+  return loadProductList(query);
+}
+
+async function loadProductList(query) {
   const { page = 1, sort: sortRaw } = query;
   const sort =
     sortRaw && String(sortRaw).toLowerCase() === "newest"
@@ -34,43 +55,89 @@ export async function getProductList(query) {
 
   const pc = await getProductsColumnsResolved();
   const q = normalizeListingQuery(query);
+  const hasKeyword = listingQueryHasKeyword(query);
 
-  const joinVehicleFitment =
-    q.brand ||
-    q.model ||
-    (q.year != null && Number.isFinite(Number(q.year)));
+  const joinVehicleFitment = listingQueryNeedsVehicleFitmentJoin(query);
+  const joinCategoryMap = listingQueryNeedsCategoryMapJoin(query);
   const { where: baseWhere, params, keywordOrder } =
-    productListRepo.buildProductListFilters(pc, query);
+    productListRepo.buildProductListFilters(pc, query, { omitKeyword: hasKeyword });
   const vis = await buildPublicProductWhereClause({ aliasP: "p", aliasS: "s" });
   const where = baseWhere + vis.sql;
 
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log("[listing SQL] /api/products facets", {
+      hasKeyword,
       joinVehicleFitment,
-      normalized: normalizeListingQuery(query),
+      joinCategoryMap,
+      normalized: q,
     });
   }
 
-  const [rows, countRow] = await Promise.all([
-    productListRepo.selectProductListRows({
+  let rows;
+  let total;
+  let totalPages;
+
+  if (hasKeyword) {
+    const intent = parseKeywordIntent(q.keyword);
+    const ids = await discoverKeywordProductIds({
       pc,
-      where,
-      params,
-      keywordOrder,
+      intent,
+      baseWhere: where,
+      baseParams: params,
+      joinVehicleFitment,
+      joinCategoryMap,
       limit,
       offset,
       sort,
-      joinVehicleFitment,
-    }),
-    productListRepo.countProductList({
+      fromSqlBuilder: productListRepo.buildProductListingJoinSql,
+    });
+    rows = await selectProductListRowsByIdsInOrder({
       pc,
-      where,
-      params,
+      ids,
       joinVehicleFitment,
-    }),
-  ]);
-  const total = Number(countRow?.total) || 0;
-  const totalPages = Math.ceil(total / limit);
+      joinCategoryMap,
+      vehicleFilters: q,
+      fromSqlBuilder: productListRepo.buildProductListingJoinSql,
+    });
+    rows = rows.map((row) => productListRepo.hydrateListingRowVehicleFields(row, q));
+    if (intent.strictSku) {
+      const exactTotal = offset + rows.length;
+      total = exactTotal;
+      totalPages = Math.max(1, Math.ceil(exactTotal / limit));
+    } else {
+      ({ total, totalPages } = resolveKeywordListingPagination({
+        rows,
+        limit,
+        offset,
+        page,
+      }));
+    }
+  } else {
+    const [rowsResult, countRow] = await Promise.all([
+      productListRepo.selectProductListRows({
+        pc,
+        where,
+        params,
+        keywordOrder,
+        limit,
+        offset,
+        sort,
+        joinVehicleFitment,
+        joinCategoryMap,
+        vehicleFilters: q,
+      }),
+      productListRepo.countProductList({
+        pc,
+        where,
+        params,
+        joinVehicleFitment,
+        joinCategoryMap,
+      }),
+    ]);
+    rows = rowsResult;
+    total = Number(countRow?.total) || 0;
+    totalPages = Math.ceil(total / limit);
+  }
 
   const ids = rows.map((x) => x.id);
   const images = await productListRepo.selectPrimaryImagesForProducts(ids);
@@ -82,7 +149,8 @@ export async function getProductList(query) {
     }
   });
 
-  const data = rows.map((x) => {
+  const data = rows.map((rawRow) => {
+    const x = productListRepo.hydrateListingRowVehicleFields(rawRow, q);
     const shortDescription = stripHtml(x.shortDescription);
     const sub = buildProductCardHighlights({
       productTitle: shortDescription,

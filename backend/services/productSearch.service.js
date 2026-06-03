@@ -1,5 +1,6 @@
 import Typesense from "typesense";
 import { pool } from "../config/db.js";
+import * as productListRepo from "../repositories/productList.repository.js";
 import * as cardRepo from "../repositories/productCard.repository.js";
 import { normalizeText } from "../repositories/productList.repository.js";
 import { stripHtml, formatVND } from "../utils/textFormat.js";
@@ -14,6 +15,13 @@ import {
   normalizeListFilterYear,
   normalizePartNumber,
 } from "../utils/listingQueryNormalize.js";
+import { buildSameRowVehicleFitmentExistsSql } from "../utils/listingVehicleFitmentSql.js";
+import { resolveKeywordListingPagination } from "../utils/listingKeywordPagination.js";
+import {
+  discoverKeywordProductIds,
+  parseKeywordIntent,
+} from "../utils/keywordSearchQuery.js";
+import { stabilizeLegacyProductMediaUrl } from "../utils/legacyProductMediaUrl.util.js";
 
 const COLLECTION =
   process.env.TYPESENSE_PRODUCT_COLLECTION || "otofine_products";
@@ -73,10 +81,14 @@ function escapeFilterValue(s) {
   return String(s || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function normalizeThumbnailUrl(raw) {
+function normalizeThumbnailUrl(raw, ctx = {}) {
   if (!raw) return null;
-  const u = String(raw).trim();
+  let u = String(raw).trim();
   if (!u) return null;
+
+  u = stabilizeLegacyProductMediaUrl(u, ctx);
+  if (!u) return null;
+
   if (u.startsWith("http")) return u;
   const base = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
   if (!base) return u;
@@ -98,65 +110,29 @@ async function mysqlSearchIds(opts) {
     return { ids: [], found: 0, source: "mysql" };
   }
 
-  const normalizedQ = normalizePartNumber(q);
-  const words = normalizeText(q)
-    .split(/\s+/)
-    .filter(Boolean);
+  const intent = parseKeywordIntent(q);
+  if (!intent.words.length && intent.partNorm.length <= 2) {
+    return { ids: [], found: 0, source: "mysql" };
+  }
+
   let where = ` WHERE 1=1 ${vis.sql} `;
   const params = [];
-
-  if (words.length > 0 || (normalizedQ && normalizedQ.length > 2)) {
-    where += ` AND (`;
-    const likeConditions = [];
-    
-    for (const w of words) {
-      const like = `%${w}%`;
-      likeConditions.push(`(
-        LOWER(p.partName) LIKE ?
-        OR LOWER(p.partNumber) LIKE ?
-        OR LOWER(COALESCE(p.shortDescription,'')) LIKE ?
-      )`);
-      params.push(like, like, like);
-    }
-
-    // Add normalized partNumber matching for exact partNumber searches
-    if (normalizedQ && normalizedQ.length > 2) {
-      likeConditions.push(`REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ?`);
-      params.push(normalizedQ);
-    }
-
-    where += likeConditions.join(" OR ");
-    where += `)`;
-  }
 
   const filterBrand = cleanHttpQueryValue(opts.brand);
   const filterModel = cleanHttpQueryValue(opts.model);
   const filterCategory = cleanHttpQueryValue(opts.category);
   const filterYear = normalizeListFilterYear(opts.year);
 
-  if (filterBrand) {
-    where += ` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa
-      INNER JOIN car_models cm ON cm.id = pa.carModelId
-      WHERE pa.productId = p.id AND LOWER(TRIM(cm.hang_xe)) = ?
-    ) `;
-    params.push(String(filterBrand).trim().toLowerCase());
+  const vehicleExists = buildSameRowVehicleFitmentExistsSql("p.id", {
+    brand: filterBrand,
+    model: filterModel,
+    year: filterYear,
+  });
+  if (vehicleExists) {
+    where += vehicleExists.sql;
+    params.push(...vehicleExists.params);
   }
-  if (filterModel) {
-    where += ` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa2
-      INNER JOIN car_models cm2 ON cm2.id = pa2.carModelId
-      WHERE pa2.productId = p.id AND LOWER(TRIM(cm2.ten_xe)) = ?
-    ) `;
-    params.push(String(filterModel).trim().toLowerCase());
-  }
-  if (filterYear != null) {
-    where += ` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa3
-      WHERE pa3.productId = p.id AND pa3.year_from <= ? AND pa3.year_to >= ?
-    ) `;
-    params.push(filterYear, filterYear);
-  }
+
   if (Number.isFinite(cityId) && cityId > 0) {
     where += ` AND s.provinceId = ? `;
     params.push(cityId);
@@ -178,50 +154,35 @@ async function mysqlSearchIds(opts) {
     params.push(filterCategory);
   }
 
-  const kw = normalizeText(q);
-  const likePN = `%${kw}%`;
-
-  const [[countRow]] = await pool.query(
-    `
-    SELECT COUNT(*) AS c
-    FROM (
-      SELECT p.id
-      FROM products p
-      ${joins}
-      ${where}
-      GROUP BY p.id
-    ) t
-    `,
-    params,
-  );
-
-  const found = Number(countRow?.c) || 0;
-
   const pc = await getProductsColumnsResolved();
-  const ord = pc.orderExprQualified("p");
+  const searchFromSql = () => `FROM products p ${joins}`;
 
-  const orderParams = [...params, likePN, likePN, normalizedQ, perPage, offset];
-  const [rows] = await pool.query(
-    `
-    SELECT p.id
-    FROM products p
-    ${joins}
-    ${where}
-    GROUP BY p.id
-    ORDER BY
-      MIN(CASE WHEN REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ? THEN 0 ELSE 1 END),
-      MIN(CASE WHEN LOWER(p.partNumber) LIKE ? THEN 0 ELSE 1 END),
-      MIN(CASE WHEN LOWER(p.partName) LIKE ? THEN 0 ELSE 1 END),
-      MAX(${ord}) DESC
-    LIMIT ? OFFSET ?
-    `,
-    orderParams,
-  );
+  const ids = await discoverKeywordProductIds({
+    pc,
+    intent,
+    baseWhere: where,
+    baseParams: params,
+    joinVehicleFitment: false,
+    joinCategoryMap: false,
+    limit: perPage,
+    offset,
+    sort: "newest",
+    fromSqlBuilder: searchFromSql,
+  });
 
-  // TEMP SQL debug removed to avoid logging large objects at runtime.
+  const { total: found } = intent.strictSku
+    ? {
+        total: offset + ids.length,
+      }
+    : resolveKeywordListingPagination({
+        rows: ids.map((id) => ({ id })),
+        limit: perPage,
+        offset,
+        page,
+      });
 
   return {
-    ids: rows.map((r) => r.id),
+    ids,
     found,
     source: "mysql",
   };
@@ -389,9 +350,20 @@ export async function searchProductsPublic(opts) {
       perPage,
     };
   }
-  const hydrated = await cardRepo.hydrateHomeCardsByIdsInOrder(ids);
+  const hydrated = await cardRepo.hydrateHomeCardsByIdsInOrder(ids, {
+    brand: opts.brand,
+    model: opts.model,
+    year: opts.year,
+  });
 
-  const data = hydrated.map((row) => {
+  const vehicleFilters = {
+    brand: opts.brand,
+    model: opts.model,
+    year: opts.year,
+  };
+
+  const data = hydrated.map((rawRow) => {
+    const row = productListRepo.hydrateListingRowVehicleFields(rawRow, vehicleFilters);
     const shortDescription = stripHtml(row.shortDescription);
     const sub = buildProductCardHighlights({
       productTitle: shortDescription,
@@ -416,7 +388,10 @@ export async function searchProductsPublic(opts) {
       cardHighlights: sub.cardHighlights,
       subtitleLine1: sub.subtitleLine1,
       subtitleLine2: sub.subtitleLine2,
-      image: normalizeThumbnailUrl(row.thumbRaw),
+      image: normalizeThumbnailUrl(row.thumbRaw, {
+        shopId: row.shopId,
+        partNumber: row.partNumber,
+      }),
       origin: row.origin,
       shopName: row.shopName,
       provinceName: row.provinceName,

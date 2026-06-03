@@ -20,7 +20,8 @@ export const ROOT_HOSTS = new Set([
 
 /**
  * Reserved subdomains — these labels must never resolve to a shop slug.
- * Mirrors the backend RESERVED_SHOP_SLUGS set; keep both in sync.
+ * Canonical list lives in backend/domains/shopPublic/config/publicShop.config.js
+ * (RESERVED_SHOP_SLUGS). Keep this set identical; nginx uses the same labels.
  */
 export const RESERVED_SUBDOMAINS = new Set([
   "www",
@@ -54,8 +55,81 @@ export const RESERVED_SUBDOMAINS = new Set([
   "next",
 ]);
 
+/** Labels that must never map to a shop slug (Phase 6B.3a). */
+export const IGNORED_SHOP_SUBDOMAIN_LABELS = new Set([
+  "www",
+  "api",
+  "admin",
+  "localhost",
+  "127.0.0.1",
+]);
+
+/** Shop-tenant platform suffixes (*.otofine.com + local dev). */
+export const SHOP_PLATFORM_SUFFIXES = Object.freeze([
+  ".otofine.com",
+  ".localhost",
+  ".lvh.me",
+  ".nip.io",
+]);
+
+/** Internal rewrite target for invalid subdomain slugs (loop-safe). */
+export const SUBDOMAIN_INVALID_REWRITE_PATH = "/404";
+
 /** DNS-safe slug regex; matches backend SLUG_REGEX exactly. */
 export const SUBDOMAIN_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
+
+/**
+ * Phase 6B.3a — extract a shop slug from Host on *.otofine.com (and
+ * local dev suffixes). Returns null for ignored/invalid/non-shop hosts.
+ *
+ * @param {string} host
+ * @returns {string|null}
+ */
+export function extractShopSlugFromHost(host) {
+  const cls = classifyShopSubdomainHost(host);
+  return cls.kind === "ok" ? cls.slug : null;
+}
+
+/**
+ * Classify host for subdomain internal rewrite (Phase 6B.3a).
+ *
+ * @returns {{ kind: "none"|"ignored"|"invalid"|"ok", slug?: string, label?: string, suffix?: string }}
+ */
+export function classifyShopSubdomainHost(host) {
+  if (!host) return { kind: "none" };
+  const raw = String(host);
+  if (raw.length > MAX_HOST_LENGTH + 10) return { kind: "none" };
+  const hostname = stripPort(raw);
+  if (!hostname) return { kind: "none" };
+  if (hostname.length > MAX_HOST_LENGTH) return { kind: "none" };
+  if (!HOST_CHAR_REGEX.test(hostname)) return { kind: "none" };
+
+  if (
+    ROOT_HOSTS.has(hostname) ||
+    hostname === "localhost" ||
+    hostname.startsWith("127.0.0.1")
+  ) {
+    return { kind: "none" };
+  }
+  if (hostname.endsWith(".vercel.app")) return { kind: "none" };
+
+  for (const suffix of SHOP_PLATFORM_SUFFIXES) {
+    if (!hostname.endsWith(suffix)) continue;
+    const label = hostname.slice(0, -suffix.length);
+    if (!label || label.includes(".")) {
+      return { kind: "invalid", label: label || "", suffix };
+    }
+    if (IGNORED_SHOP_SUBDOMAIN_LABELS.has(label) || RESERVED_SUBDOMAINS.has(label)) {
+      return { kind: "ignored", label, suffix };
+    }
+    if (!SUBDOMAIN_SLUG_REGEX.test(label)) {
+      return { kind: "invalid", label, suffix };
+    }
+    return { kind: "ok", slug: label, suffix };
+  }
+
+  return { kind: "none" };
+}
 
 /**
  * Only the four shop-tenant page paths get rewritten when on a
@@ -225,37 +299,63 @@ export function classifyHost(hostname) {
  * existing call sites (basePath, canonical) keep their old semantics.
  */
 export function extractShopSubdomain(hostname) {
-  const { decision, slug } = classifyHost(hostname);
-  return decision === HOST_DECISIONS.REWRITE_OK ? slug : null;
+  return extractShopSlugFromHost(hostname);
+}
+
+/**
+ * Phase 6B.3a — internal subdomain rewrite decision.
+ * Returns `{ slug, internalPath }`, `{ invalid: true, internalPath }`, or null.
+ */
+export function resolveSubdomainInternalRewrite({ host, pathname, flagEnabled }) {
+  if (!flagEnabled) return null;
+
+  const path = pathname || "/";
+  if (
+    path === SUBDOMAIN_INVALID_REWRITE_PATH ||
+    path.startsWith(`${SUBDOMAIN_INVALID_REWRITE_PATH}/`)
+  ) {
+    return null;
+  }
+
+  const cls = classifyShopSubdomainHost(host);
+  if (cls.kind === "none" || cls.kind === "ignored") return null;
+
+  if (cls.kind === "invalid") {
+    return {
+      invalid: true,
+      slug: cls.label || null,
+      internalPath: SUBDOMAIN_INVALID_REWRITE_PATH,
+    };
+  }
+
+  const slug = cls.slug;
+  if (!slug) return null;
+  if (path.startsWith(`/shops/${slug}`)) return null;
+
+  const cleanPath = path.replace(/\/+$/, "") || "/";
+  if (!SHOP_REWRITE_PATHS.has(cleanPath)) return null;
+
+  const internalPath =
+    cleanPath === "/" ? `/shops/${slug}` : `/shops/${slug}${cleanPath}`;
+
+  return { slug, internalPath };
 }
 
 /**
  * Decide whether a (host, pathname) pair maps to a shop tenant
  * rewrite. Returns `{ slug, internalPath, decision }` or null.
  *
- * Phase 4.5: exposes the `decision` code on success so the middleware
- * can attribute its metrics without re-running classification.
- *
- * Phase 6A: respects the `PUBLIC_SHOPSITE_ALLOWED_SLUGS` allowlist.
- * When the allowlist is enabled and the slug is NOT on it, returns a
- * sentinel `{ decision: REWRITE_OK, slug, blocked: "not-allowlisted" }`
- * so the middleware can emit a metric and fall through to apex
- * routing. This is the staging-rollout mode that lets us flip DNS
- * on globally but still keep most shops apex-only until QA passes.
+ * @deprecated Prefer resolveSubdomainInternalRewrite for middleware.
  */
 export function resolveShopRewrite({ host, pathname, flagEnabled }) {
-  if (!flagEnabled) return null;
-  const cls = classifyHost(host);
-  if (cls.decision !== HOST_DECISIONS.REWRITE_OK) return null;
-  const sub = cls.slug;
-  if (!isShopSubdomainAllowed(sub)) {
-    return { slug: sub, decision: cls.decision, blocked: "not-allowlisted" };
-  }
-  if (pathname.startsWith(`/shops/${sub}`)) return null;
-  const cleanPath = pathname.replace(/\/+$/, "") || "/";
-  if (!SHOP_REWRITE_PATHS.has(cleanPath)) return null;
-  const internalPath = cleanPath === "/" ? `/shops/${sub}` : `/shops/${sub}${cleanPath}`;
-  return { slug: sub, internalPath, decision: cls.decision };
+  const decision = resolveSubdomainInternalRewrite({ host, pathname, flagEnabled });
+  if (!decision) return null;
+  if (decision.invalid) return decision;
+  return {
+    slug: decision.slug,
+    internalPath: decision.internalPath,
+    decision: HOST_DECISIONS.REWRITE_OK,
+  };
 }
 
 /**
@@ -270,4 +370,69 @@ export function isShopSubdomainHost(host, slug) {
   if (RESERVED_SUBDOMAINS.has(sub)) return false;
   if (slug && sub !== slug) return false;
   return SUBDOMAIN_SLUG_REGEX.test(sub);
+}
+
+/**
+ * Apex domain used for storefront subdomains (`{slug}.otofine.com`).
+ * Edge-safe — reads only NEXT_PUBLIC_* env vars.
+ */
+export function getShopPlatformApexDomain() {
+  const explicit = (process.env.NEXT_PUBLIC_SHOP_PLATFORM_APEX || "")
+    .trim()
+    .replace(/^\.+/, "")
+    .replace(/\/+$/, "");
+  if (explicit) return explicit;
+
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "").trim();
+  if (site) {
+    try {
+      return new URL(site).hostname.replace(/^www\./i, "");
+    } catch {
+      /* ignore */
+    }
+  }
+  return "otofine.com";
+}
+
+function usesLocalShopSubdomainHost() {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "").trim();
+  if (!site) return false;
+  try {
+    const host = new URL(site).hostname;
+    return (
+      host === "localhost" ||
+      host.endsWith(".localhost") ||
+      host.endsWith(".lvh.me") ||
+      host.endsWith(".nip.io") ||
+      host.startsWith("127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Phase 6B.4 — primary storefront canonical URL.
+ * Always emits the subdomain form: https://{slug}.otofine.com[/subPath]
+ * (or http://{slug}.localhost in local dev).
+ *
+ * @param {string} slug
+ * @param {string} [subPath] e.g. "" | "san-pham" | "gioi-thieu" | "lien-he"
+ * @returns {string|null}
+ */
+export function buildShopPrimaryCanonicalUrl(slug, subPath = "") {
+  const normalized = String(slug || "").trim().toLowerCase();
+  if (!normalized || !SUBDOMAIN_SLUG_REGEX.test(normalized)) return null;
+  if (RESERVED_SUBDOMAINS.has(normalized)) return null;
+
+  const sub = subPath
+    ? `/${String(subPath).replace(/^\//, "").replace(/\/$/, "")}`
+    : "";
+
+  if (usesLocalShopSubdomainHost()) {
+    return `http://${normalized}.localhost${sub || "/"}`;
+  }
+
+  const apex = getShopPlatformApexDomain();
+  return `https://${normalized}.${apex}${sub || "/"}`;
 }

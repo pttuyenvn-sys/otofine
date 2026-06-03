@@ -1,23 +1,57 @@
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import {
+  buildProductSeoUrl,
+  devWarnMissingMarketplaceContext,
+  isMarketplaceListingNavigation,
+} from "@/lib/seo/productSeoUrl";
+import {
+  isEmptyMarketplaceContext,
+  resolveMarketplaceContextForHref,
+} from "@/lib/marketplace/marketplaceContext";
 
 /**
  * Public product detail href (root-level canonical SEO format).
  *
- * Always returns `/<slug>-<id>` where the slug is computed from
- * whatever fields are available on `item`. When the caller has no
- * descriptive fields, the helper degrades to `/p/<id>` and the
- * dedicated redirect route at `app/p/[id]/page.js` 308-redirects to
- * the proper canonical on first request.
+ * Marketplace context still shapes slug fitment (listing vehicle) but is
+ * not serialized into product URLs. Navigation continuity is preserved via
+ * sessionStorage (`saveBeforeProductNavigate`) and listing restore — not
+ * `vb`/`vm`/`vy`/`cat` query params on new links.
  *
- * Callers should pass the FULL item shape they have on hand (name /
- * partName / brand / model / year / partNumber / cars[]) so the
- * generated URL matches the page-canonical and the click is a single
- * direct render — no redirect.
+ * On marketplace listing/search surfaces, missing explicit context is
+ * recovered from session + URL before slug generation so hrefs never
+ * fall back to `cars[]` fitment heuristics.
  *
  * @param {{ id?: string | number; productId?: string | number } & Record<string, unknown>} item
+ * @param {{
+ *   marketplaceContext?: import("@/lib/marketplace/marketplaceContext").MarketplaceContext,
+ *   listingVehicle?: { brand?: string, model?: string, year?: string | number },
+ * }} [options]
  * @returns {string}
  */
-export function getProductDetailHref(item) {
+export function getProductDetailHref(item, options = {}) {
   if (!item) return "/";
-  return buildProductSeoUrl(item);
+
+  const allowRecovery = isMarketplaceListingNavigation();
+  const marketplaceContext = resolveMarketplaceContextForHref(options, {
+    allowRecovery,
+  });
+
+  devWarnMissingMarketplaceContext(item, {
+    ...options,
+    marketplaceContext: isEmptyMarketplaceContext(marketplaceContext)
+      ? undefined
+      : marketplaceContext,
+  });
+
+  const listingVehicle = isEmptyMarketplaceContext(marketplaceContext)
+    ? undefined
+    : {
+        brand: marketplaceContext.brand,
+        model: marketplaceContext.model,
+        year: marketplaceContext.year,
+      };
+
+  return buildProductSeoUrl(item, {
+    listingVehicle,
+    marketplaceContext,
+  });
 }

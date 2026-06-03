@@ -66,7 +66,10 @@ export const publicShopConfig = {
 
 /**
  * Reserved subdomains / slugs that must never resolve to a real shop.
- * Matches audit/shop-subdomain-routing.md §5.
+ * Canonical list — keep in sync with:
+ *   - frontend/lib/shopHost.js (RESERVED_SUBDOMAINS)
+ *   - deploy/nginx/wildcard-shopsite.conf (reserved labels regex)
+ *   - deploy/nginx/shop-subdomain.example.conf
  */
 export const RESERVED_SHOP_SLUGS = new Set([
   "www",
@@ -75,10 +78,10 @@ export const RESERVED_SHOP_SLUGS = new Set([
   "rfq",
   "shop",
   "shops",
-  "app",
+  "mail",
   "assets",
   "cdn",
-  "mail",
+  "app",
   "static",
   "img",
   "rfq-img",
@@ -96,6 +99,8 @@ export const RESERVED_SHOP_SLUGS = new Set([
   "dev",
   "qa",
   "test",
+  "preview",
+  "next",
 ]);
 
 /** Slug must be DNS-safe and 3-40 chars. Same regex everywhere. */

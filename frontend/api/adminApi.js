@@ -12,7 +12,10 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
-export const getShops = () => API.get("/shops");
+/** Legacy array when no query params; paginated ops payload when filters present. */
+export const getShops = (params) => API.get("/shops", { params: params || undefined });
+
+export const getShopDetail = (id) => API.get(`/shops/${id}/detail`);
 
 export const updateShopStatus = (id, status) =>
   API.patch(`/shops/${id}/status`, { status });

@@ -1,4 +1,5 @@
 import { pool } from "../config/db.js";
+import { buildListingFitmentSelectSql } from "./productList.repository.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
 import {
   appendProductPublicVisibilityWhereParts,
@@ -6,8 +7,8 @@ import {
 } from "../utils/productPublicVisibility.server.js";
 import {
   isPresentNonEmptyFilterString,
-  normalizeListFilterYear,
 } from "../utils/listingQueryNormalize.js";
+import { appendSameRowVehicleFitmentExists } from "../utils/listingVehicleFitmentSql.js";
 
 function normalizeText(str = "") {
   return str
@@ -39,31 +40,17 @@ function thumbRawSubselect(pc) {
       ) AS thumbRaw`;
 }
 
-function compatibilityLineSubselect(pc) {
-  return `
-      (
-        SELECT TRIM(BOTH ' ' FROM CONCAT_WS(' ',
-          NULLIF(TRIM(cmx.hang_xe), ''),
-          NULLIF(TRIM(cmx.ten_xe), ''),
-          NULLIF(
-            IF(
-              pax.year_from IS NULL OR pax.year_to IS NULL,
-              NULL,
-              IF(
-                pax.year_from = pax.year_to,
-                CAST(pax.year_from AS CHAR),
-                CONCAT(pax.year_from, '–', pax.year_to)
-              )
-            ),
-            ''
-          )
-        ))
-        FROM product_car_applications pax
-        LEFT JOIN car_models cmx ON cmx.id = pax.carModelId
-        WHERE pax.productId = ${pc.idExpr("p")}
-        ORDER BY pax.id ASC
-        LIMIT 1
-      ) AS compatibilityLine`;
+function compatibilityLineSubselect(pc, vehicleFilters = {}) {
+  return buildListingFitmentSelectSql(pc, vehicleFilters).sql.trim();
+}
+
+/** @param {ProductsSchemaAdapter} pc @param {{ brand?: string, model?: string, year?: unknown }} [vehicleFilters] */
+function buildHomeCardSelectQuery(pc, vehicleFilters = {}) {
+  const fitmentSelect = buildListingFitmentSelectSql(pc, vehicleFilters);
+  return {
+    body: homeCardSelectBody(pc, vehicleFilters),
+    fitmentParams: fitmentSelect.params,
+  };
 }
 
 /** @param {ProductsSchemaAdapter} pc */
@@ -71,6 +58,7 @@ function cardListSelectBody(pc) {
   const oe = `${pc.orderExprQualified("p")} AS updatedAt`;
   return `
       ${pc.idExpr("p")} AS id,
+      p.shopId AS shopId,
       ${pc.slugSqlSelect("p")},
       ${pc.partNumberSqlSelect("p")},
       ${pc.nameSqlSelect("p")},
@@ -85,11 +73,12 @@ function cardListSelectBody(pc) {
   `;
 }
 
-/** @param {ProductsSchemaAdapter} pc */
-function homeCardSelectBody(pc) {
+/** @param {ProductsSchemaAdapter} pc @param {{ brand?: string, model?: string, year?: unknown }} [vehicleFilters] */
+function homeCardSelectBody(pc, vehicleFilters = {}) {
   const oe = `${pc.orderExprQualified("p")} AS updatedAt`;
   return `
       ${pc.idExpr("p")} AS id,
+      p.shopId AS shopId,
       ${pc.slugSqlSelect("p")},
       ${pc.partNumberSqlSelect("p")},
       ${pc.nameSqlSelect("p")},
@@ -106,7 +95,7 @@ function homeCardSelectBody(pc) {
       s.name AS shopName,
       ap.tinh_tp AS provinceName,
       ${oe},
-      ${compatibilityLineSubselect(pc)}
+      ${compatibilityLineSubselect(pc, vehicleFilters)}
   `;
 }
 
@@ -137,33 +126,11 @@ function appendCardFacetFilters(whereParts, params, pc, ord, facet) {
     params.push(locationLower, locationLower, `%${locationLower}`);
   }
 
-  if (isPresentNonEmptyFilterString(brand)) {
-    whereParts.push(` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa
-      INNER JOIN car_models cm ON cm.id = pa.carModelId
-      WHERE pa.productId = ${pid} AND ${sqlLowerTrim("cm.hang_xe")} = ?
-    ) `);
-    params.push(String(brand).trim().toLowerCase());
-  }
-
-  if (isPresentNonEmptyFilterString(model)) {
-    whereParts.push(` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa2
-      INNER JOIN car_models cm2 ON cm2.id = pa2.carModelId
-      WHERE pa2.productId = ${pid} AND ${sqlLowerTrim("cm2.ten_xe")} = ?
-    ) `);
-    params.push(String(model).trim().toLowerCase());
-  }
-
-  const yearNum = normalizeListFilterYear(year);
-  if (yearNum != null) {
-    whereParts.push(` AND EXISTS (
-      SELECT 1 FROM product_car_applications pa3
-      WHERE pa3.productId = ${pid}
-        AND pa3.year_from <= ? AND pa3.year_to >= ?
-    ) `);
-    params.push(yearNum, yearNum);
-  }
+  appendSameRowVehicleFitmentExists(whereParts, params, pid, {
+    brand,
+    model,
+    year,
+  });
 
   if (isPresentNonEmptyFilterString(category)) {
     // Match category using same normalization as category controller
@@ -349,7 +316,7 @@ export async function fetchHomeCardsLiveUnfiltered({
   await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
 
   const where = whereParts.join("");
-  const body = homeCardSelectBody(pc);
+  const { body, fitmentParams } = buildHomeCardSelectQuery(pc);
   const [rows] = await pool.query(
     `
     SELECT ${body}
@@ -360,7 +327,7 @@ export async function fetchHomeCardsLiveUnfiltered({
     ORDER BY ${ord} DESC, ${pc.idExpr("p")} DESC
     LIMIT ?
     `,
-    [...params, limitPlusOne],
+    [...fitmentParams, ...params, limitPlusOne],
   );
 
   return rows;
@@ -396,7 +363,8 @@ export async function fetchHomeCardsLiveFiltered({
   await appendProductPublicVisibilityWhereParts(whereParts, "p", "s");
 
   const where = whereParts.join("");
-  const body = homeCardSelectBody(pc);
+  const vehicleFilters = { brand, model, year };
+  const { body, fitmentParams } = buildHomeCardSelectQuery(pc, vehicleFilters);
   const [rows] = await pool.query(
     `
     SELECT ${body}
@@ -407,18 +375,18 @@ export async function fetchHomeCardsLiveFiltered({
     ORDER BY ${ord} DESC, ${pc.idExpr("p")} DESC
     LIMIT ?
     `,
-    [...params, limitPlusOne],
+    [...fitmentParams, ...params, limitPlusOne],
   );
 
   return rows;
 }
 
-export async function hydrateHomeCardsByIdsInOrder(ids) {
+export async function hydrateHomeCardsByIdsInOrder(ids, vehicleFilters = {}) {
   const clean = [...new Set((ids || []).map(Number).filter((n) => n > 0))];
   if (!clean.length) return [];
 
   const pc = await getProductsColumnsResolved();
-  const body = homeCardSelectBody(pc);
+  const { body, fitmentParams } = buildHomeCardSelectQuery(pc, vehicleFilters);
   const [rows] = await pool.query(
     `
     SELECT ${body}
@@ -427,7 +395,7 @@ export async function hydrateHomeCardsByIdsInOrder(ids) {
     LEFT JOIN address ap ON ap.id = s.provinceId
     WHERE ${pc.idExpr("p")} IN (?)
     `,
-    [clean],
+    [...fitmentParams, clean],
   );
 
   const publicIds = new Set(await filterPublicProductIds(clean));

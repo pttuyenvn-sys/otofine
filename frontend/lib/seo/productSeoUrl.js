@@ -18,12 +18,10 @@
  *     so the prefix segment carries no routing weight.
  *
  * Collision safety with apex SEO routes (vehicle, category, CMS):
- *   The `[slug]` apex route owns many non-product slugs. The
- *   `looksLikeProductSlug` helper below is the discriminator — it is
- *   a pure-string check that the apex router applies BEFORE attempting
- *   a product fetch. Slugs that look like SEO landings (`phu-tung-o-to`
- *   prefix, `-o-to` suffix, year-only-trailing such as `toyota-vios-2025`)
- *   are rejected so they fall through to the existing landing logic.
+ *   The `[slug]` apex route owns many non-product slugs. Classifiers must
+ *   stay disjoint — see `isMarketplaceListingSlug` and `ROUTE_CONTRACT.md`.
+ *   `looksLikeProductSlug` rejects listing slugs before any product-id tail
+ *   match. Dev builds log `[RouteInvariant]` if both ever agree.
  *
  * Design constraints (Phase: SEO-friendly product URLs):
  *
@@ -47,7 +45,356 @@
  * the redirect repairs it on the next request.
  */
 
+import {
+  MARKETPLACE_LISTING_SESSION_KEY,
+  MARKETPLACE_LISTING_SESSION_TTL_MS,
+} from "@/lib/listing/marketplaceListingSession";
+import { isMarketplaceListingSlug } from "@/lib/marketplace/isMarketplaceListingSlug";
+import {
+  isEmptyMarketplaceContext,
+  resolveMarketplaceContextForHref,
+} from "@/lib/marketplace/marketplaceContext";
+
 const SLUG_MAX_LEN = 140;
+const IS_DEV = process.env.NODE_ENV !== "production";
+const devWarnedKeys = new Set();
+/** Keep in sync with `lib/seo/slugify.js#SEO_BASE_SLUG` */
+const SEO_BASE_SLUG_LITERAL = "phu-tung-o-to";
+
+function devPathname() {
+  return typeof window !== "undefined" ? window.location.pathname : null;
+}
+
+function devReadListingSessionFilters() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(MARKETPLACE_LISTING_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      Date.now() - Number(parsed?.savedAt || 0) >
+      MARKETPLACE_LISTING_SESSION_TTL_MS
+    ) {
+      return null;
+    }
+    return parsed?.filters || null;
+  } catch {
+    return null;
+  }
+}
+
+function devSessionHasVehicleFilters() {
+  const filters = devReadListingSessionFilters();
+  if (!filters) return false;
+  return Boolean(
+    String(filters.brand || "").trim() ||
+      String(filters.model || "").trim() ||
+      String(filters.year || "").trim(),
+  );
+}
+
+function devResolveVehicleContext(input, options = {}) {
+  return (
+    options.marketplaceContext ||
+    options.listingVehicle ||
+    input?.marketplaceContext ||
+    input?.listingVehicle ||
+    null
+  );
+}
+
+function devHasMarketplaceContext(ctx) {
+  if (!ctx || typeof ctx !== "object") return false;
+  const yearRaw = ctx.year;
+  const yearNum =
+    yearRaw != null && String(yearRaw).trim() !== "" ? Number(yearRaw) : NaN;
+  return Boolean(
+    String(ctx.category || "").trim() ||
+      String(ctx.brand || "").trim() ||
+      String(ctx.model || "").trim() ||
+      (Number.isFinite(yearNum) && yearNum > 0) ||
+      String(ctx.province || ctx.location || "").trim(),
+  );
+}
+
+function devProductId(input) {
+  return input?.id ?? input?.productId ?? input?.product_id ?? "unknown";
+}
+
+function devProductDiagPayload(input, options = {}) {
+  return {
+    productId: devProductId(input),
+    slug: input?.slug ?? null,
+    pathname: devPathname(),
+    sessionFilters: devReadListingSessionFilters(),
+    hasCars: Array.isArray(input?.cars) && input.cars.length > 0,
+    carsCount: Array.isArray(input?.cars) ? input.cars.length : 0,
+    vehicleContext: devResolveVehicleContext(input, options),
+  };
+}
+
+function devWarnOnce(key, message, payload) {
+  if (!IS_DEV || devWarnedKeys.has(key)) return;
+  devWarnedKeys.add(key);
+  console.warn(message, payload);
+}
+
+/**
+ * Dev-only: true when href generation likely originates from marketplace listing UI.
+ * Uses listing session filters + pathname heuristics (client-only).
+ */
+export function isMarketplaceListingNavigation() {
+  if (typeof window === "undefined") return false;
+  if (devSessionHasVehicleFilters()) return true;
+
+  const pathname = window.location.pathname || "/";
+  if (pathname === "/") return true;
+
+  const slug = pathname.replace(/^\//, "").split("?")[0];
+  if (!slug) return false;
+
+  if (
+    slug === SEO_BASE_SLUG_LITERAL ||
+    slug.startsWith(`${SEO_BASE_SLUG_LITERAL}-`) ||
+    slug.startsWith("phu-tung")
+  ) {
+    return true;
+  }
+
+  if (looksLikeProductSlug(slug)) return false;
+  if (slug.endsWith("-o-to")) return true;
+
+  return false;
+}
+
+/** Dev-only: warn when listing navigation omits marketplaceContext on href build. */
+export function devWarnMissingMarketplaceContext(input, options = {}) {
+  if (!IS_DEV || !isMarketplaceListingNavigation()) return;
+
+  const vehicleContext = devResolveVehicleContext(input, options);
+  if (devHasMarketplaceContext(vehicleContext)) return;
+
+  devWarnOnce(
+    `missing-ctx:${devProductId(input)}`,
+    "[MarketplaceContext] Missing context for href generation",
+    devProductDiagPayload(input, options),
+  );
+}
+
+function devWarnCarsFitmentFallback(input, pickedCar, vehicleSource = "cars") {
+  if (!IS_DEV || !isMarketplaceListingNavigation()) return;
+
+  const vehicleContext = devResolveVehicleContext(input, {});
+  if (devHasMarketplaceContext(vehicleContext)) return;
+
+  devWarnOnce(
+    `slug-vehicle:${vehicleSource}:${devProductId(input)}`,
+    `[MarketplaceContext] Slug fitment fallback via ${vehicleSource}`,
+    {
+      ...devProductDiagPayload(input, {}),
+      vehicleSource,
+      fitmentUsed: pickedCar
+        ? {
+            brand: pickedCar.brand,
+            model: pickedCar.model,
+            yearFrom: pickedCar.yFrom,
+            yearTo: pickedCar.yTo,
+            carsIndex: pickedCar.idx ?? null,
+          }
+        : null,
+    },
+  );
+}
+
+/** @type {ProductSeoSlugTrace | null} */
+let lastSlugBuildTrace = null;
+
+/**
+ * Dev-only: last slug build trace (vehicle source, fitment picked, caller path).
+ * @returns {ProductSeoSlugTrace | null}
+ */
+export function getLastProductSeoSlugTrace() {
+  return IS_DEV ? lastSlugBuildTrace : null;
+}
+
+function devRecordSlugBuildTrace(trace) {
+  if (!IS_DEV) return;
+  lastSlugBuildTrace = trace;
+  if (typeof window !== "undefined") {
+    const bucket = window.__OTOFINE_SLUG_TRACES__;
+    if (Array.isArray(bucket)) {
+      bucket.push(trace);
+      if (bucket.length > 50) bucket.shift();
+    } else {
+      window.__OTOFINE_SLUG_TRACES__ = [trace];
+    }
+  }
+}
+
+function devWarnSlugVehicleSource(input, trace) {
+  if (!IS_DEV || !isMarketplaceListingNavigation()) return;
+  if (!trace || trace.vehicleSource === "none") return;
+  if (
+    trace.vehicleSource === "marketplaceContext" ||
+    trace.vehicleSource === "listingVehicle"
+  ) {
+    return;
+  }
+
+  devWarnCarsFitmentFallback(input, trace.vehicleFitment, trace.vehicleSource);
+}
+
+function devWarnUnsafeFallbackSuppressed(input, trace) {
+  if (!IS_DEV || !trace?.vehicleFallbackSuppressed) return;
+
+  devWarnOnce(
+    `suppressed:${devProductId(input)}`,
+    "[MarketplaceContext] Unsafe vehicle slug fallback suppressed (marketplace nav)",
+    {
+      ...devProductDiagPayload(input, {}),
+      vehicleSource: trace.vehicleSource,
+      slug: trace.slug,
+    },
+  );
+}
+
+/**
+ * @typedef {"none" | "marketplaceContext" | "listingVehicle" | "matchedFitment" | "cars" | "flat"} ProductSeoVehicleSource
+ */
+
+/**
+ * @typedef {{
+ *   slug: string,
+ *   vehicleSource: ProductSeoVehicleSource,
+ *   vehicleFitment: { brand?: string, model?: string, yFrom?: number | null, yTo?: number | null, idx?: number } | null,
+ *   vehicleFallbackSuppressed?: boolean,
+ *   productId: string | number | null,
+ *   at: number,
+ *   pathname: string | null,
+ * }} ProductSeoSlugTrace
+ */
+
+/**
+ * Build slug prefix + vehicle-source metadata for tracing leaks.
+ *
+ * @param {Record<string, unknown> | null | undefined} input
+ * @returns {ProductSeoSlugTrace}
+ */
+export function buildProductSeoSlugWithMeta(input) {
+  const emptyTrace = {
+    slug: "",
+    vehicleSource: /** @type {ProductSeoVehicleSource} */ ("none"),
+    vehicleFitment: null,
+    productId: devProductId(input),
+    at: Date.now(),
+    pathname: devPathname(),
+  };
+
+  if (!input || typeof input !== "object") {
+    devRecordSlugBuildTrace(emptyTrace);
+    return emptyTrace;
+  }
+
+  // Product name candidates, ordered by descriptiveness.
+  const nameRaw =
+    input.partName ||
+    input.name ||
+    input.title ||
+    input.shortDescription ||
+    "";
+  const name = stripHtml(nameRaw).trim();
+
+  /** @type {ProductSeoVehicleSource} */
+  let vehicleSource = "none";
+  let car = null;
+  const suppressUnsafe = input.suppressUnsafeVehicleFallback === true;
+
+  if (input.marketplaceContext) {
+    car = carFromListingVehicleFilter(input.marketplaceContext);
+    if (car) vehicleSource = "marketplaceContext";
+  }
+  if (!car && input.listingVehicle) {
+    car = carFromListingVehicleFilter(input.listingVehicle);
+    if (car) vehicleSource = "listingVehicle";
+  }
+  if (!car && input.matchedFitment) {
+    car = carFromListingVehicleFilter({
+      brand: input.matchedFitment.brand,
+      model: input.matchedFitment.model,
+      year: input.matchedFitment.yearFrom ?? input.matchedFitment.yearTo,
+    });
+    if (car) vehicleSource = "matchedFitment";
+  }
+  if (!car && !suppressUnsafe && Array.isArray(input.cars) && input.cars.length > 0) {
+    car = pickPrimaryCar(input.cars);
+    if (car) vehicleSource = "cars";
+  }
+  if (!car && !suppressUnsafe) {
+    const flatBrand = input.brand || input.hang_xe || "";
+    const flatModel = input.model || input.ten_xe || "";
+    const flatFrom = input.yearFrom ?? input.year_from ?? null;
+    const flatTo = input.yearTo ?? input.year_to ?? null;
+    if (flatBrand || flatModel || flatFrom || flatTo) {
+      car = { brand: flatBrand, model: flatModel, yFrom: flatFrom, yTo: flatTo };
+      vehicleSource = "flat";
+    }
+  }
+
+  const hadUnsafeVehicleCandidates =
+    (Array.isArray(input.cars) && input.cars.length > 0) ||
+    Boolean(
+      input.brand ||
+        input.hang_xe ||
+        input.model ||
+        input.ten_xe ||
+        input.yearFrom ||
+        input.year_from ||
+        input.yearTo ||
+        input.year_to,
+    );
+  const vehicleFallbackSuppressed =
+    suppressUnsafe && !car && hadUnsafeVehicleCandidates;
+
+  const partNumberRaw = input.partNumber || input.part_number || "";
+  const partNumber = String(partNumberRaw).replace(/[^A-Za-z0-9]+/g, "");
+
+  let yearPart = "";
+  if (car) {
+    const yf = car.yFrom != null && car.yFrom !== "" ? Number(car.yFrom) : null;
+    const yt = car.yTo != null && car.yTo !== "" ? Number(car.yTo) : null;
+    if (Number.isFinite(yf) && yf > 0) yearPart = String(yf);
+    else if (Number.isFinite(yt) && yt > 0) yearPart = String(yt);
+  }
+
+  const pieces = [name];
+  if (car?.brand) pieces.push(String(car.brand));
+  if (car?.model) pieces.push(String(car.model));
+  if (yearPart) pieces.push(yearPart);
+  if (partNumber) pieces.push(String(partNumber));
+
+  const trace = {
+    slug: slugifyVi(pieces.filter(Boolean).join(" ")),
+    vehicleSource,
+    vehicleFitment: car
+      ? {
+          brand: car.brand,
+          model: car.model,
+          yFrom: car.yFrom ?? null,
+          yTo: car.yTo ?? null,
+          idx: car.idx ?? null,
+        }
+      : null,
+    vehicleFallbackSuppressed,
+    productId: devProductId(input),
+    at: Date.now(),
+    pathname: devPathname(),
+  };
+
+  devRecordSlugBuildTrace(trace);
+  devWarnSlugVehicleSource(input, trace);
+  devWarnUnsafeFallbackSuppressed(input, trace);
+  return trace;
+}
 
 /**
  * Slugify Vietnamese text into a URL-safe kebab-case ASCII string.
@@ -103,6 +450,29 @@ function pickPrimaryCar(cars) {
 }
 
 /**
+ * Prefer the active marketplace listing vehicle filter for slug segments.
+ *
+ * @param {{ brand?: string, model?: string, year?: string | number }} [listingVehicle]
+ */
+export function carFromListingVehicleFilter(listingVehicle) {
+  if (!listingVehicle || typeof listingVehicle !== "object") return null;
+  const brand = String(listingVehicle.brand || "").trim();
+  const model = String(listingVehicle.model || "").trim();
+  const yearRaw = listingVehicle.year;
+  const y =
+    yearRaw != null && String(yearRaw).trim() !== ""
+      ? Number(yearRaw)
+      : null;
+  if (!brand && !model && !Number.isFinite(y)) return null;
+  return {
+    brand,
+    model,
+    yFrom: Number.isFinite(y) ? y : null,
+    yTo: Number.isFinite(y) ? y : null,
+  };
+}
+
+/**
  * Build the slug PREFIX (no id appended) from a product shape.
  *
  * Accepts a flexible input so the same builder can serve:
@@ -115,64 +485,7 @@ function pickPrimaryCar(cars) {
  * that as "use id-only URL" and let canonical-enforce repair it.
  */
 export function buildProductSeoSlug(input) {
-  if (!input || typeof input !== "object") return "";
-
-  // Product name candidates, ordered by descriptiveness.
-  const nameRaw =
-    input.partName ||
-    input.name ||
-    input.title ||
-    input.shortDescription ||
-    "";
-  // The product-list API hands back `shortDescription` as HTML; the
-  // sanitizer-strip is intentionally cheap and safe (no DOMParser
-  // dependency on the server). Empty after strip → falls through.
-  const name = stripHtml(nameRaw).trim();
-
-  // Vehicle fitment — first prefer a `cars[]` array (richest), then
-  // any flat brand/model/year fields on the input itself (cards).
-  let car = pickPrimaryCar(input.cars);
-  if (!car) {
-    const flatBrand = input.brand || input.hang_xe || "";
-    const flatModel = input.model || input.ten_xe || "";
-    const flatFrom = input.yearFrom ?? input.year_from ?? null;
-    const flatTo = input.yearTo ?? input.year_to ?? null;
-    if (flatBrand || flatModel || flatFrom || flatTo) {
-      car = { brand: flatBrand, model: flatModel, yFrom: flatFrom, yTo: flatTo };
-    }
-  }
-
-  // OEM / part numbers like "23300-21010" or "96210A9000SWP" should
-  // collapse into a single alphanumeric token in the slug. If we left
-  // the dash in, slugifyVi would turn it into yet another separator
-  // and the URL would read like "…-2013-23300-21010-2913" — visually
-  // ambiguous with a year range or the trailing id. Stripping non-
-  // alphanumerics here keeps the OEM as a single readable token,
-  // matching SERP convention used by Shopee / Lazada / Tiki for
-  // technical part listings.
-  const partNumberRaw = input.partNumber || input.part_number || "";
-  const partNumber = String(partNumberRaw).replace(/[^A-Za-z0-9]+/g, "");
-
-  // Year segment: prefer yearFrom; if absent, yearTo; if both equal,
-  // single year. We deliberately do NOT emit "2014-2020" ranges here
-  // because dash-runs collide with the slug separator and force the
-  // slugifier to re-collapse them — the canonical handler treats
-  // either as equivalent for redirect anyway.
-  let yearPart = "";
-  if (car) {
-    const yf = car.yFrom != null && car.yFrom !== "" ? Number(car.yFrom) : null;
-    const yt = car.yTo != null && car.yTo !== "" ? Number(car.yTo) : null;
-    if (Number.isFinite(yf) && yf > 0) yearPart = String(yf);
-    else if (Number.isFinite(yt) && yt > 0) yearPart = String(yt);
-  }
-
-  const pieces = [name];
-  if (car?.brand) pieces.push(String(car.brand));
-  if (car?.model) pieces.push(String(car.model));
-  if (yearPart) pieces.push(yearPart);
-  if (partNumber) pieces.push(String(partNumber));
-
-  return slugifyVi(pieces.filter(Boolean).join(" "));
+  return buildProductSeoSlugWithMeta(input).slug;
 }
 
 /**
@@ -192,11 +505,59 @@ export function buildProductSeoSlug(input) {
  * undefined products (rare, but cheaper than a 404 from a half-built
  * link in the UI).
  */
-export function buildProductSeoUrl(input) {
+export function buildProductSeoUrl(input, options = {}) {
   if (!input || typeof input !== "object") return "/";
-  const id = input.id ?? input.productId ?? input.product_id ?? null;
+
+  const allowRecovery = isMarketplaceListingNavigation();
+  const recoveredContext = resolveMarketplaceContextForHref(options, {
+    allowRecovery,
+  });
+
+  let vehicleContext =
+    options.marketplaceContext ||
+    options.listingVehicle ||
+    input.marketplaceContext ||
+    input.listingVehicle ||
+    input.matchedFitment;
+
+  if (
+    !devHasMarketplaceContext(vehicleContext) &&
+    !isEmptyMarketplaceContext(recoveredContext)
+  ) {
+    vehicleContext = recoveredContext;
+  }
+
+  let payload = input;
+  if (
+    devHasMarketplaceContext(vehicleContext) &&
+    !devHasMarketplaceContext(input.marketplaceContext) &&
+    !devHasMarketplaceContext(input.listingVehicle)
+  ) {
+    payload = {
+      ...input,
+      listingVehicle: vehicleContext,
+      marketplaceContext: vehicleContext,
+    };
+  }
+
+  const suppressUnsafeVehicleFallback =
+    allowRecovery && !devHasMarketplaceContext(vehicleContext);
+  if (suppressUnsafeVehicleFallback) {
+    payload = { ...payload, suppressUnsafeVehicleFallback: true };
+  }
+
+  const id = payload.id ?? payload.productId ?? payload.product_id ?? null;
   if (id == null || id === "") return "/";
-  const slug = buildProductSeoSlug(input);
+
+  devWarnMissingMarketplaceContext(payload, {
+    ...options,
+    marketplaceContext: devHasMarketplaceContext(vehicleContext)
+      ? vehicleContext
+      : options.marketplaceContext,
+  });
+
+  const slugMeta = buildProductSeoSlugWithMeta(payload);
+  const slug = slugMeta.slug;
   return slug ? `/${slug}-${id}` : `/p/${id}`;
 }
 
@@ -241,8 +602,6 @@ function stripHtml(html) {
  * critical since it runs inside the apex `[slug]` route discriminator
  * on every apex request).
  */
-const SEO_BASE_SLUG_LITERAL = "phu-tung-o-to";
-
 /**
  * Hard discriminator: is this apex slug a product detail URL?
  *
@@ -276,9 +635,12 @@ const SEO_BASE_SLUG_LITERAL = "phu-tung-o-to";
  *
  * Pure string — no DB, no allocations beyond the regex match.
  */
-export function looksLikeProductSlug(slug) {
-  if (slug == null) return false;
-  const s = String(slug).trim();
+
+/**
+ * Trailing `{slug}-{id}` product pattern only — excludes listing classifier.
+ * @param {string} s normalized slug
+ */
+function matchesProductSlugTail(s) {
   if (!s) return false;
 
   if (s === SEO_BASE_SLUG_LITERAL) return false;
@@ -294,13 +656,34 @@ export function looksLikeProductSlug(slug) {
   const n = Number(idStr);
   if (!Number.isFinite(n) || n <= 0) return false;
 
-  // Year-trailing guard: "toyota-vios-2025" → trailing 2025 matches
-  // year pattern AND prefix has no digits anywhere → reject. Real
-  // product slugs reaching this state would carry a digit-bearing
-  // partNumber or year fitment in the prefix.
   if (/^(19|20)\d{2}$/.test(idStr) && !/[0-9]/.test(prefix)) {
     return false;
   }
 
   return true;
+}
+
+/** Dev-only: listing vs product classifiers must stay disjoint. */
+function devAssertListingProductClassifierInvariant(slug) {
+  if (!IS_DEV) return;
+  const s = String(slug || "").trim();
+  if (!s) return;
+  if (isMarketplaceListingSlug(s) && matchesProductSlugTail(s)) {
+    console.error(
+      "[RouteInvariant] Marketplace listing slug overlaps product discriminator:",
+      { slug: s },
+    );
+  }
+}
+
+export function looksLikeProductSlug(slug) {
+  if (slug == null) return false;
+  const s = String(slug).trim();
+  if (!s) return false;
+
+  devAssertListingProductClassifierInvariant(s);
+
+  if (isMarketplaceListingSlug(s)) return false;
+
+  return matchesProductSlugTail(s);
 }

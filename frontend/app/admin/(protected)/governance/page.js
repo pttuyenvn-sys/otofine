@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getGovernanceDashboard, getGovernanceHealth } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+} from "@/components/admin/AdminLoadState";
 
 const sectionStyle = {
   background: "white",
@@ -24,20 +29,27 @@ export default function GovernanceDashboardPage() {
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [healthError, setHealthError] = useState("");
 
   async function load() {
     try {
       setLoading(true);
+      setError("");
+      setHealthError("");
       const [dashRes, healthRes] = await Promise.all([
         getGovernanceDashboard(),
-        getGovernanceHealth().catch(() => ({ data: null })),
+        getGovernanceHealth().catch((healthErr) => {
+          setHealthError(formatAdminApiError(healthErr, { module: "governance-health" }));
+          return { data: null };
+        }),
       ]);
       setData(dashRes.data || {});
       setHealth(healthRes.data || null);
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || e.message || "Failed to load dashboard");
       setData(null);
+      setHealth(null);
+      setError(formatAdminApiError(e, { module: "governance" }));
     } finally {
       setLoading(false);
     }
@@ -49,8 +61,16 @@ export default function GovernanceDashboardPage() {
     return () => clearInterval(iv);
   }, []);
 
-  if (loading) return <div>Loading governance dashboard...</div>;
-  if (error) return <div style={{ color: "#991b1b" }}>{error}</div>;
+  if (loading) return <AdminLoadingState message="Loading governance dashboard..." />;
+  if (error) {
+    return (
+      <AdminErrorState
+        title="Governance dashboard unavailable"
+        message={error}
+        onRetry={load}
+      />
+    );
+  }
 
   const moderation = data.moderation || {};
   const risk = data.risk || {};
@@ -66,6 +86,26 @@ export default function GovernanceDashboardPage() {
   return (
     <div>
       <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>Governance Dashboard</h1>
+
+      {healthError ? (
+        <div
+          style={{
+            ...sectionStyle,
+            background: "#fff7ed",
+            borderColor: "#fed7aa",
+            color: "#92400e",
+            marginBottom: 20,
+          }}
+        >
+          <strong>Health metrics unavailable.</strong> {healthError}
+        </div>
+      ) : null}
+
+      <div style={{ marginBottom: 20 }}>
+        <Link href="/admin/shop-risk" style={{ color: "#2563eb", fontWeight: 700 }}>
+          View shop risk scores →
+        </Link>
+      </div>
 
       {health ? (
         <section style={{ ...sectionStyle, marginBottom: 20 }}>

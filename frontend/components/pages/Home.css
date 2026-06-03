@@ -5624,6 +5624,11 @@ a.popular-cat-chip:focus-visible {
   width: 100%;
 }
 
+/* Mobile-only meta rows — toggled via CSS (no per-card resize listeners). */
+.of-product--row .of-product__meta-mobile-group {
+  display: none;
+}
+
 .of-product--row .of-product__cta {
   width: 100%;
   padding: 8px 10px;
@@ -6582,6 +6587,10 @@ a.popular-cat-chip:focus-visible {
   }
 
   /* Meta: code | origin */
+  .of-product--row .of-product__meta-mobile-group {
+    display: block;
+  }
+
   .of-product--row .of-product__meta {
     display: flex;
     align-items: center;

@@ -1,5 +1,6 @@
 import { pool } from "../../../config/db.js";
 import * as attRepo from "./rfqMessageAttachment.repository.js";
+import { enrichRfqAttachmentMedia, resolveCanonicalRfqMediaUrl } from "../utils/rfqImageUrls.js";
 
 /**
  * Timeline messages — additive layer; rfq_quotes remains quote source of truth.
@@ -65,15 +66,7 @@ export async function findMessageById(messageId, conn = null) {
   if (!row) return null;
   const msg = normalizeMessageRow(row);
   const attRows = await attRepo.listByMessageIds([msg.id], conn);
-  msg.attachments = attRows.map((a) => ({
-    id: a.id,
-    url: a.url,
-    mime_type: a.mime_type,
-    byte_size: a.byte_size != null ? Number(a.byte_size) : null,
-    width: a.width != null ? Number(a.width) : null,
-    height: a.height != null ? Number(a.height) : null,
-    sort_order: Number(a.sort_order || 0),
-  }));
+  msg.attachments = await Promise.all(attRows.map((a) => normalizeAttachmentRow(a)));
   return msg;
 }
 
@@ -107,11 +100,12 @@ export async function listMessagesForConversation(conversationId, opts = {}) {
   const items = rows.map(normalizeMessageRow);
   const messageIds = items.map((m) => m.id);
   const attRows = await attRepo.listByMessageIds(messageIds);
+  const normalizedAtts = await Promise.all(attRows.map((a) => normalizeAttachmentRow(a)));
   const attByMsg = new Map();
-  for (const a of attRows) {
-    const mid = Number(a.message_id);
+  for (let i = 0; i < attRows.length; i += 1) {
+    const mid = Number(attRows[i].message_id);
     if (!attByMsg.has(mid)) attByMsg.set(mid, []);
-    attByMsg.get(mid).push(normalizeAttachmentRow(a));
+    attByMsg.get(mid).push(normalizedAtts[i]);
   }
   for (const m of items) {
     m.attachments = attByMsg.get(Number(m.id)) || [];
@@ -125,16 +119,17 @@ export async function listMessagesForConversation(conversationId, opts = {}) {
   };
 }
 
-function normalizeAttachmentRow(row) {
-  return {
+async function normalizeAttachmentRow(row) {
+  const url = await resolveCanonicalRfqMediaUrl(row.url);
+  return enrichRfqAttachmentMedia({
     id: row.id,
-    url: row.url,
+    url,
     mime_type: row.mime_type,
     byte_size: row.byte_size != null ? Number(row.byte_size) : null,
     width: row.width != null ? Number(row.width) : null,
     height: row.height != null ? Number(row.height) : null,
     sort_order: Number(row.sort_order || 0),
-  };
+  });
 }
 
 function normalizeMessageRow(row) {

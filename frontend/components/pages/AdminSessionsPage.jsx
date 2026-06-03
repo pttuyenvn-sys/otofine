@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getAdminSessions, revokeAdminSession } from "@/lib/adminApi";
+import { formatAdminApiError } from "@/lib/adminApiErrors";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+} from "@/components/admin/AdminLoadState";
 
 function formatTime(value) {
   try {
@@ -31,25 +37,26 @@ export default function AdminSessionsPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadState, setLoadState] = useState("loading");
   const [revokingId, setRevokingId] = useState(null);
 
   async function load() {
     try {
       setLoading(true);
       setError("");
+      setLoadState("loading");
       const res = await getAdminSessions();
-      setRows(res.data?.rows || []);
+      const next = res.data?.rows || [];
+      setRows(next);
+      setLoadState(next.length ? "ready" : "empty");
     } catch (err) {
       console.error(err);
-      const httpStatus = err?.response?.status;
-      if (httpStatus === 404) {
-        setError("Sessions endpoint is not available (platform disabled or not deployed).");
-      } else if (httpStatus === 403) {
-        setError("You do not have permission to view or manage sessions.");
-      } else {
-        setError(err?.response?.data?.error || err.message || "Failed to load sessions");
-      }
       setRows([]);
+      setError(formatAdminApiError(err, {
+        module: "sessions",
+        permissionDenied: "You do not have permission to view or manage sessions.",
+      }));
+      setLoadState("error");
     } finally {
       setLoading(false);
     }
@@ -83,26 +90,20 @@ export default function AdminSessionsPage() {
         <div style={{ opacity: 0.7 }}>Active admin sessions and revocation controls</div>
       </div>
 
-      {loading && (
-        <div style={{ background: "white", padding: 24, borderRadius: 16 }}>
-          Loading sessions...
-        </div>
+      {loading && <AdminLoadingState message="Loading sessions..." />}
+
+      {!loading && loadState === "error" && (
+        <AdminErrorState title="Sessions unavailable" message={error} onRetry={load} />
       )}
 
-      {!loading && error && (
-        <div style={{ background: "#fee2e2", color: "#991b1b", padding: 24, borderRadius: 16 }}>
-          {error}
-        </div>
+      {!loading && loadState === "empty" && (
+        <AdminEmptyState
+          title="No active sessions"
+          message="The sessions API is reachable, but no active admin sessions were returned."
+        />
       )}
 
-      {!loading && !error && rows.length === 0 && (
-        <div style={{ background: "white", padding: 32, borderRadius: 16 }}>
-          <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>No active sessions</div>
-          <div style={{ opacity: 0.7 }}>There are no currently active admin sessions.</div>
-        </div>
-      )}
-
-      {!loading && !error && rows.length > 0 && (
+      {!loading && loadState === "ready" && (
         <div
           style={{
             background: "white",

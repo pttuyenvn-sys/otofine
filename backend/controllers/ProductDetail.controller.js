@@ -2,6 +2,7 @@ import { pool } from "../config/db.js";
 import { getRelatedProductsForDetail } from "../services/productRelated.service.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
 import { isProductPubliclyVisible, buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
+import { rewriteLegacyThumbUrlsInHtml } from "../utils/legacyProductMediaUrl.util.js";
 
 function resolveProductIdParam(raw) {
   const s = String(raw ?? "").trim();
@@ -115,6 +116,13 @@ export const getProductDetail = async (req, res) => {
     )
       .trim()
       .toUpperCase()}.webp`;
+
+    if (product.description) {
+      product.description = rewriteLegacyThumbUrlsInHtml(product.description, {
+        shopId: product.shopId,
+        partNumber: product.partNumber,
+      });
+    }
 
     const [images] = await pool.query(
       `

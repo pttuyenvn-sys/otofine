@@ -1,32 +1,18 @@
 import ShopCard from "./ShopCard";
-import { fetchPublicShopDirectorySafe } from "@/services/shopPublic.service";
+import { fetchFeaturedStorefrontsSafe } from "@/services/shopPublic.service";
 
 /**
- * Phase 7.1 — reusable "Featured shops" block.
+ * Phase 6E.1 — reusable "Featured shops" block.
  *
- * Designed to be dropped into the apex homepage in a later phase
- * (the user explicitly asked us NOT to redesign the homepage yet).
- * Kept as a server component so the host page can render it with
- * zero extra JS — analytics tracking happens client-side inside
- * `ShopCard`.
- *
- * Defaults to the top `limit` shops by ranking score. Pass `params`
- * to surface a curated slice (e.g. `{ verified: true, brand: "Toyota" }`).
- *
- * Renders nothing when there are no shops — important so an empty
- * homepage placement doesn't leave an awkward heading + blank grid.
+ * Uses the featured discovery endpoint (readiness + quality + governance)
+ * instead of generic directory ranking. Renders nothing when empty.
  */
 export default async function FeaturedShops({
-  limit = 6,
-  params = {},
+  limit = 12,
   title = "Shop nổi bật",
   href = "/shops",
 }) {
-  const data = await fetchPublicShopDirectorySafe({
-    ...params,
-    perPage: limit,
-    sort: params.sort || "rank",
-  });
+  const data = await fetchFeaturedStorefrontsSafe({ limit });
   const items = (data?.items || []).slice(0, limit);
   if (items.length === 0) return null;
 

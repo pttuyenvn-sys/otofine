@@ -40,6 +40,14 @@ import SellerProductRejectBanner from "../products/SellerProductRejectBanner";
 import SellerProductTimeline from "../products/SellerProductTimeline";
 import { SellerLifecycleBadge } from "../products/SellerProductStatusBadges";
 import { flushProductDraft, getCarChipLabel, isCarRowComplete } from "./addProductPopupUi";
+import {
+  normalizeSellerDraftSnapshot,
+  normalizeSellerProductImages,
+  sanitizeSellerProductHtml,
+  sellerMediaContext,
+  normalizeSellerProductImageUrl,
+} from "@/lib/media/sellerProductMedia";
+import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media/productMediaUrl";
 import "../pages/products/Product.css";
 
 /**
@@ -177,6 +185,14 @@ export default function AddProductPopup({
 
   const [carRows, setCarRows] = useState([initialCarRow()]);
 
+  const sellerMediaCtx = useMemo(
+    () =>
+      sellerMediaContext(product, {
+        partNumber,
+      }),
+    [product, partNumber],
+  );
+
   // Snapshot used by the autosave hook. Memoize so its identity only
   // changes when the form state actually changes.
   const draftSnapshot = useMemo(
@@ -234,7 +250,7 @@ export default function AddProductPopup({
       // For new-product flow, restore immediately is OK because there's
       // nothing to overwrite; for edits, the seller chooses.
       if (!product) {
-        applyDraft(restored);
+        applyDraft(normalizeSellerDraftSnapshot(restored, sellerMediaContext(null, restored)));
       } else {
         setRestorePromptOpen(true);
       }
@@ -243,24 +259,25 @@ export default function AddProductPopup({
 
   function applyDraft(d) {
     try {
-      setPartNumber(d.partNumber || "");
-      setPartName(d.partName || "");
-      setOrigin(d.origin || "");
-      setStock(d.stock ?? "");
-      setPrice(d.price ?? "");
-      setWeight(d.weight ?? "");
-      setLength(d.length ?? "");
-      setWidth(d.width ?? "");
-      setHeight(d.height ?? "");
-      setShortDescription(d.shortDescription || "");
-      setDescription(d.description || "");
-      if (Array.isArray(d.carRows) && d.carRows.length) {
-        setCarRows(d.carRows);
+      const normalized = normalizeSellerDraftSnapshot(d, sellerMediaContext(product, d));
+      setPartNumber(normalized.partNumber || "");
+      setPartName(normalized.partName || "");
+      setOrigin(normalized.origin || "");
+      setStock(normalized.stock ?? "");
+      setPrice(normalized.price ?? "");
+      setWeight(normalized.weight ?? "");
+      setLength(normalized.length ?? "");
+      setWidth(normalized.width ?? "");
+      setHeight(normalized.height ?? "");
+      setShortDescription(normalized.shortDescription || "");
+      setDescription(normalized.description || "");
+      if (Array.isArray(normalized.carRows) && normalized.carRows.length) {
+        setCarRows(normalized.carRows);
       }
-      if (Array.isArray(d.existingImages)) {
-        setExistingImages(d.existingImages);
+      if (Array.isArray(normalized.existingImages)) {
+        setExistingImages(normalized.existingImages);
       }
-      if (d.step) setStep(Math.max(1, Math.min(5, Number(d.step) || 1)));
+      if (normalized.step) setStep(Math.max(1, Math.min(5, Number(normalized.step) || 1)));
       sellerToast.info("Đã khôi phục bản nháp");
     } catch {
       /* ignore malformed drafts */
@@ -323,9 +340,21 @@ export default function AddProductPopup({
       }
     });
 
-    setExistingImages(Array.isArray(product?.images) ? product.images : []);
-    setShortDescription(product.shortDescription || "");
-    setDescription(product.fullDescription || "");
+    setExistingImages(
+      normalizeSellerProductImages(
+        Array.isArray(product?.images) ? product.images : [],
+        sellerMediaContext(product),
+      ),
+    );
+    setShortDescription(
+      sanitizeSellerProductHtml(product.shortDescription || "", sellerMediaContext(product)),
+    );
+    setDescription(
+      sanitizeSellerProductHtml(
+        product.fullDescription || product.description || "",
+        sellerMediaContext(product),
+      ),
+    );
 
     setImages([]);
     setDeletedImages([]);
@@ -498,7 +527,7 @@ export default function AddProductPopup({
 
   function handleSaveDraft() {
     try {
-      flushProductDraft(product?.id || null, draftSnapshot);
+      flushProductDraft(product?.id || null, draftSnapshot, sellerMediaCtx);
       sellerToast.success("Đã lưu nháp");
     } catch {
       sellerToast.error("Không thể lưu nháp");
@@ -747,6 +776,7 @@ export default function AddProductPopup({
                 <ImagePicker
                   cameraFirst
                   panelMode
+                  mediaCtx={sellerMediaCtx}
                   images={images}
                   existingImages={existingImages}
                   onAddImages={handleAddImages}
@@ -1132,6 +1162,7 @@ export default function AddProductPopup({
               </div>
               <ImagePicker
                 panelMode
+                mediaCtx={sellerMediaCtx}
                 images={images}
                 existingImages={existingImages}
                 onAddImages={handleAddImages}
@@ -1221,9 +1252,16 @@ function ImagePicker({
   onRemoveExistingImage,
   cameraFirst,
   panelMode = false,
+  mediaCtx = {},
 }) {
   const totalCount = (existingImages || []).length + (images || []).length;
   let previewIndex = 0;
+
+  function previewUrl(raw) {
+    const normalized = normalizeSellerProductImageUrl(raw, mediaCtx);
+    if (!normalized) return PRODUCT_IMAGE_PLACEHOLDER;
+    return `${normalized}?t=${Date.now()}`;
+  }
 
   return (
     <div className={`ImagePicker${panelMode ? " ImagePicker--panel" : ""}`}>
@@ -1279,7 +1317,7 @@ function ImagePicker({
           <div key={"old-" + i} className="ImagePreview__item">
             {isPrimary ? <span className="ImagePreview__primary">Ảnh bìa</span> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.url + "?t=" + Date.now()} alt="" className="ImagePreview__img" />
+            <img src={previewUrl(img.url)} alt="" className="ImagePreview__img" />
             <button
               type="button"
               className="ImagePreview__remove"

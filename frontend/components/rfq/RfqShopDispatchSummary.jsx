@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { rfqThumbSmallSrc, rfqThumbSmallFallbackSrcs } from "@/lib/rfq/rfqMediaUrl";
-import { buildShopDispatchSummary } from "@/lib/rfq/rfqDispatchSummary";
-import RfqImageLightbox from "@/components/rfq/RfqImageLightbox";
 import RfqLazyImage from "@/components/rfq/RfqLazyImage";
+import RfqImageLightbox from "@/components/rfq/RfqImageLightbox";
+import { buildShopDispatchSummary } from "@/lib/rfq/rfqDispatchSummary";
+import { RFQ_MEDIA_VARIANT } from "@/lib/rfq/rfqMediaUrl";
 import {
   BUYER_INTENT_TIER_META,
   deriveBuyerIntent,
@@ -110,8 +110,8 @@ export default function RfqShopDispatchSummary({
               onClick={() => setLightboxIndex(i)}
             >
               <RfqLazyImage
-                src={rfqThumbSmallSrc(url)}
-                fallbackSrcs={rfqThumbSmallFallbackSrcs(url)}
+                originalUrl={url}
+                variant={RFQ_MEDIA_VARIANT.SMALL}
                 alt=""
                 loading="lazy"
                 decoding="async"

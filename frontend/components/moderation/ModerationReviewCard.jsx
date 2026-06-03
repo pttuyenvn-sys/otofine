@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import AppImage from "@/components/common/AppImage";
+import { PRODUCT_IMAGE_VARIANT } from "@/lib/media/productMediaUrl";
 
 export default function ModerationReviewCard({ product, onApprove, onReject, onNext, onPrev, onClose }) {
   const imgs = product?.images || (product?.thumbnailUrl ? [product.thumbnailUrl] : []);
@@ -16,8 +18,17 @@ export default function ModerationReviewCard({ product, onApprove, onReject, onN
       <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb", marginBottom: 8 }}>
         {imgs.length ? (
           <div style={{ position: "relative", background: "#000", height: 300 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgs[index]} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+            <AppImage
+              mode="next"
+              src={imgs[index]}
+              variant={PRODUCT_IMAGE_VARIANT.THUMB_400}
+              allowOriginalFallback={false}
+              width={420}
+              height={300}
+              sizes="420px"
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            />
             {imgs.length > 1 && (
               <div style={{ position: "absolute", left: 8, top: 8, background: "rgba(255,255,255,0.85)", padding: "4px 8px", borderRadius: 6, fontSize: 12 }}>
                 {index + 1}/{imgs.length}

@@ -43,6 +43,7 @@ import {
   checkSlugAvailability,
   uploadAvatar,
   uploadCover,
+  submitStorefrontForReview,
 } from "../../api/shopPublicPageApi";
 
 import ShopAddressSelector from "../ShopAddressSelector";
@@ -354,6 +355,8 @@ export default function ShopSettings() {
 
   const [feedback, setFeedback] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [storefrontReadiness, setStorefrontReadiness] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Tracks whether the seller has manually edited the slug. Once true,
   // typing in "Tên shop" stops auto-overwriting the slug.
@@ -362,6 +365,14 @@ export default function ShopSettings() {
   const slugStatus = useSlugStatus(pub.slug, originalSlug);
   const slugBad = pub.slug && slugStatus.state === "bad";
   const canSave = !loading && !saving && !slugBad;
+  const reviewScore = Number(storefrontReadiness?.score) || 0;
+  const canSubmitReview =
+    !loading &&
+    !submittingReview &&
+    pub.publicStatus !== "public" &&
+    pub.publicStatus !== "suspended" &&
+    Boolean((pub.slug || "").trim()) &&
+    reviewScore >= 50;
 
   // Auto-fill slug from shop name as long as:
   //   1. The seller hasn't manually edited the slug in this session
@@ -454,6 +465,7 @@ export default function ShopSettings() {
       });
       setOriginalSlug(d.slug || "");
       setPreview(d.preview || null);
+      setStorefrontReadiness(d.storefrontReadiness || null);
 
       // Avatar/cover live in `shops.avatar` / `shops.cover` and are
       // surfaced by both APIs. Prefer the public-page DTO (canonical)
@@ -490,6 +502,32 @@ export default function ShopSettings() {
     } catch (err) {
       setFeedback({ type: "error", text: err?.response?.data?.error || "Upload ảnh bìa thất bại." });
     } finally { setUploadingCover(false); }
+  }
+
+  async function handleSubmitForReview() {
+    if (!canSubmitReview) return;
+    setSubmittingReview(true);
+    setFeedback(null);
+    try {
+      const res = await submitStorefrontForReview();
+      if (res.data?.unchanged) {
+        setFeedback({ type: "ok", text: "Storefront đã được gửi duyệt trước đó." });
+      } else {
+        setFeedback({ type: "ok", text: "Đã gửi storefront để chờ duyệt." });
+        setPub((p) => ({ ...p, publicStatus: "draft" }));
+      }
+    } catch (err) {
+      const body = err?.response?.data;
+      setFeedback({
+        type: "error",
+        text:
+          body?.error ||
+          body?.readiness?.warnings?.[0] ||
+          "Không gửi được duyệt storefront.",
+      });
+    } finally {
+      setSubmittingReview(false);
+    }
   }
 
   // Save — calls both APIs in parallel where possible
@@ -764,6 +802,31 @@ export default function ShopSettings() {
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Preview URL</label>
               <PreviewLinks preview={preview} />
+            </div>
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Gửi duyệt storefront</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Hoàn thiện slug, branding và sản phẩm (điểm sẵn sàng ≥ 50) rồi gửi để admin duyệt công khai.
+                  {storefrontReadiness ? ` Hiện tại: ${reviewScore}/100.` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSubmitForReview}
+                disabled={!canSubmitReview}
+                className={
+                  "shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors " +
+                  (canSubmitReview
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed")
+                }
+              >
+                {submittingReview ? "Đang gửi…" : "Gửi duyệt storefront"}
+              </button>
             </div>
           </div>
         </SectionCard>

@@ -247,6 +247,16 @@ export async function postShopGovernanceAction(shopId, body) {
   return adminApi.post(`/admin/platform/shops/${shopId}/governance/actions`, body);
 }
 
+/** GET storefront governance view — shops.id only */
+export async function getShopStorefront(shopId) {
+  return adminApi.get(`/admin/platform/shops/${shopId}/storefront`);
+}
+
+/** POST storefront action — slug + moderation lifecycle actions */
+export async function postShopStorefrontAction(shopId, body) {
+  return adminApi.post(`/admin/platform/shops/${shopId}/storefront`, body);
+}
+
 /**
  * Get moderation event history for a product.
  * Response: { rows: [...] }
@@ -263,4 +273,8 @@ export async function getProductModerationEvents(productId) {
 
 export async function getShopRisk(params = {}) {
   return adminApi.get("/admin/platform/shop-risk", { params });
+}
+
+export async function getEnforcementRiskFlags(params = {}) {
+  return adminApi.get("/admin/enforcement/risk-flags", { params });
 }

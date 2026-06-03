@@ -11,6 +11,7 @@ import {
   handleUploadAvatar,
   handleUploadCover,
   handleUploadContent,
+  handleSubmitStorefrontReview,
 } from "../domains/shopPublic/index.js";
 
 /**
@@ -37,6 +38,7 @@ const uploadOne = multer({
 
 router.get("/", handleGetMyPublicPage);
 router.put("/", handleUpdateMyPublicPage);
+router.post("/storefront", handleSubmitStorefrontReview);
 router.get("/check-slug", slugCheckRateLimit, handleCheckSlug);
 
 /**

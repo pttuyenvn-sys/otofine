@@ -5,6 +5,8 @@ import {
   saveCover,
   updateMyPublicPage,
 } from "../services/sellerPublicPage.service.js";
+import { submitStorefrontForReview } from "../../../services/adminShopStorefront.service.js";
+import { logAdminAction } from "../../../modules/admin/index.js";
 import { uploadToR2 } from "../../../utils/r2-sdk.js";
 import { invalidateShop } from "../cache/caches.js";
 import {
@@ -70,6 +72,45 @@ export async function handleCheckSlug(req, res) {
     res.json(result);
   } catch (err) {
     console.error("[sellerPublicPage] check-slug error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/**
+ * POST /api/shop/public-page/storefront
+ * Body: { action: "submit_review" }
+ */
+export async function handleSubmitStorefrontReview(req, res) {
+  try {
+    const action = typeof req.body?.action === "string" ? req.body.action.trim() : "";
+    if (action !== "submit_review") {
+      return res.status(400).json({ error: "invalid action" });
+    }
+
+    const result = await submitStorefrontForReview(req.shop.id);
+
+    if (result.status === 200 && !result.body?.unchanged) {
+      logAdminAction({
+        adminId: null,
+        action: "shop.storefront.submit_review",
+        targetType: "shop",
+        targetId: req.shop.id,
+        before: {
+          public_status: result.body?.before?.public_status ?? null,
+        },
+        after: {
+          public_status:
+            result.body?.after?.public_status ??
+            result.body?.storefront?.publicStatus ??
+            null,
+        },
+        req,
+      }).catch(() => {});
+    }
+
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("[sellerPublicPage] submit-review error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 }
