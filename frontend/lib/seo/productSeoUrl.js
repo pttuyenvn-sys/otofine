@@ -284,6 +284,11 @@ export function looksLikeProductSlug(slug) {
   if (s === SEO_BASE_SLUG_LITERAL) return false;
   if (s.startsWith(`${SEO_BASE_SLUG_LITERAL}-`)) return false;
   if (s.endsWith("-o-to")) return false;
+  // Explicit listing prefix: treat any SEO slug starting with the
+  // marketplace listing marker as a non-product. This prevents numeric
+  // vehicle models (e.g. "mazda-6") from defeating the year-guard and
+  // being misclassified as product slugs.
+  if (s.startsWith("phu-tung-")) return false;
 
   const m = s.match(/^(.+)-(\d+)$/);
   if (!m) return false;

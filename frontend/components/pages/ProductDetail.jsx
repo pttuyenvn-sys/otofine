@@ -322,6 +322,13 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
         ? String(params.id)
         : extractProductIdFromSeoSlug(params.slug);
   const router = useRouter();
+  // Debug: trace when client-derived routeId is used
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line no-console
+      console.warn("[ProductDetailTrace] routeId", { routeId, params });
+    } catch {}
+  }, [routeId, params]);
 
   const handleBack = useCallback(() => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -363,7 +370,11 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
     let cancelled = false;
     setData(null);
     setLoadError("");
-
+    // Debug: log fetch start
+    try {
+      // eslint-disable-next-line no-console
+      console.warn("[ProductDetailTrace] fetching product", { routeId });
+    } catch {}
     fetch(`${API_BASE}/product/${encodeURIComponent(routeId)}`)
       .then(async (r) => {
         const j = await r.json().catch(() => ({}));

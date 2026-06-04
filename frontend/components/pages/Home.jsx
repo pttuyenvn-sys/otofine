@@ -33,16 +33,79 @@ import HomeSearch from "@/components/pages/home/HomeSearch";
 // Remove any notion of filters/slug logic from PopularCategoriesBox.
 // Usage must only have onCtaClick and needed UI display props.
 import PopularCategoriesBox from "@/components/pages/home/PopularCategoriesBox";
+import LeftNav from "@/components/pages/home/LeftNav";
+import ProductGridWrapper from "@/components/pages/home/ProductGridWrapper";
 import { SearchSuggestThumb } from "@/components/pages/home/HomeImages";
+import SearchSuggestPanel from "@/components/pages/home/SearchSuggestPanel";
 import { HomeProductCard } from "@/components/pages/home/HomeProductCard";
 import VehicleQuickPanel from "@/components/pages/home/VehicleQuickPanel";
 import PartKnowledgeSeoPage from "@/components/seo/PartKnowledgeSeoPage";
+import SeoContent from "@/components/pages/home/SeoContent";
 import "@/components/seo/seo-landing.css";
 import "./Home.css";
+import ListingHero from "@/components/pages/home/ListingHero";
+import FilterBar from "@/components/pages/home/FilterBar";
 
 // ===== CANONICAL URL SYNC HELPERS =====
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+// Temporary instrumentation: trace client-side route mutations (logs only).
+// Remove after debugging.
+function installClientRoutingTrace(router) {
+  if (typeof window === "undefined") return () => {};
+  try {
+    const origPush = router.push.bind(router);
+    const origReplace = router.replace.bind(router);
+    router.push = (...args) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[RouterTrace] push", { args, stack: new Error().stack });
+      } catch {}
+      return origPush(...args);
+    };
+    router.replace = (...args) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[RouterTrace] replace", { args, stack: new Error().stack });
+      } catch {}
+      return origReplace(...args);
+    };
+    const origPushState = window.history.pushState.bind(window.history);
+    const origReplaceState = window.history.replaceState.bind(window.history);
+    window.history.pushState = (state, title, url) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[HistoryTrace] pushState", { state, title, url, stack: new Error().stack });
+      } catch {}
+      return origPushState(state, title, url);
+    };
+    window.history.replaceState = (state, title, url) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[HistoryTrace] replaceState", { state, title, url, stack: new Error().stack });
+      } catch {}
+      return origReplaceState(state, title, url);
+    };
+    const onPop = (e) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[HistoryTrace] popstate", { state: window.history.state, stack: new Error().stack });
+      } catch {}
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      try {
+        router.push = origPush;
+        router.replace = origReplace;
+        window.history.pushState = origPushState;
+        window.history.replaceState = origReplaceState;
+        window.removeEventListener("popstate", onPop);
+      } catch {}
+    };
+  } catch {
+    return () => {};
+  }
+}
 function slugify(str) {
   return String(str || "")
     .toLowerCase()
@@ -498,6 +561,13 @@ export default function Home({
     [category, brand, model, year, location],
   );
 
+  // install routing trace once after router is available
+  useEffect(() => {
+    if (!router) return;
+    const uninstall = installClientRoutingTrace(router);
+    return () => uninstall();
+  }, [router]);
+
   useEffect(() => {
     try {
       if (sessionStorage.getItem(MOBILE_VEHICLE_PANEL_OPEN_KEY) !== "1") return;
@@ -813,6 +883,17 @@ export default function Home({
       window.location.href = getProductDetailHref(row);
     },
     [closeMobileVehiclePanel],
+  );
+
+  const handleCategorySuggestionClick = useCallback(
+    (item) => {
+      startTransition(() => {
+        navigateToState({ category: item.canonical_name });
+        setKeyword("");
+        setPage(1);
+      });
+    },
+    [navigateToState, setKeyword, setPage],
   );
 
   // SEO chip brands/models (unchanged)
@@ -1884,81 +1965,14 @@ export default function Home({
             </div>
 
             {hasQuickSuggest && (
-              <div
-                id={searchAssistId}
-                className="search-suggest-wrap search-suggest-wrap--split"
-                role="listbox"
-                aria-label="Gợi ý sản phẩm và danh mục"
-              >
-                <div className="search-suggest-split__products">
-                  <ul className="search-suggest-list search-suggest-list--in-split">
-                    {suggestItems.map((row) => (
-                      <li key={row.id}>
-                        <button
-                          type="button"
-                          className="search-suggest-item"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleQuickProductClick(row, isMobile);
-                          }}
-                        >
-                          <SearchSuggestThumb src={row.image} />
-                          <span className="search-suggest-text">
-                            <span className="search-suggest-title">
-                              {row.shortDescription || row.partName}
-                            </span>
-                            <span className="search-suggest-meta">
-                              {[
-                                (Array.isArray(row.cardHighlights) &&
-                                  row.cardHighlights[0]
-                                  ? row.cardHighlights[0]
-                                  : null) ||
-                                row.subtitleLine1 ||
-                                (row.partNumber ? `Mã ${row.partNumber}` : ""),
-                                row.priceText || "",
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {/* <div
-                  className="search-suggest-split__categories"
-                  role="list"
-                  aria-label="Danh mục gợi ý"
-                >
-                  <div className="search-suggest-split__sub">DANH MỤC LIÊN QUAN</div>
-                  <ul className="search-suggest-cat-list">
-                    {categorySuggestions.length === 0 ? (
-                      <li className="search-suggest-category-empty">
-                        Không tìm thấy nhóm danh mục phù hợp.
-                      </li>
-                    ) : (
-                      categorySuggestions.map((item) => (
-                        <li key={item.canonical_slug}>
-                          <button
-                            onClick={() => {
-                              startTransition(() => {
-                                navigateToState({ category: item.canonical_name });
-                                setKeyword("");
-                                setPage(1);
-                              });
-                            }}
-                            className="search-suggest-cat-pill"
-                          >
-                            <span>{item.canonical_name}</span>
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div> */}
-              </div>
+              <SearchSuggestPanel
+                isMobile={isMobile}
+                searchAssistId={searchAssistId}
+                suggestItems={suggestItems}
+                onProductClick={handleQuickProductClick}
+                categorySuggestions={categorySuggestions}
+                onCategoryClick={handleCategorySuggestionClick}
+              />
             )}
 
             {/* {hasCategoryFill && (
@@ -2263,138 +2277,20 @@ export default function Home({
             {/* CONTENT */}
             <div className="container of-home-container">
               {/* LEFT */}
-              <div className="car-left">
-                <div className="car-box" ref={carBoxRef}>
-                  {/* Thanh chính */}
-                  <div className="car-header">
-                    <div className="car-info">
-                      <span className="car-icon">🚗</span>
-
-                      <div className="car-info-text">
-                        <div className="car-header-top">
-                          <h4>Chọn xe</h4>
-
-                          <button
-                            type="button"
-                            className="car-advanced-btn"
-                            onClick={goToAdvancedFromQuick}
-                          >
-                            Chọn nâng cao
-                          </button>
-                        </div>
-
-                        <p className="car-header__eyebrow">
-                          {quickDraft.brand || "HÃNG XE"} /{" "}
-                          {quickDraft.model || "DÒNG XE"} /{" "}
-                          {quickDraft.year || "NĂM"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Nội dung ẩn hiện — Quick / Chọn nâng cao */}
-                  {open && (
-                    <div
-                      className="car-content car-panel-shell"
-                      role="presentation"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {renderVehiclePanelBody()}
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className="of-rail-card of-rail-links"
-                  aria-label="Mua phụ tùng theo hãng &amp; dòng xe"
-                >
-                  <h4 className="of-rail-card__h">Dòng xe phổ biến</h4>
-                  {/* <p className="of-rail-links__p">
-                        {seoDisplayBrands.map((b, i) => (
-                          <React.Fragment key={b}>
-                            {i > 0 && (
-                              <span className="of-rail-sep" aria-hidden>
-                                {" "}
-                                ·{" "}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className="of-rail-link"
-                              onClick={() => applyVehicleQuickFilter(b, "")}
-                            >
-                              {b}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </p> */}
-                  <p className="of-rail-links__p">
-                    {seoDisplayModels.slice(0, 20).map((row, i) => (
-                      <React.Fragment key={`${row.brand}-${row.model}`}>
-                        {i > 0 && (
-                          <span className="of-rail-sep" aria-hidden>
-                            {" "}
-                            ·{" "}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          className="of-rail-link of-rail-link--muted"
-                          onClick={() =>
-                            applyVehicleQuickFilter(row.brand, row.model)
-                          }
-                        >
-                          {row.brand} {row.model}
-                        </button>
-                      </React.Fragment>
-                    ))}
-                  </p>
-                </div>
-                <div className="of-rail-cats">
-                  <PopularCategoriesBox
-                    categories={popularCategories}
-                    selectedCategory={category}
-                    onCtaClick={handlePopularCategoryClick}
-                  />
-                </div>
-
-
-              </div>
+              <LeftNav
+                carBoxRef={carBoxRef}
+                open={open}
+                renderVehiclePanelBody={renderVehiclePanelBody}
+                goToAdvancedFromQuick={goToAdvancedFromQuick}
+                quickDraft={quickDraft}
+                seoDisplayModels={seoDisplayModels}
+                applyVehicleQuickFilter={applyVehicleQuickFilter}
+                popularCategories={popularCategories}
+                selectedCategory={category}
+                onPopularCategoryClick={handlePopularCategoryClick}
+              />
               <div className="content-right of-home-content">
-                <section
-                  className="listing-hero listing-hero--premium"
-                  aria-labelledby="listing-h1"
-                >
-                  <div className="listing-hero__top">
-                    <div>
-                      <h1 id="listing-h1" className="listing-hero__h1">
-                        {pageTitle}
-                      </h1>
-                      <p className="listing-hero__sub">
-                        Tìm đúng phụ tùng theo xe, so sánh giá, liên hệ trực tiếp
-                        cửa hàng — minh bạch, nhanh chóng.
-                      </p>
-                    </div>
-                    <div className="listing-hero__cta-row">
-                      <a
-                        href="#otofine-products-start"
-                        className="listing-hero__cta listing-hero__cta--buyer"
-                      >
-                        Mua phụ tùng
-                      </a>
-                      <Link
-                        href="/shop/register"
-                        className="listing-hero__cta listing-hero__cta--seller" prefetch={false}>
-                        Đăng ký bán
-                      </Link>
-                    </div>
-                  </div>
-                  <ul className="listing-hero__badges" role="list">
-                    <li role="listitem">Shop xác minh</li>
-                    <li role="listitem">Giá rõ ràng</li>
-                    <li role="listitem">Hỗ trợ tìm đúng xe</li>
-                    <li role="listitem">Tối ưu mobile</li>
-                  </ul>
-                </section>
+                <ListingHero pageTitle={pageTitle} />
                 {listError ? (
                   <div className="list-error-banner">
                     {listError}{" "}
@@ -2410,250 +2306,35 @@ export default function Home({
                 <div className="content-grid of-three-col">
                   <div className="content-grid-primary">
 
-                    <div
-                      className="listing-sort"
-                      role="toolbar"
-                      aria-label="Sắp xếp danh sách"
-                      style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}
-                    >
-                      {[
-                        { id: "popular", label: "Phổ biến" },
-                        { id: "newest", label: "Mới nhất" },
-                        { id: "price_asc", label: "Giá ↑" },
-                        { id: "price_desc", label: "Giá ↓" },
-                      ].map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          className={
-                            sort === s.id
-                              ? "listing-sort__btn is-active"
-                              : "listing-sort__btn"
-                          }
-                          aria-pressed={sort === s.id}
-                          onClick={() => {
-                            startTransition(() => {
-                              setSort(s.id);
-                              setPage(1);
-                            });
-                          }}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                      <div ref={cityDropdownRef} style={{ position: "relative", marginLeft: "auto" }}>
-                        <button
-                          type="button"
-                          className={selectedCity ? "listing-sort__btn is-active" : "listing-sort__btn"}
-                          onClick={() => setCityDropdownOpen((v) => !v)}
-                          aria-haspopup="listbox"
-                          aria-expanded={cityDropdownOpen}
-                          style={{ minWidth: 90 }}
-                        >
-                          {selectedCity?.name
-                            ? selectedCity.name.replace(/^TP\s+/i, "")
-                            : "Địa điểm"}
-                          <span style={{ marginLeft: 4, fontSize: 10 }}>{cityDropdownOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {cityDropdownOpen && (
-                          <ul
-                            role="listbox"
-                            style={{
-                              position: "absolute",
-                              right: 0,
-                              top: "calc(100% + 4px)",
-                              background: "#fff",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 10,
-                              boxShadow: "0 4px 16px rgba(0,0,0,.1)",
-                              padding: "6px 0",
-                              margin: 0,
-                              listStyle: "none",
-                              zIndex: 50,
-                              minWidth: 200,
-                              maxHeight: 320,
-                              overflowY: "auto",
-                            }}
-                          >
-                            <li
-                              role="option"
-                              aria-selected={!selectedCity}
-                              style={{
-                                padding: "8px 14px",
-                                cursor: "pointer",
-                                fontSize: 13,
-                                fontWeight: !selectedCity ? 700 : 400,
-                                color: !selectedCity ? "#e85d1a" : "#1f2937",
-                                background: !selectedCity ? "#fff7f0" : "transparent",
-                              }}
-                              onClick={() => {
-                                setSelectedCity(null);
-                                startTransition(() => {
-                                  navigateToState({ location: "" });
-                                  setPage(1);
-                                });
-                                setCityDropdownOpen(false);
-                              }}
-                            >
-                              Toàn quốc
-                            </li>
-                            {(() => {
-                              const sorted = [...availableLocations].sort((a, b) => {
-                                if (selectedCity?.id === a.id) return -1;
-                                if (selectedCity?.id === b.id) return 1;
-                                return b.productCount - a.productCount;
-                              });
-                              return sorted.map((loc) => {
-                                const isActive = selectedCity?.id === loc.id;
-                                return (
-                                  <li
-                                    key={loc.id}
-                                    role="option"
-                                    aria-selected={isActive}
-                                    style={{
-                                      padding: "8px 14px",
-                                      cursor: "pointer",
-                                      fontSize: 13,
-                                      fontWeight: isActive ? 700 : 400,
-                                      color: isActive ? "#e85d1a" : "#1f2937",
-                                      background: isActive ? "#fff7f0" : "transparent",
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      gap: 8,
-                                    }}
-                                    onClick={() => {
-                                      setSelectedCity({
-                                        id: loc.id,
-                                        name: loc.name,
-                                        slug: loc.slug,
-                                      });
-                                      setCityDropdownOpen(false);
-                                    }}
-                                  >
-                                    <span>{loc.name.replace(/^TP\s+/i, "")}</span>
-                                    <span>{loc.productCount}</span>
-                                  </li>
-                                );
-                              });
-                            })()}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
+                    <FilterBar
+                      sort={sort}
+                      setSort={setSort}
+                      startTransition={startTransition}
+                      setPage={setPage}
+                      cityDropdownRef={cityDropdownRef}
+                      selectedCity={selectedCity}
+                      setCityDropdownOpen={setCityDropdownOpen}
+                      cityDropdownOpen={cityDropdownOpen}
+                      availableLocations={availableLocations}
+                      navigateToState={navigateToState}
+                      setSelectedCity={setSelectedCity}
+                    />
 
 
-                    {keyword && (
-                      <div style={{ marginBottom: 12, fontWeight: 600 }}>
-                        Kết quả tìm kiếm cho: "{keyword}"
-                      </div>
-                    )}
-
-                    <div className="center of-product-list">
-                      {!listError && !listBootstrapping && products.length === 0 ? (
-                        <div className="of-empty-state" style={{ padding: "24px 16px", textAlign: "center" }}>
-                          <p style={{ color: "#374151", fontWeight: 600, fontSize: 15, margin: "0 0 8px" }}>
-                            Chưa có sản phẩm phù hợp với bộ lọc hiện tại
-                          </p>
-                          <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 16px" }}>
-                            Thử bỏ bớt bộ lọc hoặc chọn danh mục khác để xem thêm kết quả.
-                          </p>
-                          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                            {["Má phanh", "Đèn pha", "Lọc gió", "Bơm nước", "Gương chiếu hậu"].map((cat) => (
-                              <button
-                                key={cat}
-                                type="button"
-                                className="of-btn of-btn--ghost"
-                                style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, border: "1px solid #d1d5db", background: "#f9fafb", color: "#1f2937", cursor: "pointer" }}
-                                onClick={() => {
-                                  startTransition(() => {
-                                    navigateToState({ category: cat });
-                                    setKeyword("");
-                                    setPage(1);
-                                  });
-                                }}
-                              >
-                                {cat} ô tô
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      {listBootstrapping && products.length === 0 && !listError
-                        ? Array.from({ length: 8 }).map((_, i) => (
-                          <div
-                            key={`sk-${i}`}
-                            className="of-product of-product--skeleton"
-                            aria-hidden
-                          />
-                        ))
-                        : null}
-                      {products.map((item, index) => (
-                        <HomeProductCard
-                          key={item.id}
-                          item={item}
-                          index={index}
-                          onSelectPhone={setContactPhone}
-                        />
-                      ))}
-                    </div>
-                    {!listError &&
-                      !listBootstrapping &&
-                      products.length > 0 &&
-                      totalPages > 1 && (
-                        <nav
-                          className="pagination product-pagination"
-                          aria-label="Phân trang sản phẩm"
-                        >
-                          <button
-                            type="button"
-                            className="page-btn page-btn-nav"
-                            disabled={page <= 1}
-                            aria-label="Trang trước"
-                            onClick={() => {
-                              setPage((p) => Math.max(1, p - 1));
-                              scrollProductsIntoView();
-                            }}
-                          >
-                            &lt;
-                          </button>
-                          {(() => {
-                            const total = totalPages;
-                            const current = page;
-                            const maxBtns = 5;
-                            let start = Math.max(1, current - Math.floor(maxBtns / 2));
-                            let end = Math.min(total, start + maxBtns - 1);
-                            start = Math.max(1, end - maxBtns + 1);
-                            const nums = [];
-                            for (let i = start; i <= end; i += 1) nums.push(i);
-                            return nums.map((n) => (
-                              <button
-                                key={n}
-                                type="button"
-                                className={`page-btn${n === page ? " active" : ""}`}
-                                aria-current={n === page ? "page" : undefined}
-                                onClick={() => {
-                                  setPage(n);
-                                  scrollProductsIntoView();
-                                }}
-                              >
-                                {n}
-                              </button>
-                            ));
-                          })()}
-                          <button
-                            type="button"
-                            className="page-btn page-btn-nav"
-                            disabled={page >= totalPages}
-                            aria-label="Trang sau"
-                            onClick={() => {
-                              setPage((p) => Math.min(totalPages, p + 1));
-                              scrollProductsIntoView();
-                            }}
-                          >
-                            &gt;
-                          </button>
-                        </nav>
-                      )}
+                    <ProductGridWrapper
+                      keyword={keyword}
+                      listError={listError}
+                      listBootstrapping={listBootstrapping}
+                      products={products}
+                      totalPages={totalPages}
+                      page={page}
+                      setPage={setPage}
+                      startTransition={startTransition}
+                      navigateToState={navigateToState}
+                      setKeyword={setKeyword}
+                      scrollProductsIntoView={scrollProductsIntoView}
+                      setContactPhone={setContactPhone}
+                    />
                   </div>
                   <aside
                     className="of-right-rail"
@@ -2714,11 +2395,7 @@ export default function Home({
                   </aside>
                 </div>
                 {finalSeoData && (
-                  <PartKnowledgeSeoPage
-                    data={finalSeoData}
-                    slug={seoArticleSlug}
-                    imageProducts={products}
-                  />
+                  <SeoContent data={finalSeoData} slug={seoArticleSlug} imageProducts={products} />
                 )}
                 <section
                   className="of-trust-market"
