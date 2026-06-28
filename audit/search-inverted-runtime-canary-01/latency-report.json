@@ -1,0 +1,20 @@
+{
+  "date": "2026-06-27",
+  "samples": 26,
+  "legacy": {
+    "avg_ms": 1581.2981,
+    "p50_ms": 970.26,
+    "p95_ms": 4902.4
+  },
+  "inverted": {
+    "avg_ms": 970.9185,
+    "p50_ms": 853.98,
+    "p95_ms": 2509.31
+  },
+  "inverted_stages_avg": {
+    "retrieval_ms": 40.6758,
+    "ranking_ms": 200.1535,
+    "grouping_ms": 307.7238,
+    "popup_ms": 323.6215
+  }
+}

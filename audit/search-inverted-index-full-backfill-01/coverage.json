@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-06-27T04:49:37.304Z",
+  "indexed_products": 7385,
+  "products_with_tokens": 7385,
+  "coverage_pct": 100,
+  "missing_products": [],
+  "missing_count": 0,
+  "duplicate_groups": 0,
+  "broken_references": [],
+  "broken_reference_count": 0,
+  "token_stats": {
+    "total_tokens": 352631,
+    "products_counted": 7385,
+    "avg_tokens_per_product": 47.75,
+    "p50": 47,
+    "p95": 63,
+    "p99": 69,
+    "min": 10,
+    "max": 89
+  }
+}

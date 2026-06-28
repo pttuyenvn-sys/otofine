@@ -1,0 +1,548 @@
+{
+  "captured_at": "2026-06-27T09:32:31.612607+00:00",
+  "endpoint": "https://otofine.com/api/search/suggest",
+  "total_requests": 45,
+  "successful": 45,
+  "latency_ms": {
+    "p50": 173.2,
+    "p90": 287.3,
+    "p95": 336.5,
+    "p99": 389.1,
+    "min": 100.7,
+    "max": 389.1,
+    "mean": 192.2
+  },
+  "slowest_queries_avg_ttfb_ms": [
+    {
+      "label": "den_hau_kia",
+      "avg_ms": 323.4
+    },
+    {
+      "label": "loc_gio_toyta",
+      "avg_ms": 300.1
+    },
+    {
+      "label": "ma_phanh_vios",
+      "avg_ms": 268.3
+    },
+    {
+      "label": "giam_xoc_ford",
+      "avg_ms": 227.6
+    },
+    {
+      "label": "bo_thang",
+      "avg_ms": 225.3
+    },
+    {
+      "label": "phanh_toyota",
+      "avg_ms": 197.4
+    },
+    {
+      "label": "loc_dau_mazda",
+      "avg_ms": 193.9
+    },
+    {
+      "label": "den_pha_honda",
+      "avg_ms": 169.9
+    },
+    {
+      "label": "bugi_toyota",
+      "avg_ms": 157.2
+    },
+    {
+      "label": "binh_nuoc",
+      "avg_ms": 154.2
+    }
+  ],
+  "over_1000ms": [],
+  "no_result_samples": [
+    {
+      "label": "brake_pad",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 149.4,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 107.7,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 149.8,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "brake_pad",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 150.1,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 113.9,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 120.5,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "brake_pad",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 121.8,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 100.7,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 120.1,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    }
+  ],
+  "samples": [
+    {
+      "label": "bugi_toyota",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 195.8,
+      "size": 7467,
+      "groups": 3,
+      "categories": 6
+    },
+    {
+      "label": "den_hau_kia",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 389.1,
+      "size": 17736,
+      "groups": 3,
+      "categories": 84
+    },
+    {
+      "label": "ma_phanh_vios",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 336.5,
+      "size": 9932,
+      "groups": 3,
+      "categories": 14
+    },
+    {
+      "label": "loc_dau_mazda",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 223.6,
+      "size": 4769,
+      "groups": 3,
+      "categories": 20
+    },
+    {
+      "label": "bo_thang",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 251.3,
+      "size": 11948,
+      "groups": 3,
+      "categories": 21
+    },
+    {
+      "label": "brake_pad",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 149.4,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 107.7,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "loc_gio_toyta",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 347.3,
+      "size": 16061,
+      "groups": 3,
+      "categories": 66
+    },
+    {
+      "label": "den_pha_honda",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 216.4,
+      "size": 4698,
+      "groups": 3,
+      "categories": 3
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 149.8,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "bugi_no_brand",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 142.7,
+      "size": 7598,
+      "groups": 3,
+      "categories": 8
+    },
+    {
+      "label": "phanh_toyota",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 219.8,
+      "size": 11876,
+      "groups": 3,
+      "categories": 34
+    },
+    {
+      "label": "lop_kia",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 161.7,
+      "size": 5434,
+      "groups": 3,
+      "categories": 5
+    },
+    {
+      "label": "giam_xoc_ford",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 220.6,
+      "size": 3005,
+      "groups": 2,
+      "categories": 2
+    },
+    {
+      "label": "binh_nuoc",
+      "run": 1,
+      "http": 200,
+      "ttfb_ms": 167.5,
+      "size": 9867,
+      "groups": 3,
+      "categories": 14
+    },
+    {
+      "label": "bugi_toyota",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 144.8,
+      "size": 7467,
+      "groups": 3,
+      "categories": 6
+    },
+    {
+      "label": "den_hau_kia",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 287.3,
+      "size": 17736,
+      "groups": 3,
+      "categories": 84
+    },
+    {
+      "label": "ma_phanh_vios",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 233.9,
+      "size": 9932,
+      "groups": 3,
+      "categories": 14
+    },
+    {
+      "label": "loc_dau_mazda",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 184.8,
+      "size": 4769,
+      "groups": 3,
+      "categories": 20
+    },
+    {
+      "label": "bo_thang",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 233.2,
+      "size": 11948,
+      "groups": 3,
+      "categories": 21
+    },
+    {
+      "label": "brake_pad",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 150.1,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 113.9,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "loc_gio_toyta",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 279.8,
+      "size": 16061,
+      "groups": 3,
+      "categories": 66
+    },
+    {
+      "label": "den_pha_honda",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 145.8,
+      "size": 4698,
+      "groups": 3,
+      "categories": 3
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 120.5,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "bugi_no_brand",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 152.2,
+      "size": 7598,
+      "groups": 3,
+      "categories": 8
+    },
+    {
+      "label": "phanh_toyota",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 176.9,
+      "size": 11876,
+      "groups": 3,
+      "categories": 34
+    },
+    {
+      "label": "lop_kia",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 119.2,
+      "size": 5434,
+      "groups": 3,
+      "categories": 5
+    },
+    {
+      "label": "giam_xoc_ford",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 220.6,
+      "size": 3005,
+      "groups": 2,
+      "categories": 2
+    },
+    {
+      "label": "binh_nuoc",
+      "run": 2,
+      "http": 200,
+      "ttfb_ms": 144.7,
+      "size": 9867,
+      "groups": 3,
+      "categories": 14
+    },
+    {
+      "label": "bugi_toyota",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 130.9,
+      "size": 7467,
+      "groups": 3,
+      "categories": 6
+    },
+    {
+      "label": "den_hau_kia",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 293.7,
+      "size": 17736,
+      "groups": 3,
+      "categories": 84
+    },
+    {
+      "label": "ma_phanh_vios",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 234.5,
+      "size": 9932,
+      "groups": 3,
+      "categories": 14
+    },
+    {
+      "label": "loc_dau_mazda",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 173.2,
+      "size": 4769,
+      "groups": 3,
+      "categories": 20
+    },
+    {
+      "label": "bo_thang",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 191.3,
+      "size": 11948,
+      "groups": 3,
+      "categories": 21
+    },
+    {
+      "label": "brake_pad",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 121.8,
+      "size": 116,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "part_number",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 100.7,
+      "size": 120,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "loc_gio_toyta",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 273.3,
+      "size": 16061,
+      "groups": 3,
+      "categories": 66
+    },
+    {
+      "label": "den_pha_honda",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 147.4,
+      "size": 4698,
+      "groups": 3,
+      "categories": 3
+    },
+    {
+      "label": "am_sac_toyota",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 120.1,
+      "size": 132,
+      "groups": 0,
+      "categories": 0
+    },
+    {
+      "label": "bugi_no_brand",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 146.9,
+      "size": 7598,
+      "groups": 3,
+      "categories": 8
+    },
+    {
+      "label": "phanh_toyota",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 195.6,
+      "size": 11876,
+      "groups": 3,
+      "categories": 34
+    },
+    {
+      "label": "lop_kia",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 138.7,
+      "size": 5434,
+      "groups": 3,
+      "categories": 5
+    },
+    {
+      "label": "giam_xoc_ford",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 241.6,
+      "size": 3005,
+      "groups": 2,
+      "categories": 2
+    },
+    {
+      "label": "binh_nuoc",
+      "run": 3,
+      "http": 200,
+      "ttfb_ms": 150.3,
+      "size": 9867,
+      "groups": 3,
+      "categories": 14
+    }
+  ]
+}

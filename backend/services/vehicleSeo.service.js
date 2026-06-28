@@ -3,6 +3,10 @@ import { parseVehicleSeoSlug } from "../utils/vehicleSeoSlugParser.js";
 import { buildVehicleSeoArticle }
     from "../utils/buildVehicleSeoArticle.js";
 import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
+import {
+    attachCanonicalFieldsFromMap,
+    loadPrimaryFitmentCarsByProductIds,
+} from "../modules/products/services/canonicalPath.server.js";
 
 export async function getVehicleSeoPage(slug) {
     const parsed = await parseVehicleSeoSlug(slug);
@@ -198,12 +202,20 @@ export async function getVehicleSeoPage(slug) {
         [parsed.carModelId]
     );
 
+    const fitmentMap = await loadPrimaryFitmentCarsByProductIds(
+        pool,
+        products.map((row) => row.id),
+    );
+    const productsWithCanonical = products.map((row) =>
+        attachCanonicalFieldsFromMap(row, fitmentMap),
+    );
+
     const articleHtml =
         buildVehicleSeoArticle({
             parsed,
             seoContent,
             carContent,
-            products,
+            products: productsWithCanonical,
             productStats,
             faults,
             maintenance,
@@ -229,6 +241,6 @@ export async function getVehicleSeoPage(slug) {
 
         relatedCars,
 
-        products,
+        products: productsWithCanonical,
     };
 }

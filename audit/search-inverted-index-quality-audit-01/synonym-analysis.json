@@ -1,0 +1,97 @@
+{
+  "search_synonyms_active": null,
+  "search_synonyms_error": "Table 'otofine_local.search_synonyms' doesn't exist",
+  "category_dictionary_top_aliases": [],
+  "top_synonym_tokens": [
+    {
+      "token": "143",
+      "products": 50
+    },
+    {
+      "token": "zalo",
+      "products": 50
+    },
+    {
+      "token": "1850",
+      "products": 50
+    },
+    {
+      "token": "173",
+      "products": 50
+    },
+    {
+      "token": "16pt",
+      "products": 50
+    },
+    {
+      "token": "1652",
+      "products": 50
+    },
+    {
+      "token": "1651",
+      "products": 50
+    },
+    {
+      "token": "160",
+      "products": 50
+    },
+    {
+      "token": "1587",
+      "products": 50
+    },
+    {
+      "token": "1583",
+      "products": 50
+    },
+    {
+      "token": "14pt",
+      "products": 50
+    },
+    {
+      "token": "091",
+      "products": 50
+    },
+    {
+      "token": "141",
+      "products": 50
+    },
+    {
+      "token": "1318",
+      "products": 50
+    },
+    {
+      "token": "12pt",
+      "products": 50
+    },
+    {
+      "token": "11pt",
+      "products": 50
+    },
+    {
+      "token": "1164",
+      "products": 50
+    },
+    {
+      "token": "1163",
+      "products": 50
+    },
+    {
+      "token": "1140",
+      "products": 50
+    },
+    {
+      "token": "1136",
+      "products": 50
+    }
+  ],
+  "synonym_by_source": [
+    {
+      "source": "synonym_tokens",
+      "cnt": 16614
+    }
+  ],
+  "circular_synonyms": "Bidirectional linking in loadSynonymGraph creates symmetric pairs; inverted index stores expanded tokens only, not chain metadata.",
+  "repeated_expansion": "16614 SYNONYM rows; sources: synonym_tokens column replay + seo_alias from category_dictionary",
+  "longest_chain": "Not stored in search_token_index; graph expansion depth unbounded at sync but deduped by (product_id, token, token_type)",
+  "unused_synonyms": "search_synonyms table may have terms not yet synced (7385/7385 products missing inverted index except 50 sample)"
+}

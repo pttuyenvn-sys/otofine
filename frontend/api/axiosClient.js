@@ -10,6 +10,8 @@ import {
   removeShopAuth,
   removeShopId,
 } from "../lib/auth/storage";
+import { clearOwnerCookie } from "../lib/auth/sellerOwnerCookie";
+import { isPublicStorefrontSurface } from "../lib/auth/isPublicStorefrontSurface";
 
 const axiosClient = axios.create({
   baseURL: API_BASE,
@@ -87,14 +89,25 @@ axiosClient.interceptors.response.use(
         originalConfig.headers.Authorization = `Bearer ${token}`;
         return axiosClient(originalConfig);
       } catch (e) {
+        const onPublicStorefront =
+          typeof window !== "undefined" && isPublicStorefrontSurface();
         try {
-          console.log("[AUTH-RUNTIME] frontend clearing localStorage and redirecting to /shop/login", e?.message || e);
+          console.log(
+            onPublicStorefront
+              ? "[AUTH-RUNTIME] frontend clearing shop auth on public storefront (no redirect)"
+              : "[AUTH-RUNTIME] frontend clearing localStorage and redirecting to /shop/login",
+            e?.message || e,
+          );
           removeShopToken();
           removeShopRefreshToken();
           removeShopAuth();
           removeShopId();
+          if (onPublicStorefront) {
+            clearOwnerCookie();
+            window.dispatchEvent(new Event("auth-changed"));
+          }
         } catch {}
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && !onPublicStorefront) {
           window.location.href = "/shop/login";
         }
       }

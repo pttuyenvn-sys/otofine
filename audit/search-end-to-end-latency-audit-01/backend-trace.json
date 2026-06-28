@@ -1,0 +1,109 @@
+{
+  "audit_id": "SEARCH-END-TO-END-LATENCY-AUDIT-01",
+  "generated_at": "2026-06-22T00:00:00.000Z",
+  "production_runtime_verification": {
+    "SEARCH_RUNTIME": "unset → legacy (default)",
+    "effective_runtime": "LegacySearchRuntime",
+    "SEARCH_ENGINE_MODE": "unset → hybrid",
+    "SEARCH_CANARY": "unset → disabled",
+    "SEARCH_RANKING_MODE": "unset → legacy (inverted-only feature)",
+    "SEARCH_GROUPING_MODE": "unset → legacy (inverted-only feature)",
+    "SEARCH_CANDIDATE_POLICY": "unset → strict",
+    "SEARCH_INVERTED_INDEX": "unset → disabled",
+    "evidence": [
+      "backend/.env has no SEARCH_* variables",
+      "backend/config/searchRuntimeConfig.js default legacy",
+      "Live production curl: đèn hậu Kia 4537ms matches legacy canary p95 ~4902ms, not inverted ~144ms"
+    ]
+  },
+  "endpoint": {
+    "route": "GET /api/search/suggest",
+    "controller": "search.controller.getSearchSuggest",
+    "service": "searchSuggest.service.buildSearchSuggestResponse",
+    "facade": "getSearchRuntime() → LegacySearchRuntime"
+  },
+  "legacy_pipeline": [
+    "fetchSharedGroupedInventory",
+    "buildSearchInventoryContext → searchProviderChain (structured+fulltext or like-fallback)",
+    "fetchGroupedInventoryFromMatchedCte (products + category_map + fitment JOINs)",
+    "buildPreviewBlocksFromInventory → fetchBatchPreviewProductRows",
+    "assembleSearchSuggestResponse"
+  ],
+  "inverted_pipeline_not_active_in_production": [
+    "normalize",
+    "inverted retrieval",
+    "inverted ranking (weighted_v2 available but requires SEARCH_RUNTIME=inverted)",
+    "quality_gate_v2 grouping (requires SEARCH_RUNTIME=inverted)",
+    "popup hydration from index"
+  ],
+  "stage_measurements": {
+    "inverted_isolated_benchmark_ms": {
+      "source": "audit/search-inverted-index-runtime-01/latency-breakdown.json",
+      "note": "In-process only; warm; popup often ~0ms",
+      "samples": {
+        "bugi toyota": { "normalize": 1.87, "retrieval": 2.83, "ranking": 38.96, "grouping": 45.41, "popup": 0.02, "total": 89.09 },
+        "má phanh vios": { "normalize": 8.14, "retrieval": 6.93, "ranking": 37.99, "grouping": 32.01, "popup": 0.02, "total": 85.09 },
+        "lọc dầu mazda": { "normalize": 1.88, "retrieval": 4.14, "ranking": 15.67, "grouping": 16.34, "popup": 0.02, "total": 38.05 },
+        "đèn hậu kia": { "normalize": 4.79, "retrieval": 13.33, "ranking": 61.35, "grouping": 50.23, "popup": 13.84, "total": 143.55 }
+      }
+    },
+    "canary_shadow_dual_run_ms": {
+      "source": "audit/search-inverted-runtime-canary-01/latency-report.json + canary-metrics jsonl",
+      "active_runtime": "legacy",
+      "legacy_aggregate": { "avg_ms": 1581.3, "p50_ms": 970.26, "p95_ms": 4902.4 },
+      "inverted_aggregate": { "avg_ms": 970.9, "p50_ms": 853.98, "p95_ms": 2509.31 },
+      "inverted_stages_avg": { "retrieval_ms": 40.7, "ranking_ms": 200.2, "grouping_ms": 307.7, "popup_ms": 323.6 }
+    },
+    "legacy_runtime_trace_ms": {
+      "source": "audit/search-runtime-trace-audit-01/runtime-trace.md",
+      "samples": {
+        "bugi toyota": { "wall_ms": 347, "sql_count": 7, "provider": "structured+fulltext" },
+        "má phanh vios": { "wall_ms": 246.76, "sql_count": 7 },
+        "lọc dầu mazda": { "wall_ms": 1748.98, "sql_count": 4, "provider": "like-fallback", "slowest_sql_ms": 842.7 },
+        "04465-0D140": { "wall_ms": 824, "provider": "like-fallback" }
+      }
+    },
+    "legacy_canary_per_query": {
+      "đèn hậu Kia": {
+        "legacy_ms": [4902.4, 3706.08, 4069.64, 5230.23],
+        "legacy_stages": { "ranking_ms": "~1572–1615", "grouping_ms": "~2366–2651", "popup_ms": "0–1290" },
+        "inverted_ms": [1339.87, 2714.46, 2415.49, 1472.16],
+        "category_group_count": "863 legacy groups vs 107 inverted"
+      },
+      "lọc dầu Mazda": {
+        "legacy_ms": [1695.53, 1672.25, 1711.3, 1757.32],
+        "legacy_stages": { "ranking_ms": "~795–852", "grouping_ms": "~820–980" }
+      },
+      "bố thắng": {
+        "legacy_ms": [2227.54, 2267.08, 2411.57, 2440.73],
+        "legacy_stages": { "ranking_ms": "~1066–1243", "grouping_ms": "~1119–1290" }
+      }
+    }
+  },
+  "bottleneck_diagnosis": {
+    "primary": "Legacy grouping + ranking over products table (LIKE-fallback and large category scans)",
+    "secondary": "Popup hydration (fetchBatchPreviewProductRows) on large group sets",
+    "evidence": [
+      "runtime-trace: LIKE queries 823–842ms each, repeated up to 8×",
+      "đèn hậu Kia: 863 category groups in legacy response → 101KB JSON",
+      "0% of traced legacy SQL touches product_search_index"
+    ]
+  },
+  "flame_graph_hierarchy_text": {
+    "description": "Approximate CPU/wall-time stack for slow legacy suggest (đèn hậu Kia)",
+    "tree": [
+      "getSearchSuggest [100% wall]",
+      "  buildSearchSuggestResponse [99%]",
+      "    LegacySearchRuntime.searchSuggest [98%]",
+      "      fetchSharedGroupedInventory [85%]",
+      "        searchProviderChain / like-fallback [80%]",
+      "          fetchGroupedInventoryFromMatchedCte [75%]",
+      "            MySQL products+JOINs FULLTEXT/LIKE [70%]",
+      "      buildPreviewBlocksFromInventory [12%]",
+      "        fetchBatchPreviewProductRows [10%]",
+      "          MySQL products IN + LATERAL fitment [10%]",
+      "      assembleSearchSuggestResponse [1%]",
+      "    JSON serialize large groups payload [1%]"
+    ]
+  }
+}

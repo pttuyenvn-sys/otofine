@@ -1,3 +1,4 @@
+import { aggregateVehicleYearRanges } from "../../../../shared/vehicleYearRangeAggregate.js";
 import { pool } from "../../../config/db.js";
 import { appendProductPublicVisibilityWhereParts } from "../../../utils/productPublicVisibility.server.js";
 import { buildPublicProductWhereClause } from "../../../modules/products/services/productPublicVisibility.server.js";
@@ -287,4 +288,43 @@ export async function listShopFitmentOptions(shopId) {
     modelsByBrand,
     years,
   };
+}
+
+/**
+ * Shop-scoped BMY year-range inventory (marketplace parity, one shop only).
+ *
+ * @param {number} shopId
+ * @param {{ minProductCount?: number }} [opts]
+ * @returns {Promise<Array<{ brand: string, model: string, yearFrom: number, yearTo: number, productCount: number }>>}
+ */
+export async function listShopVehicleYearRanges(shopId, opts = {}) {
+  if (!shopId) return [];
+
+  const minProductCount = Number(opts.minProductCount) || 10;
+  const visObj = await buildPublicProductWhereClause({ aliasP: "p", skipShopGate: true });
+  const visSql = visObj.sql;
+
+  const [rows] = await pool.query(
+    `
+      SELECT
+        p.id AS product_id,
+        TRIM(cm.hang_xe) AS brand,
+        TRIM(cm.ten_xe) AS model,
+        pca.year_from,
+        pca.year_to
+      FROM products p
+      JOIN product_car_applications pca ON pca.productId = p.id
+      JOIN car_models cm ON cm.id = pca.carModelId
+      WHERE p.shopId = ?
+        AND TRIM(cm.hang_xe) <> ''
+        AND TRIM(cm.ten_xe) <> ''
+        AND pca.year_from IS NOT NULL
+        AND pca.year_to IS NOT NULL
+        AND pca.year_from <> pca.year_to
+        ${visSql}
+    `,
+    [shopId],
+  );
+
+  return aggregateVehicleYearRanges(rows, { minProductCount });
 }

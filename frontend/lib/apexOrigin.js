@@ -53,6 +53,10 @@ export function apexUrl(pathOrUrl) {
 export function apexProductUrl(productOrId) {
   if (productOrId == null || productOrId === "") return APEX_ORIGIN + "/";
   if (typeof productOrId === "object") {
+    const cp = String(productOrId.canonicalPath ?? "").trim();
+    if (cp.startsWith("/")) {
+      return `${APEX_ORIGIN}${cp}`;
+    }
     const path = buildProductSeoUrl(productOrId);
     return path === "/" ? APEX_ORIGIN + "/" : `${APEX_ORIGIN}${path}`;
   }

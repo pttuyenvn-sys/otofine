@@ -183,6 +183,32 @@ export function buildDynamicListingSeoContent({
   };
 }
 
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Convert dynamic listing SEO sections → HTML for SeoArticleBlock.
+ */
+export function buildDynamicListingSeoArticleHtml(content = {}) {
+  const sections = Array.isArray(content?.sections) ? content.sections : [];
+  return sections
+    .map((section) => {
+      const heading = String(section?.heading || "").trim();
+      const body = String(section?.content || "").trim();
+      if (!heading && !body) return "";
+      const h = heading ? `<h2>${escapeHtml(heading)}</h2>` : "";
+      const p = body ? `<p>${escapeHtml(body)}</p>` : "";
+      return `${h}${p}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 export async function fetchPartKnowledgeHints({
   h1,
   selectedCategory,

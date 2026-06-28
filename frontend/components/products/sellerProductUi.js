@@ -1,5 +1,7 @@
 /** Shared display helpers for seller product dashboard (UI only). */
 
+import { toThumb100 } from "@/lib/imageVariants";
+
 export const FALLBACK_PRODUCT_IMG =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -9,7 +11,7 @@ export const FALLBACK_PRODUCT_IMG =
 export function pickProductThumb(product) {
   const arr = Array.isArray(product?.images) ? product.images : [];
   const first = arr.find((i) => i && i.url) || arr[0];
-  return first?.url || null;
+  return toThumb100(first?.url);
 }
 
 export function stripProductHtml(html) {

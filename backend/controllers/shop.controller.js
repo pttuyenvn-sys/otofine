@@ -188,6 +188,8 @@ export async function updateMyShop(req, res) {
 
     await Shop.update(shop.id, data);
     await syncProductListViewForShop(shop.id).catch(() => { });
+    const { queueSearchIndexSyncForShop } = await import("../services/search/searchIndexDispatcher.js");
+    queueSearchIndexSyncForShop(shop.id, { source: "shop.update", reason: "location" });
     // Bug-fix Phase A.1: invalidate the storefront cache so the new
     // value surfaces on `<slug>.otofine.com` immediately rather than
     // waiting up to 5 minutes for the existing TTL to lapse. Slug

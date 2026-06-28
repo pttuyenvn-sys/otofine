@@ -1,6 +1,7 @@
 "use client";
 
 import { useShopFilterParams } from "@/lib/shopsite/useShopFilterParams";
+import { shopSeoFilterRemovePatch } from "@/lib/shopseo/shopSeoFilterRemovePatch.js";
 
 /**
  * Empty / loading / active-chips presentation primitives for the
@@ -84,24 +85,55 @@ export function ShopProductsEmpty({ basePath = "" }) {
  *
  * `categoriesById` lets us resolve `category` slug → human name.
  */
-export function ShopActiveFilterChips({ basePath = "", categoriesBySlug = {} }) {
-  const { params, setParam, clearAll } = useShopFilterParams({ basePath });
+export function ShopActiveFilterChips({
+  basePath = "",
+  shopBasePath = "",
+  categories = null,
+  fitments = null,
+  shopSlug = "",
+  entity = null,
+  categoriesBySlug = {},
+}) {
+  const { params, readFilters, setParam, navigateSeoFilters, clearAll } = useShopFilterParams({
+    basePath,
+    shopBasePath,
+    categories,
+    fitments,
+    shopSlug,
+    entity,
+  });
+
+  const removeSeoDimension = (dimensionKey) => {
+    void navigateSeoFilters(shopSeoFilterRemovePatch(readFilters, dimensionKey));
+  };
 
   const chips = [];
-  if (params.category) {
-    const cat = categoriesBySlug[params.category];
+  if (readFilters.category) {
+    const cat = categoriesBySlug[readFilters.category];
     chips.push({
       key: "category",
-      label: cat ? cat.name : params.category,
-      onRemove: () => setParam("category", null),
+      label: cat ? cat.name : readFilters.category,
+      onRemove: () => removeSeoDimension("category"),
     });
   }
-  if (params.brand)
-    chips.push({ key: "brand", label: params.brand, onRemove: () => setParam("brand", null) });
-  if (params.model)
-    chips.push({ key: "model", label: params.model, onRemove: () => setParam("model", null) });
-  if (params.year)
-    chips.push({ key: "year", label: `Năm ${params.year}`, onRemove: () => setParam("year", null) });
+  if (readFilters.brand)
+    chips.push({
+      key: "brand",
+      label: readFilters.brand,
+      onRemove: () => removeSeoDimension("brand"),
+    });
+  if (readFilters.model)
+    chips.push({
+      key: "model",
+      label: readFilters.model,
+      onRemove: () => removeSeoDimension("model"),
+    });
+  if (readFilters.year)
+    chips.push({
+      key: "year",
+      label: `Năm ${readFilters.year}`,
+      onRemove: () => removeSeoDimension("year"),
+    });
   if (params.q)
     chips.push({ key: "q", label: `"${params.q}"`, onRemove: () => setParam("q", null) });
 

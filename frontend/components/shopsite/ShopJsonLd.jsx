@@ -4,8 +4,7 @@
  * AutoPartsStore / LocalBusiness / Organization @graph.
  *
  * Stays a server component — pure markup, no client state. Mounted
- * once at the layout level so all four storefront tabs share the
- * same identity block.
+ * Mounted per landing page so `url` / `@id` match page canonical.
  *
  * Safety:
  *   - JSON.stringify drops `undefined` keys so empty fields don't

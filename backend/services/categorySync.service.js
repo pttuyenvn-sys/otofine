@@ -979,6 +979,8 @@ export async function syncProductCategoryMap() {
             updated_at = CURRENT_TIMESTAMP
         `, [product.id, categoryId]);
         mappedCount++;
+        const { queueSearchIndexSync } = await import("./search/searchIndexDispatcher.js");
+        queueSearchIndexSync(product.id, { source: "categorySync", reason: "category" });
       }
     }
 

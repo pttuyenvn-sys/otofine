@@ -211,7 +211,7 @@ export async function getProductsColumnsResolved() {
     }
 
     function sitemapSelectList() {
-      return `${slugSqlExpr("p")} AS slug, ${orderExprQualified("p")} AS updatedAt`;
+      return `${idExpr("p")} AS id, ${nameSqlSelect("p")}, ${partNumberSqlSelect("p")}, ${slugSqlExpr("p")} AS slug, ${orderExprQualified("p")} AS updatedAt`;
     }
 
     function shopJoinOn(aliasP = "p", aliasShop = "s") {

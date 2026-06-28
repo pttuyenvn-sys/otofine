@@ -1,17 +1,14 @@
-import mysql from "mysql2";
 import { pool } from "../config/db.js";
 import { normalizeListingQuery } from "../utils/listingQueryNormalize.js";
 import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
+import {
+  buildKeywordRelevanceOrderSql,
+  foldVi,
+  normalizeSearchText,
+} from "../utils/keywordRelevanceRanking.js";
 
 export function normalizeText(str = "") {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return normalizeSearchText(str);
 }
 
 function sqlLowerTrim(expr) {
@@ -40,44 +37,50 @@ function sqlFoldVi(expr) {
   );
 }
 
-function foldVi(str = "") {
-  return String(str)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
 /**
  * @typedef {Awaited<ReturnType<typeof import("../utils/productsTableColumns.server.js").getProductsColumnsResolved>>} ProductsSchemaAdapter
  */
 
 /**
- * From-clause for home listing (pcm/pc + optional fitment + shop + address).
- * Omit fitment joins when WHERE does not reference pa/cm (category-only, keyword-only, etc.).
+ * From-clause for home listing (optional pcm/pc + optional fitment + shop + address).
+ * Omit fitment joins when WHERE does not reference pa/cm; omit category map when no category filter.
  * @param {ProductsSchemaAdapter} pc
- * @param {boolean} joinVehicleFitment
+ * @param {boolean | { joinCategoryMap?: boolean, joinVehicleFitment?: boolean }} [options]
+ *   Legacy: pass boolean as joinVehicleFitment with joinCategoryMap=true (category facet queries).
  */
-export function buildProductListingJoinSql(pc) {
+export function buildProductListingJoinSql(pc, options = {}) {
   const pid = pc.idExpr("p");
+  const opts =
+    typeof options === "boolean"
+      ? { joinCategoryMap: true, joinVehicleFitment: options }
+      : {
+          joinCategoryMap: Boolean(options.joinCategoryMap),
+          joinVehicleFitment: Boolean(options.joinVehicleFitment),
+        };
 
-  return `
-    FROM products p
-
+  const categoryJoinSql = opts.joinCategoryMap
+    ? `
     LEFT JOIN product_category_map pcm
       ON pcm.product_id = ${pid}
 
     LEFT JOIN product_categories pc
       ON pc.id = pcm.category_id
+`
+    : "";
 
+  const fitmentJoinSql = opts.joinVehicleFitment
+    ? `
     LEFT JOIN product_car_applications pa
       ON pa.productId = ${pid}
 
     LEFT JOIN car_models cm
       ON cm.id = pa.carModelId
+`
+    : "";
 
+  return `
+    FROM products p
+${categoryJoinSql}${fitmentJoinSql}
     JOIN shops s
       ON ${pc.shopJoinOn("p", "s")}
 
@@ -167,16 +170,35 @@ export function buildProductListFilters(pc, query) {
     params.push(String(model).trim().toLowerCase());
   }
 
-  if (year != null && Number.isFinite(Number(year))) {
-    const y = Number(year);
-    where += `
+  if (year != null) {
+    const yearStr = String(year).trim();
+    if (yearStr.includes("-")) {
+      const parts = yearStr.split("-").map((part) => Number(part.trim()));
+      const yearFrom = parts[0];
+      const yearTo = parts[1];
+      if (Number.isFinite(yearFrom) && Number.isFinite(yearTo)) {
+        const lo = Math.min(yearFrom, yearTo);
+        const hi = Math.max(yearFrom, yearTo);
+        where += `
       AND (
         (pa.year_from IS NULL OR pa.year_from <= ?)
         AND
         (pa.year_to IS NULL OR pa.year_to >= ?)
       )
     `;
-    params.push(y, y);
+        params.push(hi, lo);
+      }
+    } else if (Number.isFinite(Number(yearStr))) {
+      const y = Number(yearStr);
+      where += `
+      AND (
+        (pa.year_from IS NULL OR pa.year_from <= ?)
+        AND
+        (pa.year_to IS NULL OR pa.year_to >= ?)
+      )
+    `;
+      params.push(y, y);
+    }
   }
 
   let keywordOrder = "";
@@ -219,15 +241,18 @@ export function buildProductListFilters(pc, query) {
         params.push(like, like, like, like);
       });
 
-      const escKwLike = mysql.escape(`%${kw}%`);
-      keywordOrder = `
-          CASE
-            WHEN LOWER(${title}) LIKE ${escKwLike} THEN 1
-            WHEN LOWER(${sd}) LIKE ${escKwLike} THEN 2
-            WHEN LOWER(${de}) LIKE ${escKwLike} THEN 3
-            ELSE 9
-          END,
+      const relevanceCase = buildKeywordRelevanceOrderSql({
+        titleExpr: title,
+        partNumberExpr: pn,
+        shortDescExpr: sd,
+        descExpr: de,
+        query: kw,
+      });
+      if (relevanceCase) {
+        keywordOrder = `
+          ${relevanceCase},
         `;
+      }
     }
   }
 
@@ -259,7 +284,8 @@ export function buildListOrderBy({ keywordOrder, sort, freshnessExpr, pc }) {
             THEN 0 ELSE 1
           END,
           MOD(DAY(NOW()) + ${pid}, 7),
-          ${freshnessExpr} DESC`;
+          ${freshnessExpr} DESC,
+          ${pid} ASC`;
 
   const tail =
     s === "newest"
@@ -289,11 +315,31 @@ export async function selectProductListRows({
   limit,
   offset,
   sort = "popular",
+  joinCategoryMap = false,
   joinVehicleFitment = false,
 }) {
+  const needsGroupBy = joinCategoryMap || joinVehicleFitment;
   const freshnessExpr = pc.orderExprQualified("p");
   const orderSql = buildListOrderBy({ keywordOrder, sort, freshnessExpr, pc });
-  const fromSql = buildProductListingJoinSql(pc);
+  const fromSql = buildProductListingJoinSql(pc, { joinCategoryMap, joinVehicleFitment });
+  const shopCols = needsGroupBy
+    ? `MAX(s.name) AS shopName,
+          MAX(s.phone) AS phone,
+          MAX(a.tinh_tp) AS provinceName`
+    : `s.name AS shopName,
+          s.phone AS phone,
+          a.tinh_tp AS provinceName`;
+  const groupBySql = needsGroupBy
+    ? `
+        GROUP BY
+          ${pc.idExpr("p")}, ${pc.shopIdExpr("p")}, ${pc.partNumberExpr("p")}, ${pc.partNameExpr("p")},
+          ${pc.priceExpr("p")},
+          ${pc.shortDescriptionExpr("p")}, ${pc.descriptionExpr("p")},
+          ${pc.originExpr("p")},
+          ${pc.stockExpr("p")},
+          ${freshnessExpr}
+`
+    : "";
   const sql = `
         SELECT
           ${pc.idExpr("p")},
@@ -306,9 +352,7 @@ export async function selectProductListRows({
           ${pc.originSqlSelect("p")},
           ${pc.stockSqlSelect("p")},
           ${freshnessExpr} AS updatedAt,
-          MAX(s.name) AS shopName,
-          MAX(s.phone) AS phone,
-          MAX(a.tinh_tp) AS provinceName,
+          ${shopCols},
           (
             SELECT TRIM(BOTH ' ' FROM CONCAT_WS(' ',
               NULLIF(TRIM(cmx.hang_xe), ''),
@@ -336,15 +380,7 @@ export async function selectProductListRows({
         ${fromSql}
 
         ${where}
-
-        GROUP BY
-          ${pc.idExpr("p")}, ${pc.shopIdExpr("p")}, ${pc.partNumberExpr("p")}, ${pc.partNameExpr("p")},
-          ${pc.priceExpr("p")},
-          ${pc.shortDescriptionExpr("p")}, ${pc.descriptionExpr("p")},
-          ${pc.originExpr("p")},
-          ${pc.stockExpr("p")},
-          ${freshnessExpr}
-
+${groupBySql}
         ${orderSql}
 
         LIMIT ? OFFSET ?
@@ -353,7 +389,7 @@ export async function selectProductListRows({
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log(
       "[listing SQL] /products selectProductListRows",
-      JSON.stringify({ joinVehicleFitment }),
+      JSON.stringify({ joinCategoryMap, joinVehicleFitment, needsGroupBy }),
       sql.replace(/\s+/g, " ").trim(),
       execParams,
     );
@@ -365,9 +401,15 @@ export async function selectProductListRows({
 /**
  * @param {{ pc: ProductsSchemaAdapter, where: string, params: unknown[] }} args
  */
-export async function countProductList({ pc, where, params, joinVehicleFitment = false }) {
+export async function countProductList({
+  pc,
+  where,
+  params,
+  joinCategoryMap = false,
+  joinVehicleFitment = false,
+}) {
   const pid = pc.idExpr("p");
-  const fromSql = buildProductListingJoinSql(pc);
+  const fromSql = buildProductListingJoinSql(pc, { joinCategoryMap, joinVehicleFitment });
   const sql = `
       SELECT COUNT(DISTINCT ${pid}) total
       ${fromSql}
@@ -376,7 +418,7 @@ export async function countProductList({ pc, where, params, joinVehicleFitment =
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log(
       "[listing SQL] /products countProductList",
-      JSON.stringify({ joinVehicleFitment }),
+      JSON.stringify({ joinCategoryMap, joinVehicleFitment }),
       sql.replace(/\s+/g, " ").trim(),
       params,
     );

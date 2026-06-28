@@ -1,5 +1,6 @@
 import { absoluteUrl, getSiteUrl } from "@/lib/seo/siteUrl";
 import { normalizeRichHtml } from "./normalizeRichHtml";
+import { getShopIndexTier } from "./shopIndexGovernance";
 
 /**
  * Centralised storefront metadata builder used by every storefront
@@ -11,25 +12,22 @@ import { normalizeRichHtml } from "./normalizeRichHtml";
  *   - Canonical (computed by the caller, threaded through unchanged)
  *   - OpenGraph (Facebook / Zalo / Messenger preview)
  *   - Twitter card (X.com preview)
- *   - Robots (HARD-NOINDEX during Phase 5.5 — see notes below)
+ *   - Robots (ARCH-06.2E governance tiers; apex mirrors use noindex,follow)
  *
- * Index gating (Phase 5.5 rollout safety):
- *   Indexing only flips ON when BOTH of the following are true:
- *     1. `process.env.NEXT_PUBLIC_SHOPSITE_INDEX_ENABLED === "1"`
- *        (global feature flag — single env flip to start rollout)
- *     2. `shop.seoEligible === true`
- *        (per-shop quality gate computed on the backend)
- *   Until either condition is false, every storefront page emits
- *   `robots: { index: false, follow: false }`. This means:
- *     - the OG / Twitter / JSON-LD tags can ship today as cosmetic
- *       polish (social previews work fine while noindex stays)
- *     - go-live is a one-liner env change, with zero risk of low-
- *       quality shops getting indexed by mistake
+ * Index governance (`shopIndexGovernance.getShopIndexTier`):
+ *   INDEX — public + ≥20 products + logo/cover + description + phone +
+ *           province → `{ index: true, follow: true }`
+ *   CRAWL — public + ≥5 products, below index bar →
+ *           `{ index: false, follow: true }`
+ *   BLOCK — everything else → `{ index: false, follow: false }`
+ *
+ * Apex `/shops/<slug>` discovery mirrors always emit `{ index: false,
+ * follow: true }` regardless of tier (ARCH-06.2B).
  *
  * SSR-safe — the function is a pure projection of its `shop` and
  * `page` arguments; it does NOT touch `headers()` / `cookies()` / DB.
  */
-export function buildShopMetadata({ shop, page, canonical }) {
+export function buildShopMetadata({ shop, page, canonical, apexDiscoveryMirror = false }) {
   if (!shop) {
     return {
       title: "Shop không tồn tại — Otofine",
@@ -44,8 +42,11 @@ export function buildShopMetadata({ shop, page, canonical }) {
   const imageUrl = pickImage(safe);
   const canonicalUrl = canonical || absoluteUrl(`/shops/${safe.slug}`);
 
-  // Robots gate — see header comment.
-  const indexable = isIndexable(safe);
+  // Robots — ARCH-06.2E tier on subdomain; apex mirror stays noindex,follow.
+  const { robots: tierRobots } = getShopIndexTier(shop);
+  const robots = apexDiscoveryMirror
+    ? { index: false, follow: true }
+    : tierRobots;
 
   return {
     title,
@@ -53,9 +54,7 @@ export function buildShopMetadata({ shop, page, canonical }) {
     alternates: {
       canonical: canonicalUrl,
     },
-    robots: indexable
-      ? { index: true, follow: true }
-      : { index: false, follow: false },
+    robots,
     openGraph: {
       type: "website",
       siteName: "Otofine",
@@ -93,7 +92,6 @@ function projectShop(shop) {
     topBrands: Array.isArray(shop.trust?.topBrands)
       ? shop.trust.topBrands.map((b) => b?.brand).filter(Boolean)
       : [],
-    seoEligible: shop.seoEligible !== false,
   };
 }
 
@@ -161,9 +159,4 @@ function stripRich(html) {
 function clamp(s, n) {
   if (!s) return "";
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
-}
-
-function isIndexable(s) {
-  const envOn = (process.env.NEXT_PUBLIC_SHOPSITE_INDEX_ENABLED || "").trim() === "1";
-  return envOn && s.seoEligible;
 }

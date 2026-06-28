@@ -1,5 +1,9 @@
+import { resolveProductJsonLdUrl } from "@/lib/seo/resolveProductJsonLdUrl";
 import { absoluteUrl } from "@/lib/seo/siteUrl";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "@/lib/identity/buildProductIdentity";
 
 function strip(html = "") {
   return String(html || "")
@@ -14,21 +18,19 @@ function strip(html = "") {
  * and the legacy `/phu-tung/[slug]` (now redirect-only, but exported
  * here so any future route can reuse the same schema shape).
  *
- * Always emits the CANONICAL root-level URL via `buildProductSeoUrl`
- * so the schema.org Product / BreadcrumbList entities, the `og:url`,
- * and the Next.js `<link rel="canonical">` all line up to one URL.
- * Search engines receive zero conflicting signals about which URL
- * to index.
- *
- * Schema shape kept stable across the migration — only the URL field
- * changed, which is exactly what Google needs to update its index.
+ * Product/Offer/Breadcrumb URLs prefer backend `canonicalUrl` /
+ * `canonicalPath` from the detail API (ARCH-01H), with a local
+ * `buildProductSeoUrl` fallback for legacy payloads.
  */
 export default function ProductJsonLd({ data }) {
   const p = data?.product;
   if (!p) return null;
 
-  const name = strip(p.shortDescription || p.partName || "Sản phẩm");
-  const url = absoluteUrl(buildProductSeoUrl({ ...p, cars: data.cars }));
+  const identity =
+    data?.productIdentity ||
+    buildProductIdentity(p, pickPrimaryFitment(data?.cars || []));
+  const name = strip(identity.h1 || "Sản phẩm");
+  const url = resolveProductJsonLdUrl(data);
   const image =
     p.image ||
     (Array.isArray(data.images) && data.images[0]

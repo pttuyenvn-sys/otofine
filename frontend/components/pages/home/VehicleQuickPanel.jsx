@@ -6,27 +6,32 @@ import {
   pickModelLabel,
   pickYearLabel,
 } from "@/lib/vehicle/vehicleFilterApi";
+import { useVehicleQuickPanel } from "@/components/pages/home/hooks/useVehicleQuickPanel";
 
 const HOT_COUNT = 8;
 
 /**
- * Flow chọn nhanh 3 bước — hãng → dòng → năm.
- * Data: brands / draftModels / draftYears giống thứ tự API (top theo total).
+ * Vehicle quick-select panel — state lives in useVehicleQuickPanel.
+ * Home passes brand/model/year as listing source of truth.
  */
-export default function VehicleQuickPanel({
-  quickStep,
-  quickDraft,
-  onPickBrand,
-  onPickModel,
-  onPickYear,
-  onBreadcrumbToStep,
-  brands,
-  draftModels,
-  draftYears,
-  modelsLoading,
-  yearsLoading,
-  onReset,
-}) {
+export default function VehicleQuickPanel(props) {
+  const panel = useVehicleQuickPanel(props);
+
+  const {
+    quickStep,
+    quickDraft,
+    draftModels,
+    draftYears,
+    draftModelsLoading,
+    draftYearsLoading,
+    brands,
+    onPickBrand,
+    onPickModel,
+    onPickYear,
+    onBreadcrumbToStep,
+    onReset,
+  } = panel;
+
   const brandLabel = (quickDraft.brand || "").trim();
   const modelLabel = (quickDraft.model || "").trim();
   const yearLabel = quickDraft.year != null ? String(quickDraft.year).trim() : "";
@@ -34,20 +39,6 @@ export default function VehicleQuickPanel({
 
   return (
     <div className="vehicle-quick-root">
-      {/* Chỉ nút Chọn nâng cao — tiêu đề đã có ở car-header / mobile-head */}
-      {/* <div className="vehicle-quick-advanced-row">
-        <button
-          type="button"
-          className="vehicle-quick-advanced-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdvanced();
-          }}
-        >
-          Chọn nâng cao
-        </button>
-      </div> */}
-
       {(quickStep >= 2 || brandLabel) && (
         <div className="vehicle-breadcrumb-chips" aria-live="polite">
           {brandLabel ? (
@@ -127,7 +118,7 @@ export default function VehicleQuickPanel({
           <VehiclePickList
             ariaLabel="Danh sách dòng xe"
             variant="model"
-            loading={modelsLoading}
+            loading={draftModelsLoading}
             emptyHint={brandLabel ? "Không có dòng xe cho hãng này." : "Chọn hãng trước."}
             items={draftModels
               .map((item, index) => {
@@ -148,7 +139,7 @@ export default function VehicleQuickPanel({
           <VehiclePickList
             ariaLabel="Danh sách năm sản xuất"
             variant="year"
-            loading={yearsLoading}
+            loading={draftYearsLoading}
             emptyHint={
               brandLabel && modelLabel
                 ? "Không có năm cho dòng này."
@@ -168,6 +159,19 @@ export default function VehicleQuickPanel({
               .filter((item) => item.label)}
           />
         )}
+      </div>
+
+      <div className="vehicle-quick-actions choose-wrap">
+        <button
+          type="button"
+          className="clear-filter-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReset();
+          }}
+        >
+          Xóa
+        </button>
       </div>
     </div>
   );

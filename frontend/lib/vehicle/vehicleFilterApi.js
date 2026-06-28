@@ -1,10 +1,13 @@
 import { API_BASE } from "@/lib/config";
 import { fetchJsonCached } from "@/lib/clientJsonCache";
 
-/** Same TTLs as Home.jsx vehicle panel — shared in-memory cache via fetchJsonCached. */
-export const VEHICLE_BRANDS_TTL_MS = 300_000;
-export const VEHICLE_MODELS_TTL_MS = 120_000;
-export const VEHICLE_YEARS_TTL_MS = 120_000;
+/** Reference filter APIs — shared in-memory cache via fetchJsonCached. */
+export const REFERENCE_FILTER_CACHE_TTL_MS = 30 * 60 * 1000;
+export const VEHICLE_BRANDS_TTL_MS = REFERENCE_FILTER_CACHE_TTL_MS;
+export const VEHICLE_MODELS_TTL_MS = REFERENCE_FILTER_CACHE_TTL_MS;
+export const VEHICLE_YEARS_TTL_MS = REFERENCE_FILTER_CACHE_TTL_MS;
+export const VEHICLE_SPECS_TTL_MS = REFERENCE_FILTER_CACHE_TTL_MS;
+export const VEHICLE_HOT_TTL_MS = REFERENCE_FILTER_CACHE_TTL_MS;
 
 export function getApiList(payload) {
   if (Array.isArray(payload)) return payload;
@@ -77,6 +80,14 @@ export function filterYearsUrl(brand, model) {
   return `${API_BASE}/filter/years?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}`;
 }
 
+export function filterSpecsUrl(brand, model) {
+  return `${API_BASE}/filter/specs?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}`;
+}
+
+export function filterVehicleHotUrl() {
+  return `${API_BASE}/filter/vehicle-hot`;
+}
+
 export async function fetchFilterBrands() {
   const data = await fetchJsonCached(filterBrandsUrl(), {
     ttlMs: VEHICLE_BRANDS_TTL_MS,
@@ -101,6 +112,29 @@ export async function fetchFilterYears(brand, model) {
     ttlMs: VEHICLE_YEARS_TTL_MS,
   });
   return getApiList(data);
+}
+
+export async function fetchFilterSpecs(brand, model) {
+  const b = String(brand || "").trim();
+  const m = String(model || "").trim();
+  if (!b || !m) {
+    return {
+      engine: [],
+      gearbox: [],
+      drivetrain: [],
+      bodyType: [],
+      cc: [],
+    };
+  }
+  return fetchJsonCached(filterSpecsUrl(b, m), {
+    ttlMs: VEHICLE_SPECS_TTL_MS,
+  });
+}
+
+export async function fetchFilterVehicleHot() {
+  return fetchJsonCached(filterVehicleHotUrl(), {
+    ttlMs: VEHICLE_HOT_TTL_MS,
+  });
 }
 
 /**

@@ -56,7 +56,8 @@ function faqHasContent(faq) {
   return false;
 }
 
-function buildVehicleLabel({ brand, model, year, vehicleLabel } = {}) {
+function buildVehicleLabel(ctx) {
+  const { brand, model, year, vehicleLabel } = ctx || {};
   const label = [brand, model, year].filter(Boolean).join(" ").trim();
   return label || String(vehicleLabel ?? "").trim();
 }

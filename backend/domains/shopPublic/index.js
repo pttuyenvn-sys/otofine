@@ -40,6 +40,13 @@ export {
   handleGetShopFitments,
 } from "./controllers/shopPublic.controller.js";
 
+export { handleGetShopLifecycle } from "./controllers/shopLifecycle.controller.js";
+
+export {
+  getPublicShopLifecycle,
+  resolveShopLifecycleFromRow,
+} from "./services/shopLifecycle.service.js";
+
 /** Phase 7.1 — public shop directory + related shops. */
 export {
   handleListShops,
@@ -77,6 +84,7 @@ export {
   TTL_MS,
   invalidateShop,
   shopExistenceCache,
+  shopLifecycleCache,
   publicApiResponseCache,
   allCacheStats,
 } from "./cache/caches.js";

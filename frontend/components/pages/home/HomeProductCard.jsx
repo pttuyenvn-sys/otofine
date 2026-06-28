@@ -3,13 +3,13 @@
 import React, {
   useMemo,
   useCallback,
-  useEffect,
-  useState,
   memo,
 } from "react";
 import { FiPhoneCall } from "react-icons/fi";
 import Link from "next/link";
 import { getProductDetailHref } from "@/lib/productDetailHref";
+import { toThumb400 } from "@/lib/imageVariants";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
 import { ProductCardImage } from "./HomeImages";
 
 function areEqual(prev, next) {
@@ -19,13 +19,15 @@ function areEqual(prev, next) {
   return (
     a.id === b.id &&
     a.slug === b.slug &&
+    a.displayTitle === b.displayTitle &&
     a.shortDescription === b.shortDescription &&
     a.priceText === b.priceText &&
     a.partNumber === b.partNumber &&
+    a.canonicalPath === b.canonicalPath &&
     a.subtitleLine1 === b.subtitleLine1 &&
     a.subtitleLine2 === b.subtitleLine2 &&
     JSON.stringify(a.cardHighlights || []) ===
-      JSON.stringify(b.cardHighlights || []) &&
+    JSON.stringify(b.cardHighlights || []) &&
     a.summary === b.summary &&
     a.image === b.image &&
     a.phone === b.phone &&
@@ -46,26 +48,19 @@ function getCardHighlights(item) {
   return lines.slice(0, 3);
 }
 
+function stripLocationFromHighlightLine(line) {
+  if (!line) return "";
+  return line
+    .split(" • ")
+    .map((part) => part.trim())
+    .filter((part) => part && !part.startsWith("📍"))
+    .join(" • ");
+}
+
 function HomeProductCardComponent({ item, index, onSelectPhone }) {
-  const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-      const checkMobile = () => {
-        setIsMobile(window.innerWidth <= 768);
-      };
-
-      checkMobile();
-
-      window.addEventListener("resize", checkMobile);
-
-      return () => {
-        window.removeEventListener("resize", checkMobile);
-      };
-    }, []);
-  
   const href = useMemo(
     () => getProductDetailHref(item),
-    [item.slug, item.id],
+    [item.slug, item.id, item.canonicalPath],
   );
 
   const onPhone = useCallback(
@@ -93,18 +88,20 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
               </span>
             </div>
             <ProductCardImage
-              src={item.image}
-              alt={item.shortDescription || "Phụ tùng ô tô"}
-              sizes="(max-width: 640px) 100vw, 200px"
+              src={toThumb400(item.image)}
+              alt={buildProductImageAlt(item)}
+              sizes="(max-width: 768px) 130px, 132px"
               priority={index < 2}
             />
           </div>
           <div className="of-product__body of-product__body--row">
             <h3 id={`of-p-title-${item.id}`} className="of-product__title">
-              {item.shortDescription}
+              {item.displayTitle || "Sản phẩm"}
             </h3>
             {(() => {
-              const rows = getCardHighlights(item);
+              const rows = getCardHighlights(item)
+                .map((line) => stripLocationFromHighlightLine(line))
+                .filter(Boolean);
               if (rows.length === 0) return null;
               return (
                 <div
@@ -134,30 +131,35 @@ function HomeProductCardComponent({ item, index, onSelectPhone }) {
           <p className="of-product__price" aria-label={`Giá ${item.priceText}`}>
             {item.priceText}
           </p>
-          {isMobile && (
-            <>
-              <div className="of-product__meta">
-                {item.partNumber && (
-                  <span className="of-product__code">{item.partNumber}</span>
-                )}
-                {item.origin && (
-                  <span className="of-product__origin">{item.origin}</span>
-                )}
-              </div>
+          <>
+            <div className="of-product__meta">
+              {item.partNumber && (
+                <span className="of-product__code">{item.partNumber}</span>
+              )}
+              {item.origin && (
+                <span className="of-product__origin">{item.origin}</span>
+              )}
+            </div>
 
-              <div className="of-product__meta of-product__meta--l3">
-                {item.shopName && (
-                  <span className="of-product__shop">{item.shopName}</span>
-                )}
+            <div className="of-product__meta of-product__meta--l3">
+              {item.shopName && (
+                <span className="of-product__shop">{item.shopName}</span>
+              )}
 
-                {item.provinceName && (
-                  <span className="of-product__location">{item.provinceName}</span>
-                )}
+              {item.provinceName && (
+                <span className="of-product__location">{item.provinceName}</span>
+              )}
 
-                <span className="of-product__stock">Còn hàng</span>
-              </div>
-            </>
+              <span className="of-product__stock">Còn hàng</span>
+            </div>
+          </>
+
+          {item.provinceName && (
+            <div className="of-product__location of-product__location--side" aria-label={`Vị trí ${item.provinceName}`}>
+              {item.provinceName}
+            </div>
           )}
+
           <div className="of-product__side-cta">
             <button
               type="button"

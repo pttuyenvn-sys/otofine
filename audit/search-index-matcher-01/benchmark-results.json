@@ -1,0 +1,263 @@
+{
+  "searchIndexVersion": 4,
+  "tokenColumnsPresent": true,
+  "likeFallbackRate": 0,
+  "queries": [
+    {
+      "label": "bugi toyota",
+      "legacy": {
+        "label": "bugi toyota",
+        "provider": "structured+fulltext",
+        "latencyMs": 287.01,
+        "productCount": 20,
+        "documentsScanned": 0,
+        "usedLike": false
+      },
+      "hybrid": {
+        "label": "bugi toyota",
+        "provider": "fulltext-index",
+        "latencyMs": 20.74,
+        "productCount": 29,
+        "documentsScanned": 29,
+        "usedLike": false,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "bugi toyota",
+        "provider": "matcher-index",
+        "latencyMs": 6716.49,
+        "productCount": 29,
+        "documentsScanned": 41,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 41,
+          "uniqueProducts": 29,
+          "queryTokens": [
+            "bugi"
+          ],
+          "expandedCount": 1
+        }
+      }
+    },
+    {
+      "label": "má phanh vios",
+      "legacy": {
+        "label": "má phanh vios",
+        "provider": "structured+fulltext",
+        "latencyMs": 285.89,
+        "productCount": 20,
+        "documentsScanned": 0,
+        "usedLike": false
+      },
+      "hybrid": {
+        "label": "má phanh vios",
+        "provider": "fulltext-index",
+        "latencyMs": 38.17,
+        "productCount": 22,
+        "documentsScanned": 22,
+        "usedLike": false,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "má phanh vios",
+        "provider": "matcher-index",
+        "latencyMs": 1768.36,
+        "productCount": 22,
+        "documentsScanned": 22,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 22,
+          "uniqueProducts": 22,
+          "queryTokens": [
+            "ma",
+            "phanh"
+          ],
+          "expandedCount": 4
+        }
+      }
+    },
+    {
+      "label": "lọc dầu mazda",
+      "legacy": {
+        "label": "lọc dầu mazda",
+        "provider": "like-fallback",
+        "latencyMs": 978.99,
+        "productCount": 6,
+        "documentsScanned": 0,
+        "usedLike": true
+      },
+      "hybrid": {
+        "label": "lọc dầu mazda",
+        "provider": "fulltext-index",
+        "latencyMs": 10.49,
+        "productCount": 12,
+        "documentsScanned": 12,
+        "usedLike": false,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "lọc dầu mazda",
+        "provider": "matcher-index",
+        "latencyMs": 2411.35,
+        "productCount": 12,
+        "documentsScanned": 21,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 21,
+          "uniqueProducts": 12,
+          "queryTokens": [
+            "loc",
+            "dau"
+          ],
+          "expandedCount": 3
+        }
+      }
+    },
+    {
+      "label": "đèn hậu kia",
+      "legacy": {
+        "label": "đèn hậu kia",
+        "provider": "like-fallback",
+        "latencyMs": 1747.81,
+        "productCount": 20,
+        "documentsScanned": 0,
+        "usedLike": true
+      },
+      "hybrid": {
+        "label": "đèn hậu kia",
+        "provider": "fulltext-index",
+        "latencyMs": 7.36,
+        "productCount": 26,
+        "documentsScanned": 26,
+        "usedLike": false,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "đèn hậu kia",
+        "provider": "matcher-index",
+        "latencyMs": 3517.87,
+        "productCount": 50,
+        "documentsScanned": 56,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 56,
+          "uniqueProducts": 50,
+          "queryTokens": [
+            "den",
+            "hau"
+          ],
+          "expandedCount": 3
+        }
+      }
+    },
+    {
+      "label": "04465-0D140",
+      "legacy": {
+        "label": "04465-0D140",
+        "provider": "like-fallback",
+        "latencyMs": 1036.79,
+        "productCount": 0,
+        "documentsScanned": 0,
+        "usedLike": true
+      },
+      "hybrid": {
+        "label": "04465-0D140",
+        "provider": "exact-index",
+        "latencyMs": 1.2,
+        "productCount": 0,
+        "documentsScanned": 0,
+        "usedLike": false,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "04465-0D140",
+        "provider": "exact-index",
+        "latencyMs": 10697.11,
+        "productCount": 0,
+        "documentsScanned": 0,
+        "usedLike": false,
+        "matcherMeta": null
+      }
+    },
+    {
+      "label": "bố thắng",
+      "legacy": {
+        "label": "bố thắng",
+        "provider": "like-fallback",
+        "latencyMs": 2611.97,
+        "productCount": 20,
+        "documentsScanned": 0,
+        "usedLike": true
+      },
+      "hybrid": {
+        "label": "bố thắng",
+        "provider": "like-fallback-index",
+        "latencyMs": 25.09,
+        "productCount": 323,
+        "documentsScanned": 323,
+        "usedLike": true,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "bố thắng",
+        "provider": "matcher-index",
+        "latencyMs": 10035.8,
+        "productCount": 270,
+        "documentsScanned": 307,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 307,
+          "uniqueProducts": 270,
+          "queryTokens": [
+            "bo",
+            "thang"
+          ],
+          "expandedCount": 3
+        }
+      }
+    },
+    {
+      "label": "brake pad",
+      "legacy": {
+        "label": "brake pad",
+        "provider": "like-fallback",
+        "latencyMs": 1720.12,
+        "productCount": 0,
+        "documentsScanned": 0,
+        "usedLike": true
+      },
+      "hybrid": {
+        "label": "brake pad",
+        "provider": "like-fallback-index",
+        "latencyMs": 13.83,
+        "productCount": 254,
+        "documentsScanned": 254,
+        "usedLike": true,
+        "matcherMeta": null
+      },
+      "matcher": {
+        "label": "brake pad",
+        "provider": "matcher-index",
+        "latencyMs": 10104.09,
+        "productCount": 63,
+        "documentsScanned": 79,
+        "usedLike": false,
+        "matcherMeta": {
+          "stage": "token",
+          "documentsScanned": 79,
+          "uniqueProducts": 63,
+          "queryTokens": [
+            "brake",
+            "pad"
+          ],
+          "expandedCount": 3
+        }
+      }
+    }
+  ]
+}

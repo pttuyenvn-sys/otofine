@@ -264,3 +264,22 @@ export async function getProductModerationEvents(productId) {
 export async function getShopRisk(params = {}) {
   return adminApi.get("/admin/platform/shop-risk", { params });
 }
+
+/**
+ * Image coverage report (public products, gallery rows).
+ * GET /api/admin/seo/image-coverage
+ */
+export async function getImageCoverageReport(params = {}) {
+  return adminApi.get("/admin/seo/image-coverage", { params });
+}
+
+export async function getShopImageCoverageProducts(shopId, params = {}) {
+  return adminApi.get(`/admin/seo/image-coverage/shops/${shopId}/products`, { params });
+}
+
+export async function exportImageCoverageCsv(params = {}) {
+  return adminApi.get("/admin/seo/image-coverage/export", {
+    params,
+    responseType: "blob",
+  });
+}

@@ -12,15 +12,24 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { API_BASE, API_ORIGIN } from "@/lib/config";
 import {
-  buildProductSeoUrl,
   extractProductIdFromSeoSlug,
 } from "@/lib/seo/productSeoUrl";
+import { getProductDetailHref } from "@/lib/productDetailHref";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "@/lib/identity/buildProductIdentity";
+import { buildFitmentListingLinks } from "@/lib/seo/buildFitmentListingLinks";
+import { buildProductCategoryLinks } from "@/lib/seo/buildProductCategoryLinks";
 import {
   RECENT_VIEWED_KEY,
   pushRecentlyViewed,
   readRecentlyViewed,
   excludeCurrent,
 } from "@/lib/shopsite/recentlyViewed";
+import { toThumb400 } from "@/lib/imageVariants";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
 import "./ProductDetail.css";
 
@@ -76,7 +85,7 @@ const digitsOnly = (s) => String(s ?? "").replace(/\D/g, "");
  */
 function openQuickRfqWithProduct(product, cars) {
   if (typeof window === "undefined") return;
-  const title = (product?.shortDescription || product?.partName || "")
+  const title = (product?.partName || "")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
@@ -120,16 +129,9 @@ function openQuickRfqWithProduct(product, cars) {
 }
 
 function productHref(slug, id, item) {
-  // Root-level canonical: `/<slug>-<id>`. With the full item shape
-  // (related-product card, recent-viewed entry) we delegate to the
-  // canonical builder so the URL we emit matches what the apex
-  // `[slug]/page.js` canonical-enforce branch would compute — no
-  // redirect on click. With only an id available we hand off to the
-  // short `/p/<id>` redirect namespace which 308s to canonical in
-  // a single hop.
   if (item && typeof item === "object") {
-    const url = buildProductSeoUrl(item);
-    if (url && url !== "/") return url;
+    const href = getProductDetailHref(item);
+    if (href && href !== "/") return href;
   }
   if (id != null && id !== "") return `/p/${id}`;
   return "/";
@@ -394,9 +396,13 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
         setMainImage(first);
         setActiveIdx(0);
 
-        const title =
-          stripHtml(res.product?.shortDescription || res.product?.partName) ||
-          "Sản phẩm";
+        const identity =
+          res.productIdentity ||
+          buildProductIdentity(
+            res.product,
+            pickPrimaryFitment(res.cars || []),
+          );
+        const title = identity.h1 || "Sản phẩm";
         document.title = `${title} | Otofine`;
 
         try {
@@ -470,6 +476,15 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
   const product = data?.product || {};
   const shop = data?.shop || {};
   const cars = data?.cars || [];
+  const categories = data?.categories || [];
+  const fitmentLinks = useMemo(
+    () => buildFitmentListingLinks(cars),
+    [cars],
+  );
+  const categoryLinks = useMemo(
+    () => buildProductCategoryLinks(categories),
+    [categories],
+  );
   const relatedList = useMemo(() => {
     const fromApi =
       relatedOverride != null && relatedOverride.length
@@ -482,6 +497,8 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
   const zaloHref = useMemo(() => buildZaloUrl(shop), [shop]);
   const telHref = `tel:${digitsOnly(shop.phone)}`;
   const shopAvatarUrl = normalizeShopAvatar(shop.avatar);
+  const isArchivedPdp =
+    data?.pdpArchiveState === "archived" || Boolean(shop.sellerUnavailable);
 
   const pickImage = useCallback(
     (url, idx) => {
@@ -567,12 +584,30 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
     );
   }
 
-  const titleText =
-    stripHtml(product.shortDescription || product.partName) || "Sản phẩm";
+  const productIdentity =
+    data.productIdentity ||
+    buildProductIdentity(product, pickPrimaryFitment(cars || []));
+  const titleText = productIdentity.h1 || "Sản phẩm";
+  const productImageAlt = buildProductImageAlt({
+    ...product,
+    cars,
+    productIdentity,
+  });
+  const mainImageDim = productImageDimensionProps({
+    src: mainImage,
+    layout: "pdp-main",
+  });
+  const cardImageDim = productImageDimensionProps({ layout: "thumb400" });
 
   return (
     <div className="detail-page">
       <div className="detail-wrap">
+        {isArchivedPdp ? (
+          <div className="detail-archive-banner" role="status">
+            Sản phẩm này không còn được cửa hàng gốc bán trực tiếp. Thông tin
+            được lưu trữ trên Otofine để tham khảo.
+          </div>
+        ) : null}
         <p className="detail-back-pretitle">
           <button
             type="button"
@@ -602,10 +637,11 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                 <div className="main-img">
                   <img
                     src={mainImage || "/no-image.png"}
-                    alt={titleText}
+                    alt={productImageAlt}
                     loading="eager"
                     decoding="async"
                     fetchPriority="high"
+                    {...mainImageDim}
                     onError={(e) => {
                       e.target.src = "/no-image.png";
                     }}
@@ -628,9 +664,10 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                   >
                     <img
                       src={url}
-                      alt=""
+                      alt={productImageAlt}
                       loading="lazy"
                       decoding="async"
+                      {...productImageDimensionProps({ src: url, layout: "pdp-thumb" })}
                       onError={(e) => {
                         e.currentTarget.style.opacity = "0.3";
                       }}
@@ -686,45 +723,49 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
 
             <div className="cta-desktop">
               <div className="cta-row">
-                <a className="cta-btn cta-btn--call" href={telHref}>
-                  <span className="cta-ico" aria-hidden>
-                    📞
-                  </span>
-                  Gọi ngay
-                </a>
-                <a
-                  className="cta-btn cta-btn--zalo"
-                  href={zaloHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="cta-ico" aria-hidden>
-                    💬
-                  </span>
-                  Zalo
-                </a>
-                {/* Conversion engine — "Hỏi nhanh" RFQ. Opens the
-                    storefront Quick-RFQ modal pre-filled with the
-                    current product + fitment. The modal lives at the
-                    layout level and listens for this CustomEvent so
-                    we don't re-mount it per detail page. */}
-                <button
-                  type="button"
-                  className="cta-btn cta-btn--ghost"
-                  onClick={() => openQuickRfqWithProduct(product, cars)}
-                >
-                  <span className="cta-ico" aria-hidden>
-                    📦
-                  </span>
-                  Hỏi nhanh
-                </button>
-                <button
-                  type="button"
-                  className="cta-btn cta-btn--ghost"
-                  onClick={() => setContactOpen(true)}
-                >
-                  Liên hệ
-                </button>
+                {!isArchivedPdp ? (
+                  <>
+                    <a className="cta-btn cta-btn--call" href={telHref}>
+                      <span className="cta-ico" aria-hidden>
+                        📞
+                      </span>
+                      Gọi ngay
+                    </a>
+                    <a
+                      className="cta-btn cta-btn--zalo"
+                      href={zaloHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="cta-ico" aria-hidden>
+                        💬
+                      </span>
+                      Zalo
+                    </a>
+                    <button
+                      type="button"
+                      className="cta-btn cta-btn--ghost"
+                      onClick={() => openQuickRfqWithProduct(product, cars)}
+                    >
+                      <span className="cta-ico" aria-hidden>
+                        📦
+                      </span>
+                      Hỏi nhanh
+                    </button>
+                    <button
+                      type="button"
+                      className="cta-btn cta-btn--ghost"
+                      onClick={() => setContactOpen(true)}
+                    >
+                      Liên hệ
+                    </button>
+                  </>
+                ) : (
+                  <p className="detail-archive-seller-note">
+                    Cửa hàng gốc hiện không khả dụng. Vui lòng tìm sản phẩm
+                    tương tự trên Otofine.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -745,25 +786,37 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                 <div className="seller-head-text">
                   <h3>{shop.name || "Cửa hàng"}</h3>
                   <div className="seller-trust">
-                    <span className="trust-pill">Đã xác minh Otofine</span>
-                    <span className="trust-pill trust-pill--soft">
-                      Phản hồi nhanh
-                    </span>
+                    {isArchivedPdp ? (
+                      <span className="trust-pill trust-pill--archive">
+                        Cửa hàng không khả dụng
+                      </span>
+                    ) : (
+                      <>
+                        <span className="trust-pill">Đã xác minh Otofine</span>
+                        <span className="trust-pill trust-pill--soft">
+                          Phản hồi nhanh
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-              <p className="seller-address">
-                {[shop.addressDetail, shop.phuong_xa, shop.tinh_tp]
-                  .filter(Boolean)
-                  .join(", ") || "—"}
-              </p>
-              {shop.phone ? (
-                <p className="seller-phone-line">
-                  Hotline:{" "}
-                  <a className="seller-phone-link" href={telHref}>
-                    {shop.phone}
-                  </a>
-                </p>
+              {!isArchivedPdp ? (
+                <>
+                  <p className="seller-address">
+                    {[shop.addressDetail, shop.phuong_xa, shop.tinh_tp]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
+                  </p>
+                  {shop.phone ? (
+                    <p className="seller-phone-line">
+                      Hotline:{" "}
+                      <a className="seller-phone-link" href={telHref}>
+                        {shop.phone}
+                      </a>
+                    </p>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </div>
@@ -771,17 +824,40 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
 
         <section className="section section--cars">
           <h2 className="section-title">Xe tương thích</h2>
-          {cars.length === 0 ? (
+          {fitmentLinks.length === 0 ? (
             <p className="section-muted">Đang cập nhật danh sách xe phù hợp.</p>
           ) : (
             <ul className="car-chip-list">
-              {cars.map((x, i) => (
-                <li key={`${x.hang_xe}-${x.ten_xe}-${i}`} className="car-chip">
-                  <span className="car-chip-brand">{x.hang_xe}</span>
-                  <span className="car-chip-model">{x.ten_xe}</span>
-                  <span className="car-chip-year">
-                    {x.year_from}–{x.year_to}
-                  </span>
+              {fitmentLinks.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="car-chip car-chip-link"
+                    prefetch={false}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="section section--categories">
+          <h2 className="section-title">Danh mục phụ tùng</h2>
+          {categoryLinks.length === 0 ? (
+            <p className="section-muted">Đang cập nhật danh mục phụ tùng.</p>
+          ) : (
+            <ul className="car-chip-list">
+              {categoryLinks.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="car-chip car-chip-link"
+                    prefetch={false}
+                  >
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -807,15 +883,16 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
-                      src={r.image || "/no-image.png"}
-                      alt=""
+                      src={toThumb400(r.image) || r.image || "/no-image.png"}
+                      alt={buildProductImageAlt(r)}
                       loading="lazy"
                       decoding="async"
+                      {...cardImageDim}
                     />
                   </div>
                   <div className="pd-mini-card__body">
                     <div className="pd-mini-card__title">
-                      {stripHtml(r.shortDescription || r.partName)}
+                      {stripHtml(r.displayTitle || r.productIdentity?.h1 || "")}
                     </div>
                     <div className="pd-mini-card__meta">
                       <div className="pd-mini-card__pn">{r.partNumber}</div>
@@ -849,10 +926,11 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
                   className="pd-mini-card" prefetch={false}>
                   <div className="pd-mini-card__img">
                     <img
-                      src={r.image || "/no-image.png"}
-                      alt=""
+                      src={toThumb400(r.image) || r.image || "/no-image.png"}
+                      alt={buildProductImageAlt(r)}
                       loading="lazy"
                       decoding="async"
+                      {...cardImageDim}
                     />
                   </div>
                   <div className="pd-mini-card__body">
@@ -1001,51 +1079,48 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
             >
               <img
                 src={imageList[lightboxIdx] || mainImage}
-                alt=""
+                alt={productImageAlt}
                 className="lightbox-img"
+                {...mainImageDim}
               />
             </div>
           </div>
         )}
 
         <nav className="detail-mobile-cta" aria-label="Thao tác nhanh">
-          <a className="m-cta m-cta--call" href={telHref}>
-            <span className="m-cta-ico">📞</span>
-            Gọi ngay
-          </a>
-          <a
-            className="m-cta m-cta--zalo"
-            href={zaloHref}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="m-cta-ico">💬</span>
-            Zalo
-          </a>
-          {/* Conversion engine — "Hỏi nhanh" replaces the legacy
-              "Liên hệ" modal opener on mobile. The Quick RFQ flow is
-              a friction-free way to start a conversation that lands
-              in the seller's inbox immediately, vs. the old contact
-              form modal which only surfaced contact info. */}
-          <button
-            type="button"
-            className="m-cta m-cta--contact"
-            onClick={() => openQuickRfqWithProduct(product, cars)}
-            aria-label="Hỏi nhanh về sản phẩm này"
-          >
-            <span className="m-cta-ico">📦</span>
-            Hỏi nhanh
-          </button>
+          {!isArchivedPdp ? (
+            <>
+              <a className="m-cta m-cta--call" href={telHref}>
+                <span className="m-cta-ico">📞</span>
+                Gọi ngay
+              </a>
+              <a
+                className="m-cta m-cta--zalo"
+                href={zaloHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="m-cta-ico">💬</span>
+                Zalo
+              </a>
+              <button
+                type="button"
+                className="m-cta m-cta--contact"
+                onClick={() => openQuickRfqWithProduct(product, cars)}
+                aria-label="Hỏi nhanh về sản phẩm này"
+              >
+                <span className="m-cta-ico">📦</span>
+                Hỏi nhanh
+              </button>
+            </>
+          ) : (
+            <p className="detail-archive-seller-note detail-archive-seller-note--mobile">
+              Cửa hàng gốc hiện không khả dụng.
+            </p>
+          )}
         </nav>
 
-        {/* Mount the Quick-RFQ modal (modal-only, no floating
-            button) so the apex `/<slug>-<id>` detail page can open
-            the same in-place RFQ flow the shopsite product cards
-            use. Without this mount, the "Hỏi nhanh" CTA falls
-            back to a full-page `/rfq/new` navigation, which is a
-            slower experience. The shopsite layout still mounts its
-            own launcher with the floating button visible. */}
-        {shop?.slug && (
+        {shop?.slug && !isArchivedPdp ? (
           <ShopQuickRfqLauncher
             hideButton
             shop={{
@@ -1054,7 +1129,7 @@ export default function ProductDetail({ productId: productIdProp } = {}) {
               name: shop.name || "",
             }}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -1,0 +1,75 @@
+{
+  "audit_id": "SEARCH-END-TO-END-LATENCY-AUDIT-01",
+  "generated_at": "2026-06-22T00:00:00.000Z",
+  "production_measurements": {
+    "captured_at": "2026-06-22",
+    "tool": "curl -w time_starttransfer / time_total",
+    "host": "https://otofine.com/api/search/suggest",
+    "samples": [
+      {
+        "query": "bugi + brand=Toyota",
+        "ttfb_s": 0.528,
+        "total_s": 0.528,
+        "approx_body_bytes": 6000
+      },
+      {
+        "query": "má phanh + brand=Toyota + model=Vios",
+        "ttfb_s": 0.402,
+        "total_s": 0.402,
+        "approx_body_bytes": 10306
+      },
+      {
+        "query": "lọc dầu + brand=Mazda",
+        "ttfb_s": 2.085,
+        "total_s": 2.085,
+        "approx_body_bytes": 3058
+      },
+      {
+        "query": "đèn hậu + brand=Kia",
+        "ttfb_s": 4.537,
+        "total_s": 4.538,
+        "approx_body_bytes": 101233
+      },
+      {
+        "query": "bố thắng (no brand)",
+        "ttfb_s": 4.0,
+        "total_s": 4.0,
+        "approx_body_bytes": 11866
+      }
+    ],
+    "connect_overhead": {
+      "dns_s": "~0.034",
+      "tls_s": "~0.12–0.16",
+      "note": "TTFB − connect ≈ server processing time"
+    }
+  },
+  "requests_per_user_query": {
+    "typical_fast_typing": 1,
+    "typical_slow_typing": "1 per debounced pause (≥300ms) after min length; aborted requests do not update UI",
+    "on_search_commit": "+1 GET /products when keyword URL param updates (separate from suggest popup path)",
+    "swr": false,
+    "websocket": false
+  },
+  "duplicate_requests": {
+    "same_query_retype": "Cache hit avoids redundant UI loading state; inflight dedup prevents parallel identical fetches",
+    "canary_validation_runs": "Shadow canary doubles backend work internally when SEARCH_CANARY=1 — not enabled in production .env",
+    "observed_canary_log_duplicates": "Validation script logged each fixture twice (pairs in canary-metrics jsonl) — not production user traffic"
+  },
+  "cancelled_requests": {
+    "mechanism": "AbortController.abort() on new keystroke before debounce fires next fetch",
+    "client_behavior": "Aborted fetch returns null; no setState",
+    "server_behavior": "Backend may still complete aborted request (no request cancellation on server)"
+  },
+  "ignored_late_responses": {
+    "mechanism": "monotonic requestId compared in .then/.finally",
+    "scenario": "User types 'đè' → request A; continues to 'đèn hậu' → abort A, request B; A response ignored if it somehow completed without abort"
+  },
+  "json_receive_to_render": {
+    "measured_ms": null,
+    "estimated_ms": "3–15",
+    "bottleneck": "Backend TTFB dominates; JSON parse + React commit is not user-visible delay source"
+  },
+  "payload_size_correlation": {
+    "observation": "Slowest queries return largest JSON (đèn hậu Kia 101KB); download adds ~15ms after TTFB on audit network"
+  }
+}

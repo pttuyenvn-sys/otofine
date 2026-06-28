@@ -6,9 +6,16 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "smoke": "node tests/smoke/smoke-tests.js",
+    "playwright:smoke": "node tests/playwright/run-smoke.js",
+    "test:unit": "node tests/unit/run.js && node tests/unit/seo-run.js && node tests/unit/derived-run.js && node tests/unit/request-run.js && node tests/unit/hooks-run.js && node --experimental-loader ./tests/unit/alias-loader.mjs ./tests/unit/seo-cbmy-year-regression-run.mjs && node --experimental-loader ./tests/unit/alias-loader.mjs ./tests/unit/category-route-recovery-run.mjs && node --experimental-loader ./tests/unit/alias-loader.mjs ./tests/unit/seo-content-render-gate-run.mjs && node --experimental-loader ./tests/unit/alias-loader.mjs ./tests/unit/seo-page-shim-run.mjs"
+  },
+  "scripts_meta": {
+    "routing_test": "node tests/routing-invariants/http-invariants.js && node tests/routing-invariants/parseUrlState.test.js && node tests/routing-invariants/productSlug.test.js"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.9",
     "@tiptap/extension-image": "^3.23.6",
     "@tiptap/extension-link": "^3.23.6",
     "@tiptap/extension-placeholder": "^3.23.6",

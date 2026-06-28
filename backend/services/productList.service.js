@@ -4,13 +4,48 @@ import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
 import { getProductsColumnsResolved } from "../utils/productsTableColumns.server.js";
 import {
   cleanHttpQueryValue,
-  listingQueryNeedsVehicleFitmentJoin,
   normalizeListingQuery,
 } from "../utils/listingQueryNormalize.js";
+import { createHash } from "node:crypto";
 import { getOrSetCache } from "./listCache.service.js";
 import { buildPublicProductWhereClause } from "../modules/products/services/productPublicVisibility.server.js";
+import { pool } from "../config/db.js";
+import {
+  attachCanonicalFieldsFromMap,
+  loadPrimaryFitmentCarsByProductIds,
+} from "../modules/products/services/canonicalPath.server.js";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../../frontend/lib/identity/buildProductIdentity.js";
 
 const FACET_TTL = 5 * 60 * 1000;
+const LISTING_CACHE_TTL_MS = 60 * 1000;
+
+/**
+ * Stable cache key from normalized listing query (page, sort, facets).
+ * @param {Record<string, unknown>} rawQuery
+ */
+export function buildListingCacheKey(rawQuery = {}) {
+  const q = normalizeListingQuery(rawQuery);
+  const canonical = {
+    brand: q.brand ? String(q.brand).trim().toLowerCase() : "",
+    category: q.category ? String(q.category).trim().toLowerCase() : "",
+    city: q.city ? String(q.city).trim().toLowerCase() : "",
+    cityId: q.cityId != null ? String(q.cityId) : "",
+    keyword: q.keyword ? String(q.keyword).trim().toLowerCase() : "",
+    location: q.location ? String(q.location).trim().toLowerCase() : "",
+    model: q.model ? String(q.model).trim().toLowerCase() : "",
+    page: q.page != null ? String(q.page) : "1",
+    sort: q.sort ? String(q.sort).trim().toLowerCase() : "popular",
+    year: q.year != null ? String(q.year) : "",
+  };
+  const hash = createHash("sha256")
+    .update(JSON.stringify(canonical))
+    .digest("hex")
+    .slice(0, 16);
+  return `listing:${hash}`;
+}
 
 function mapImageUrl(url) {
   if (!url) return null;
@@ -18,7 +53,18 @@ function mapImageUrl(url) {
   return `${process.env.R2_PUBLIC_URL}/${decodeURIComponent(url).replace(/^\/+/, "")}`;
 }
 
+function buildListingImageUrl(url) {
+  return url;
+}
+
 export async function getProductList(query) {
+  const cacheKey = buildListingCacheKey(query);
+  return getOrSetCache(cacheKey, LISTING_CACHE_TTL_MS, () =>
+    loadProductListUncached(query),
+  );
+}
+
+async function loadProductListUncached(query) {
   const { page = 1, sort: sortRaw } = query;
   const sort =
     sortRaw && String(sortRaw).toLowerCase() === "newest"
@@ -35,9 +81,10 @@ export async function getProductList(query) {
   const pc = await getProductsColumnsResolved();
   const q = normalizeListingQuery(query);
 
+  const joinCategoryMap = Boolean(q.category);
   const joinVehicleFitment =
-    q.brand ||
-    q.model ||
+    Boolean(q.brand) ||
+    Boolean(q.model) ||
     (q.year != null && Number.isFinite(Number(q.year)));
   const { where: baseWhere, params, keywordOrder } =
     productListRepo.buildProductListFilters(pc, query);
@@ -46,6 +93,7 @@ export async function getProductList(query) {
 
   if (process.env.LOG_LISTING_SQL === "1") {
     console.log("[listing SQL] /api/products facets", {
+      joinCategoryMap,
       joinVehicleFitment,
       normalized: normalizeListingQuery(query),
     });
@@ -60,12 +108,14 @@ export async function getProductList(query) {
       limit,
       offset,
       sort,
+      joinCategoryMap,
       joinVehicleFitment,
     }),
     productListRepo.countProductList({
       pc,
       where,
       params,
+      joinCategoryMap,
       joinVehicleFitment,
     }),
   ]);
@@ -82,10 +132,22 @@ export async function getProductList(query) {
     }
   });
 
+  const fitmentMap = await loadPrimaryFitmentCarsByProductIds(pool, ids);
+
   const data = rows.map((x) => {
     const shortDescription = stripHtml(x.shortDescription);
+    const primaryFitment = pickPrimaryFitment(fitmentMap.get(Number(x.id)) || []);
+    const identity = buildProductIdentity(
+      {
+        id: x.id,
+        partName: x.partName,
+        partNumber: x.partNumber,
+      },
+      primaryFitment,
+    );
+    const displayTitle = identity.h1;
     const sub = buildProductCardHighlights({
-      productTitle: shortDescription,
+      productTitle: displayTitle,
       partNumber: x.partNumber,
       partName: x.partName,
       origin: x.origin,
@@ -95,16 +157,22 @@ export async function getProductList(query) {
       stock: x.stock,
       updatedAt: x.updatedAt,
     });
-    return {
-      ...x,
-      shortDescription,
-      priceText: formatVND(x.price),
-      summary: sub.summary,
-      cardHighlights: sub.cardHighlights,
-      subtitleLine1: sub.subtitleLine1,
-      subtitleLine2: sub.subtitleLine2,
-      image: imageMap[x.id] ? mapImageUrl(imageMap[x.id]) : null,
-    };
+    return attachCanonicalFieldsFromMap(
+      {
+        ...x,
+        shortDescription,
+        displayTitle,
+        priceText: formatVND(x.price),
+        summary: sub.summary,
+        cardHighlights: sub.cardHighlights,
+        subtitleLine1: sub.subtitleLine1,
+        subtitleLine2: sub.subtitleLine2,
+        image: imageMap[x.id]
+          ? buildListingImageUrl(mapImageUrl(imageMap[x.id]))
+          : null,
+      },
+      fitmentMap,
+    );
   });
 
   return {

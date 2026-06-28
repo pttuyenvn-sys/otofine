@@ -1,0 +1,113 @@
+{
+  "date": "2026-06-27",
+  "samples": 26,
+  "avg_top10_parity_pct": 67.69,
+  "avg_top20_parity_pct": 77.69,
+  "avg_recall_pct": 88.51,
+  "mismatch_count": 16,
+  "missing_products": 16,
+  "wrong_urls": 4,
+  "wrong_popup": 12,
+  "top_queries": [
+    {
+      "query": "bugi Toyota",
+      "count": 4
+    },
+    {
+      "query": "má phanh Toyota Vios",
+      "count": 4
+    },
+    {
+      "query": "lọc dầu Mazda",
+      "count": 4
+    },
+    {
+      "query": "đèn hậu Kia",
+      "count": 4
+    },
+    {
+      "query": "04465-0D140",
+      "count": 4
+    },
+    {
+      "query": "bố thắng",
+      "count": 4
+    },
+    {
+      "query": "brake pad",
+      "count": 2
+    }
+  ],
+  "worst_queries": [
+    {
+      "query": "bugi Toyota",
+      "top10_overlap": 30,
+      "top20_overlap": 75,
+      "candidate_recall": 100,
+      "mismatch_reason": "missing_in_inverted_top10:5279; extra_in_inverted_top10:4552; top10_ranking_order; popup_products:Bugi Toyota Altis"
+    },
+    {
+      "query": "bugi Toyota",
+      "top10_overlap": 30,
+      "top20_overlap": 75,
+      "candidate_recall": 100,
+      "mismatch_reason": "missing_in_inverted_top10:5279; extra_in_inverted_top10:4552; top10_ranking_order; popup_products:Bugi Toyota Altis"
+    },
+    {
+      "query": "đèn hậu Kia",
+      "top10_overlap": 30,
+      "top20_overlap": 80,
+      "candidate_recall": 28,
+      "mismatch_reason": "missing_in_inverted_top10:799; extra_in_inverted_top10:788; top10_ranking_order; popup_products:Đèn Hậu Ngoài Phải Kia Cerato; category_group_count:863|107"
+    },
+    {
+      "query": "đèn hậu Kia",
+      "top10_overlap": 30,
+      "top20_overlap": 80,
+      "candidate_recall": 28,
+      "mismatch_reason": "missing_in_inverted_top10:799; extra_in_inverted_top10:788; top10_ranking_order; popup_products:Đèn Hậu Ngoài Phải Kia Cerato; category_group_count:863|107"
+    },
+    {
+      "query": "bugi Toyota",
+      "top10_overlap": 30,
+      "top20_overlap": 75,
+      "candidate_recall": 100,
+      "mismatch_reason": "missing_in_inverted_top10:5279; extra_in_inverted_top10:4552; top10_ranking_order; popup_products:Bugi Toyota Altis"
+    },
+    {
+      "query": "bugi Toyota",
+      "top10_overlap": 30,
+      "top20_overlap": 75,
+      "candidate_recall": 100,
+      "mismatch_reason": "missing_in_inverted_top10:5279; extra_in_inverted_top10:4552; top10_ranking_order; popup_products:Bugi Toyota Altis"
+    },
+    {
+      "query": "đèn hậu Kia",
+      "top10_overlap": 30,
+      "top20_overlap": 80,
+      "candidate_recall": 28,
+      "mismatch_reason": "missing_in_inverted_top10:799; extra_in_inverted_top10:788; top10_ranking_order; popup_products:Đèn Hậu Ngoài Phải Kia Cerato; category_group_count:863|107"
+    },
+    {
+      "query": "đèn hậu Kia",
+      "top10_overlap": 30,
+      "top20_overlap": 80,
+      "candidate_recall": 28,
+      "mismatch_reason": "missing_in_inverted_top10:799; extra_in_inverted_top10:788; top10_ranking_order; popup_products:Đèn Hậu Ngoài Phải Kia Cerato; category_group_count:863|107"
+    },
+    {
+      "query": "bố thắng",
+      "top10_overlap": 60,
+      "top20_overlap": 45,
+      "candidate_recall": 97.3,
+      "mismatch_reason": "missing_in_inverted_top10:2997; extra_in_inverted_top10:389; top10_ranking_order; category_group_count:20|68"
+    },
+    {
+      "query": "bố thắng",
+      "top10_overlap": 60,
+      "top20_overlap": 45,
+      "candidate_recall": 97.3,
+      "mismatch_reason": "missing_in_inverted_top10:2997; extra_in_inverted_top10:389; top10_ranking_order; category_group_count:20|68"
+    }
+  ]
+}

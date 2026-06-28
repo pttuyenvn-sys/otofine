@@ -1,0 +1,2 @@
+-- SEARCH-INDEX-MATCHER-01 — precomputed token columns for index matcher
+-- Applied idempotently via ensureSearchIndexSchema.js

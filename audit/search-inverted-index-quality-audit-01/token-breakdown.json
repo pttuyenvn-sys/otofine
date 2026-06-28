@@ -1,0 +1,230 @@
+{
+  "by_type": {
+    "WORD": {
+      "count": 13908,
+      "pct": 43.89
+    },
+    "PHRASE": {
+      "count": 790,
+      "pct": 2.49
+    },
+    "OEM": {
+      "count": 50,
+      "pct": 0.16
+    },
+    "CATEGORY": {
+      "count": 100,
+      "pct": 0.32
+    },
+    "BRAND": {
+      "count": 50,
+      "pct": 0.16
+    },
+    "MODEL": {
+      "count": 67,
+      "pct": 0.21
+    },
+    "YEAR": {
+      "count": 62,
+      "pct": 0.2
+    },
+    "LOCATION": {
+      "count": 50,
+      "pct": 0.16
+    },
+    "SYNONYM": {
+      "count": 16614,
+      "pct": 52.42
+    },
+    "UNKNOWN": {
+      "count": 0,
+      "pct": 0
+    }
+  },
+  "by_source": [
+    {
+      "source": "synonym_tokens",
+      "token_type": "SYNONYM",
+      "cnt": 16614,
+      "avg_weight": "20.0000"
+    },
+    {
+      "source": "search_tokens",
+      "token_type": "WORD",
+      "cnt": 12840,
+      "avg_weight": "30.0000"
+    },
+    {
+      "source": "title",
+      "token_type": "PHRASE",
+      "cnt": 711,
+      "avg_weight": "80.0000"
+    },
+    {
+      "source": "search_keywords",
+      "token_type": "WORD",
+      "cnt": 579,
+      "avg_weight": "30.0000"
+    },
+    {
+      "source": "title",
+      "token_type": "WORD",
+      "cnt": 335,
+      "avg_weight": "80.0000"
+    },
+    {
+      "source": "location",
+      "token_type": "WORD",
+      "cnt": 150,
+      "avg_weight": "30.0000"
+    },
+    {
+      "source": "category",
+      "token_type": "CATEGORY",
+      "cnt": 100,
+      "avg_weight": "60.0000"
+    },
+    {
+      "source": "vehicle",
+      "token_type": "PHRASE",
+      "cnt": 79,
+      "avg_weight": "30.0000"
+    },
+    {
+      "source": "model",
+      "token_type": "MODEL",
+      "cnt": 67,
+      "avg_weight": "40.0000"
+    },
+    {
+      "source": "year",
+      "token_type": "YEAR",
+      "cnt": 62,
+      "avg_weight": "10.0000"
+    },
+    {
+      "source": "part_number",
+      "token_type": "OEM",
+      "cnt": 50,
+      "avg_weight": "100.0000"
+    },
+    {
+      "source": "brand",
+      "token_type": "BRAND",
+      "cnt": 50,
+      "avg_weight": "40.0000"
+    },
+    {
+      "source": "location",
+      "token_type": "LOCATION",
+      "cnt": 50,
+      "avg_weight": "10.0000"
+    },
+    {
+      "source": "vehicle",
+      "token_type": "WORD",
+      "cnt": 4,
+      "avg_weight": "30.0000"
+    }
+  ],
+  "token_source_catalog": [
+    {
+      "source": "synonym_tokens",
+      "token_type": "SYNONYM",
+      "count": 16614,
+      "avg_weight": 20,
+      "why_generated": "replay synonym padded column as SYNONYM"
+    },
+    {
+      "source": "search_tokens",
+      "token_type": "WORD",
+      "count": 12840,
+      "avg_weight": 30,
+      "why_generated": "replay precomputed padded column"
+    },
+    {
+      "source": "title",
+      "token_type": "PHRASE",
+      "count": 711,
+      "avg_weight": 80,
+      "why_generated": "addTextTokens → WORD+PHRASE n-grams from product title"
+    },
+    {
+      "source": "search_keywords",
+      "token_type": "WORD",
+      "count": 579,
+      "avg_weight": 30,
+      "why_generated": "meta keywords as WORD only"
+    },
+    {
+      "source": "title",
+      "token_type": "WORD",
+      "count": 335,
+      "avg_weight": 80,
+      "why_generated": "addTextTokens → WORD+PHRASE n-grams from product title"
+    },
+    {
+      "source": "location",
+      "token_type": "WORD",
+      "count": 150,
+      "avg_weight": 30,
+      "why_generated": "location_name as LOCATION + WORD"
+    },
+    {
+      "source": "category",
+      "token_type": "CATEGORY",
+      "count": 100,
+      "avg_weight": 60,
+      "why_generated": "category_name and category_slug as CATEGORY"
+    },
+    {
+      "source": "vehicle",
+      "token_type": "PHRASE",
+      "count": 79,
+      "avg_weight": 30,
+      "why_generated": "vehicle_label WORD+PHRASE n-grams"
+    },
+    {
+      "source": "model",
+      "token_type": "MODEL",
+      "count": 67,
+      "avg_weight": 40,
+      "why_generated": "model_name, model_slug, primary_model_name"
+    },
+    {
+      "source": "year",
+      "token_type": "YEAR",
+      "count": 62,
+      "avg_weight": 10,
+      "why_generated": "year_from/to and primary_year fields as YEAR"
+    },
+    {
+      "source": "part_number",
+      "token_type": "OEM",
+      "count": 50,
+      "avg_weight": 100,
+      "why_generated": "OEM raw + normalizePartNumber variants"
+    },
+    {
+      "source": "brand",
+      "token_type": "BRAND",
+      "count": 50,
+      "avg_weight": 40,
+      "why_generated": "brand_name, brand_slug, primary_brand_name"
+    },
+    {
+      "source": "location",
+      "token_type": "LOCATION",
+      "count": 50,
+      "avg_weight": 10,
+      "why_generated": "location_name as LOCATION + WORD"
+    },
+    {
+      "source": "vehicle",
+      "token_type": "WORD",
+      "count": 4,
+      "avg_weight": 30,
+      "why_generated": "vehicle_label WORD+PHRASE n-grams"
+    }
+  ]
+}

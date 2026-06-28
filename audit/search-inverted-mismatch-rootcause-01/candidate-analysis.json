@@ -1,0 +1,356 @@
+[
+  {
+    "query": "bugi toyota",
+    "legacy_top100_count": 29,
+    "inverted_candidate_count": 29,
+    "candidate_recall_pct": 100,
+    "missing_from_candidates_count": 0,
+    "missing_from_candidates_sample": [],
+    "missing_details": [],
+    "top10_overlap_pct": 30,
+    "top20_overlap_pct": 75
+  },
+  {
+    "query": "má phanh vios",
+    "legacy_top100_count": 20,
+    "inverted_candidate_count": 500,
+    "candidate_recall_pct": 100,
+    "missing_from_candidates_count": 0,
+    "missing_from_candidates_sample": [],
+    "missing_details": [],
+    "top10_overlap_pct": 70,
+    "top20_overlap_pct": 55
+  },
+  {
+    "query": "lọc dầu mazda",
+    "legacy_top100_count": 6,
+    "inverted_candidate_count": 205,
+    "candidate_recall_pct": 100,
+    "missing_from_candidates_count": 0,
+    "missing_from_candidates_sample": [],
+    "missing_details": [],
+    "top10_overlap_pct": 100,
+    "top20_overlap_pct": 100
+  },
+  {
+    "query": "đèn hậu kia",
+    "legacy_top100_count": 100,
+    "inverted_candidate_count": 299,
+    "candidate_recall_pct": 28,
+    "missing_from_candidates_count": 72,
+    "missing_from_candidates_sample": [
+      113,
+      120,
+      127,
+      134,
+      141,
+      148,
+      155,
+      162,
+      169,
+      176,
+      183,
+      190,
+      197,
+      204,
+      211,
+      218,
+      225,
+      232,
+      239,
+      246
+    ],
+    "missing_details": [
+      {
+        "product_id": 113,
+        "title": "Bạc biên Kia Morning 2011-2020",
+        "brand": "Kia",
+        "category": "Bạc Biên",
+        "product_token_count": 37,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 120,
+        "title": "Bàn ép Kia Sonet",
+        "brand": "Kia",
+        "category": "Bàn Ép",
+        "product_token_count": 39,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 127,
+        "title": "Bảng điều khiển điều hòa Kia Rondo 2018",
+        "brand": "Kia",
+        "category": "Bảng Điều Khiển Điều Hòa",
+        "product_token_count": 48,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 134,
+        "title": "Bát bèo giảm xóc trước Kia Sorento 2009-2012",
+        "brand": "Kia",
+        "category": "Bát Bèo Giảm Xóc Trước",
+        "product_token_count": 49,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 141,
+        "title": "Bầu hơi trợ lực phanh Kia Cerato",
+        "brand": "Kia",
+        "category": "Bầu Hơi Trợ Lực Phanh",
+        "product_token_count": 49,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 148,
+        "title": "Bi bát bèo trước Kia Cerato 2019",
+        "brand": "Kia",
+        "category": "Bi Bát Bèo Trước",
+        "product_token_count": 55,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 155,
+        "title": "Bi moay ơ trước Kia Cerato 2017",
+        "brand": "Kia",
+        "category": "Bi Moay Ơ Trước",
+        "product_token_count": 49,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 162,
+        "title": "Bi tê Kia Carens 2011-2013",
+        "brand": "Kia",
+        "category": "Bi Tê",
+        "product_token_count": 55,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 169,
+        "title": "Bi tì dây curoa Kia Forte 2013",
+        "brand": "Kia",
+        "category": "Bi Tì Dây Curoa",
+        "product_token_count": 53,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 176,
+        "title": "Bình nước phụ Kia Rio 2012",
+        "brand": "Kia",
+        "category": "Bình Nước Phụ",
+        "product_token_count": 50,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 183,
+        "title": "Bình xăng Kia K3 2012-2018",
+        "brand": "Kia",
+        "category": "Bình Xăng",
+        "product_token_count": 60,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 190,
+        "title": "Bộ dây điện cản trước Kia Cerato 2018-2021",
+        "brand": "Kia",
+        "category": "Bộ Dây Điện Cản Trước",
+        "product_token_count": 60,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 197,
+        "title": "Bộ gioăng phớt đại tu Kia Forte 2009",
+        "brand": "Kia",
+        "category": "Bộ Gioăng Phớt Đại Tu",
+        "product_token_count": 50,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 204,
+        "title": "Bơm cao áp Kia Rondo 2016",
+        "brand": "Kia",
+        "category": "Bơm Cao Áp",
+        "product_token_count": 45,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      },
+      {
+        "product_id": 211,
+        "title": "Bơm nước Kia Carens 2006-2013",
+        "brand": "Kia",
+        "category": "Bơm Nước",
+        "product_token_count": 45,
+        "matched_query_tokens": [
+          "kia"
+        ],
+        "missing_query_tokens": [
+          "den",
+          "hau",
+          "den hau"
+        ],
+        "root_cause": "min_matched_tokens_threshold"
+      }
+    ],
+    "top10_overlap_pct": 30,
+    "top20_overlap_pct": 80
+  },
+  {
+    "query": "04465-0D140",
+    "legacy_top100_count": 0,
+    "inverted_candidate_count": 0,
+    "candidate_recall_pct": 100,
+    "missing_from_candidates_count": 0,
+    "missing_from_candidates_sample": [],
+    "missing_details": [],
+    "top10_overlap_pct": 100,
+    "top20_overlap_pct": 100
+  },
+  {
+    "query": "bố thắng",
+    "legacy_top100_count": 37,
+    "inverted_candidate_count": 322,
+    "candidate_recall_pct": 97.3,
+    "missing_from_candidates_count": 1,
+    "missing_from_candidates_sample": [
+      7485
+    ],
+    "missing_details": [
+      {
+        "product_id": 7485,
+        "title": "Thước Lái Hyundai SantaFe 2009-2012",
+        "brand": "Hyundai",
+        "category": null,
+        "product_token_count": 53,
+        "matched_query_tokens": [],
+        "missing_query_tokens": [
+          "thang"
+        ],
+        "root_cause": "query_tokens_not_indexed_on_product"
+      }
+    ],
+    "top10_overlap_pct": 60,
+    "top20_overlap_pct": 45
+  },
+  {
+    "query": "brake pad",
+    "legacy_top100_count": 0,
+    "inverted_candidate_count": 63,
+    "candidate_recall_pct": 100,
+    "missing_from_candidates_count": 0,
+    "missing_from_candidates_sample": [],
+    "missing_details": [],
+    "top10_overlap_pct": 100,
+    "top20_overlap_pct": 100
+  }
+]

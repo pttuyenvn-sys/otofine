@@ -1,0 +1,283 @@
+{
+  "before": {
+    "sqlQueriesPerRequest": "11–17",
+    "coldMs": "900–2050",
+    "warmHttpP50": "905–1001",
+    "architecture": "Dual GROUP BY + 3× getProductList (12+ SQL)"
+  },
+  "after": {
+    "sqlQueriesCold": 5,
+    "sqlQueriesWarm": 2,
+    "coldMs": 1902,
+    "warmMs": 1847,
+    "http": {
+      "avg": 1820.74,
+      "p50": 1822.95,
+      "p95": 1961.04,
+      "max": 1987.83,
+      "min": 1645.14
+    },
+    "architecture": "Single matched CTE + 1 batch preview SQL"
+  },
+  "indexes": [
+    {
+      "table": "car_models",
+      "name": "hang_xe",
+      "columns": "hang_xe,ten_xe",
+      "unique": true
+    },
+    {
+      "table": "car_models",
+      "name": "hang_xe_2",
+      "columns": "hang_xe,ten_xe",
+      "unique": true
+    },
+    {
+      "table": "car_models",
+      "name": "idx_car_model",
+      "columns": "hang_xe,ten_xe",
+      "unique": false
+    },
+    {
+      "table": "car_models",
+      "name": "idx_car_model_lower",
+      "columns": null,
+      "unique": false
+    },
+    {
+      "table": "car_models",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "car_models",
+      "name": "uk_car",
+      "columns": "hang_xe,ten_xe",
+      "unique": true
+    },
+    {
+      "table": "product_car_applications",
+      "name": "fk_pca_car",
+      "columns": "carModelId",
+      "unique": false
+    },
+    {
+      "table": "product_car_applications",
+      "name": "fk_pca_product",
+      "columns": "productId",
+      "unique": false
+    },
+    {
+      "table": "product_car_applications",
+      "name": "idx_pa_year",
+      "columns": "year_from,year_to",
+      "unique": false
+    },
+    {
+      "table": "product_car_applications",
+      "name": "idx_pca_product_primary",
+      "columns": "productId,is_primary",
+      "unique": false
+    },
+    {
+      "table": "product_car_applications",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "product_categories",
+      "name": "category_key",
+      "columns": "category_key",
+      "unique": true
+    },
+    {
+      "table": "product_categories",
+      "name": "category_slug",
+      "columns": "category_slug",
+      "unique": true
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_active",
+      "columns": "is_active",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_canonical_slug",
+      "columns": "canonical_slug",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_menu",
+      "columns": "is_menu,approved,product_count",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_menu_order",
+      "columns": "menu_order,product_count",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_search",
+      "columns": "is_searchable,approved,search_priority",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "idx_slug",
+      "columns": "category_slug",
+      "unique": false
+    },
+    {
+      "table": "product_categories",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "product_categories",
+      "name": "unique_slug",
+      "columns": "category_slug",
+      "unique": true
+    },
+    {
+      "table": "product_category_map",
+      "name": "idx_category",
+      "columns": "category_id",
+      "unique": false
+    },
+    {
+      "table": "product_category_map",
+      "name": "idx_primary",
+      "columns": "category_id,is_primary",
+      "unique": false
+    },
+    {
+      "table": "product_category_map",
+      "name": "idx_product",
+      "columns": "product_id",
+      "unique": false
+    },
+    {
+      "table": "product_category_map",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "product_category_map",
+      "name": "uk_product_category",
+      "columns": "product_id,category_id",
+      "unique": true
+    },
+    {
+      "table": "product_images",
+      "name": "fk_product_images_product",
+      "columns": "productId",
+      "unique": false
+    },
+    {
+      "table": "product_images",
+      "name": "idx_product_images_partNumber",
+      "columns": "partNumber",
+      "unique": false
+    },
+    {
+      "table": "product_images",
+      "name": "idx_product_images_shop",
+      "columns": "shopId",
+      "unique": false
+    },
+    {
+      "table": "product_images",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "product_images",
+      "name": "uniq_img",
+      "columns": "shopId,partNumber,url",
+      "unique": true
+    },
+    {
+      "table": "products",
+      "name": "fk_products_shop",
+      "columns": "shopId",
+      "unique": false
+    },
+    {
+      "table": "products",
+      "name": "idx_part_knowledge_id",
+      "columns": "part_knowledge_id",
+      "unique": false
+    },
+    {
+      "table": "products",
+      "name": "idx_products_moderation_status",
+      "columns": "moderation_status",
+      "unique": false
+    },
+    {
+      "table": "products",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "products",
+      "name": "unique_part_shop",
+      "columns": "shopId,partNumber",
+      "unique": true
+    },
+    {
+      "table": "shops",
+      "name": "idx_shops_last_seen",
+      "columns": "last_seen_at",
+      "unique": false
+    },
+    {
+      "table": "shops",
+      "name": "idx_shops_slug",
+      "columns": "slug",
+      "unique": true
+    },
+    {
+      "table": "shops",
+      "name": "idx_shops_slug_status",
+      "columns": "slug,public_status",
+      "unique": false
+    },
+    {
+      "table": "shops",
+      "name": "PRIMARY",
+      "columns": "id",
+      "unique": true
+    },
+    {
+      "table": "shops",
+      "name": "userId",
+      "columns": "accountId",
+      "unique": true
+    },
+    {
+      "table": "shops",
+      "name": "userId_2",
+      "columns": "accountId",
+      "unique": true
+    },
+    {
+      "table": "shops",
+      "name": "userId_3",
+      "columns": "accountId",
+      "unique": true
+    }
+  ],
+  "generatedAt": "2026-06-26T07:33:29.863Z"
+}

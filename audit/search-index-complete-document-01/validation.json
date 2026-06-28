@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-06-27T02:14:44.532Z",
+  "searchIndexVersion": 2,
+  "schemaApplyMs": 137197,
+  "rebuild": {
+    "products": 7385,
+    "documents": 8602,
+    "total": 7385,
+    "durationMs": 109616
+  },
+  "sampleSize": 150,
+  "parityPass": 150,
+  "parityPassPct": 100,
+  "indexRowsSampled": 171,
+  "popupFieldMissingCounts": {
+    "title": 0,
+    "canonical_url": 0,
+    "thumbnail_url": 8,
+    "vehicle_label": 0,
+    "price": 0,
+    "shop_name": 0,
+    "location_name": 1,
+    "part_number": 0,
+    "stock_status": 0
+  },
+  "popupFieldFillPct": {
+    "title": 100,
+    "canonical_url": 100,
+    "thumbnail_url": 95.3,
+    "vehicle_label": 100,
+    "price": 100,
+    "shop_name": 100,
+    "location_name": 99.4,
+    "part_number": 100,
+    "stock_status": 100
+  },
+  "syncLatencyMs": {
+    "samples": 150,
+    "avg": 13.04,
+    "p50": 12.56,
+    "p95": 19.8
+  },
+  "documentSize": {
+    "activeDocuments": 8602,
+    "activeProducts": 7385,
+    "avgPayloadChars": 6499,
+    "avgDocBytes": 6592,
+    "staleVersionRows": 0
+  },
+  "joinReductionEstimate": {
+    "currentPopupSqlJoins": [
+      "products",
+      "shops",
+      "address",
+      "product_category_map",
+      "product_categories",
+      "product_car_applications",
+      "car_models",
+      "product_images"
+    ],
+    "futurePopupFromIndexJoins": [],
+    "joinsEliminatedPerPreviewProduct": 8,
+    "note": "Runtime not switched; estimate for future index-only popup hydration"
+  },
+  "popupQueryReductionEstimate": {
+    "currentQueriesPerSuggest": "2+ heavy products scans (grouped CTE + preview batch)",
+    "futureQueriesPerSuggest": "1 index grouped scan + 0 hydration JOINs if document complete",
+    "estimatedQueryReductionPct": 50
+  },
+  "failures": []
+}

@@ -5,6 +5,7 @@ import {
   syncProductImages,
 } from "../services/productImage.service.js";
 import { invalidateListCache } from "../services/listCache.service.js";
+import { invalidateListingCaches } from "../services/redisCache.service.js";
 import { syncProductListViewByProductId } from "../services/productListViewSync.service.js";
 import { pool } from "../config/db.js";
 
@@ -16,6 +17,10 @@ export const importProducts = async (req, res) => {
     const shopId = req.shop.id;
 
     const result = await importProductsFromExcel(shopId, req.file.path);
+
+    if (result?.success) {
+      await invalidateListingCaches();
+    }
 
     res.json(result);
   } catch (err) {

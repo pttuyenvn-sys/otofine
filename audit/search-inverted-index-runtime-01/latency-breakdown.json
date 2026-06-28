@@ -1,0 +1,86 @@
+[
+  {
+    "label": "bugi toyota",
+    "normalize_ms": 1.87,
+    "retrieval_ms": 2.83,
+    "ranking_ms": 38.96,
+    "grouping_ms": 45.41,
+    "popup_ms": 0.02,
+    "total_ms": 89.09,
+    "candidates": 31,
+    "ranked": 31,
+    "provider": "inverted-index"
+  },
+  {
+    "label": "má phanh vios",
+    "normalize_ms": 8.14,
+    "retrieval_ms": 6.93,
+    "ranking_ms": 37.99,
+    "grouping_ms": 32.01,
+    "popup_ms": 0.02,
+    "total_ms": 85.09,
+    "candidates": 39,
+    "ranked": 27,
+    "provider": "inverted-index"
+  },
+  {
+    "label": "lọc dầu mazda",
+    "normalize_ms": 1.88,
+    "retrieval_ms": 4.14,
+    "ranking_ms": 15.67,
+    "grouping_ms": 16.34,
+    "popup_ms": 0.02,
+    "total_ms": 38.05,
+    "candidates": 12,
+    "ranked": 4,
+    "provider": "inverted-index"
+  },
+  {
+    "label": "đèn hậu kia",
+    "normalize_ms": 4.79,
+    "retrieval_ms": 13.33,
+    "ranking_ms": 61.35,
+    "grouping_ms": 50.23,
+    "popup_ms": 13.84,
+    "total_ms": 143.55,
+    "candidates": 404,
+    "ranked": 37,
+    "provider": "inverted-index"
+  },
+  {
+    "label": "04465-0D140",
+    "normalize_ms": 2.01,
+    "retrieval_ms": 7.57,
+    "ranking_ms": 14.79,
+    "grouping_ms": 3.74,
+    "popup_ms": 0.03,
+    "total_ms": 28.14,
+    "candidates": 0,
+    "ranked": 0,
+    "provider": "inverted-index-empty"
+  },
+  {
+    "label": "bố thắng",
+    "normalize_ms": 2.34,
+    "retrieval_ms": 2.4,
+    "ranking_ms": 8.85,
+    "grouping_ms": 6.82,
+    "popup_ms": 7.83,
+    "total_ms": 28.24,
+    "candidates": 2,
+    "ranked": 2,
+    "provider": "inverted-index"
+  },
+  {
+    "label": "brake pad",
+    "normalize_ms": 1.99,
+    "retrieval_ms": 1.71,
+    "ranking_ms": 5.08,
+    "grouping_ms": 22.84,
+    "popup_ms": 4.72,
+    "total_ms": 36.34,
+    "candidates": 3,
+    "ranked": 1,
+    "provider": "inverted-index"
+  }
+]

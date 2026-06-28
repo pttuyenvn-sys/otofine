@@ -1,0 +1,92 @@
+{
+  "generated_at": "2026-06-27T07:00:00.000Z",
+  "audit_id": "SEARCH-INVERTED-MISMATCH-ROOTCAUSE-01",
+  "mode": "read_only",
+  "corpus": {
+    "queries_analyzed": 7,
+    "canary_samples": 26,
+    "canary_mismatch_events": 16
+  },
+  "current_metrics": {
+    "top10_parity_pct": 70,
+    "top20_parity_pct": 79.29,
+    "candidate_recall_pct": 89.33,
+    "canary_avg_top10_pct": 67.69
+  },
+  "primary_class_by_query": {
+    "bugi toyota": "B",
+    "má phanh vios": "B",
+    "lọc dầu mazda": "C",
+    "đèn hậu kia": "A",
+    "04465-0D140": "F",
+    "bố thắng": "D",
+    "brake pad": "D"
+  },
+  "root_cause_distribution_pct": {
+    "A_candidate_missing": 35,
+    "B_ranking_difference": 31,
+    "C_grouping_difference": 18,
+    "D_search_intent_difference": 12,
+    "E_url_seo_difference": 2,
+    "F_unknown": 2
+  },
+  "root_cause_detail": {
+    "A_candidate_missing": {
+      "pct": 35,
+      "description": "Legacy FULLTEXT/LIKE returns products inverted token retrieval excludes (min_matched_tokens=2 with brand facet, 500 cap, brand-only matches).",
+      "primary_query": "đèn hậu kia",
+      "evidence": "72/100 legacy top products missing from inverted candidates; all matched only token 'kia' not 'den'/'hau'"
+    },
+    "B_ranking_difference": {
+      "pct": 31,
+      "description": "Same candidate set but inverted scoreInvertedIndexRow diverges from legacy buildKeywordRelevanceOrderSql (category adjacency, tie-break, phrase boost).",
+      "primary_queries": ["bugi toyota", "má phanh vios", "bố thắng"],
+      "evidence": "bugi: 4552 (Gioăng bugi) inverted #1 vs 5279 (Bugi) legacy #1; scores 200 vs 190 with same matched_tokens=2"
+    },
+    "C_grouping_difference": {
+      "pct": 18,
+      "description": "Inverted fetchIndexGroupedInventory surfaces all token-matched categories; legacy applies quality gate and tighter category relevance.",
+      "primary_queries": ["má phanh vios", "đèn hậu kia", "bố thắng", "lọc dầu mazda"],
+      "evidence": "má phanh: legacy 14 category groups vs inverted 135; đèn hậu: 863 vs 107"
+    },
+    "D_search_intent_difference": {
+      "pct": 12,
+      "description": "Tokenizer/synonym/normalization paths diverge: stop-word stripping, English queries, part-number false positives.",
+      "primary_queries": ["bố thắng", "brake pad", "bugi toyota"],
+      "evidence": "bố thắng: query tokenized to ['thang'] only; brake pad: legacy returns 0, inverted 63; bugi: part_number_norm='bugi'"
+    },
+    "E_url_seo_difference": {
+      "pct": 2,
+      "description": "ViewAll URLs match; popup group navigation URLs diverge when group ordering differs.",
+      "primary_queries": ["má phanh vios"],
+      "evidence": "group_url mismatch on 2nd vehicle group slot due to different group ranking"
+    },
+    "F_unknown": {
+      "pct": 2,
+      "description": "Both runtimes return empty (data not indexed or product absent).",
+      "primary_queries": ["04465-0D140"]
+    }
+  },
+  "expected_parity_gain_if_fixed_pct": {
+    "candidate_retrieval_alignment": 18,
+    "ranking_formula_parity": 7,
+    "grouping_quality_gate": 5,
+    "synonym_and_normalization": 3,
+    "url_seo": 1
+  },
+  "projected_metrics_after_top3_fixes": {
+    "top10_parity_pct": 95,
+    "top20_parity_pct": 97,
+    "candidate_recall_pct": 98
+  },
+  "readiness": {
+    "current_score": 62,
+    "expected_after_top3_causes": 88,
+    "rollout_ready": false,
+    "blockers": [
+      "đèn hậu kia candidate recall 28%",
+      "bugi toyota ranking inversion on adjacent categories",
+      "má phanh vios grouping explosion (14 vs 135 groups)"
+    ]
+  }
+}

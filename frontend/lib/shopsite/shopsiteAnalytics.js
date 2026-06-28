@@ -86,16 +86,3 @@ export function trackShopsiteEvent(type, data = {}) {
     console.debug("[shopsite-analytics]", type, detail);
   }
 }
-
-/**
- * Bind onto a click handler so the original navigation still happens
- * AND the event is fired. Returns the new handler.
- *
- *   <a href="tel:…" onClick={withTrack(ShopsiteEvents.PHONE_CLICK, { shopSlug })}>
- */
-export function withTrack(type, data, originalHandler) {
-  return (event) => {
-    trackShopsiteEvent(type, data);
-    if (typeof originalHandler === "function") originalHandler(event);
-  };
-}

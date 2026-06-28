@@ -16,12 +16,16 @@ const backendOrigin = (
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backendOrigin}/api/:path*`,
-      },
-    ];
+    // Proxy unknown /api/* to Express after Next App Router routes (including
+    // dynamic handlers like /api/seo-page/[slug]) are tried.
+    return {
+      fallback: [
+        {
+          source: "/api/:path*",
+          destination: `${backendOrigin}/api/:path*`,
+        },
+      ],
+    };
   },
   async redirects() {
     return [

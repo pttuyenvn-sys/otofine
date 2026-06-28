@@ -1,0 +1,764 @@
+{
+  "generatedAt": "2026-06-27T01:58:07.050Z",
+  "config": {
+    "SEARCH_RUNTIME": "(unset → legacy)",
+    "SEARCH_ENGINE_MODE": "(unset → hybrid)",
+    "SEARCH_ENGINE_DEBUG": "(unset)",
+    "SEARCH_INDEX_SYNC_ENABLED": "(unset → enabled)",
+    "SEARCH_INDEX_VERSION": 1,
+    "SEARCH_DECISION_MODE": "(unset → quality_gate)",
+    "NODE_ENV": "(unset)",
+    "effectiveRuntimeMode": "legacy",
+    "effectiveRuntimeClass": "LegacySearchRuntime",
+    "effectiveSearchEngineMode": "hybrid",
+    "searchIndexSyncEnabled": true,
+    "searchEngineDebug": false
+  },
+  "totalSqlCalls": 28,
+  "traceByQuery": [
+    {
+      "label": "bugi toyota",
+      "query": {
+        "query": "bugi",
+        "brand": "Toyota"
+      },
+      "wallMs": 347,
+      "provider": "structured+fulltext",
+      "responseSummary": {
+        "groupCount": 3,
+        "categoryCount": 9,
+        "productCount": 6
+      },
+      "executionTrace": {
+        "controller": "search.controller.getSearchSuggest",
+        "service": "searchSuggest.service.buildSearchSuggestResponse",
+        "runtime": "LegacySearchRuntime",
+        "runtimeMode": "legacy",
+        "provider": "structured+fulltext",
+        "steps": [
+          "GET /api/search/suggest",
+          "search.controller.getSearchSuggest",
+          "searchSuggest.service.buildSearchSuggestResponse",
+          "getSearchRuntime() → LegacySearchRuntime",
+          "fetchSharedGroupedInventory → buildSearchInventoryContext → searchProviderChain",
+          "fetchGroupedInventoryFromMatchedCte (products CTE)",
+          "buildPreviewBlocksFromInventory → fetchBatchPreviewProductRows (products hydration inline)",
+          "assembleSearchSuggestResponse"
+        ]
+      },
+      "sqlCount": 7,
+      "sqlEvents": [
+        {
+          "seq": 1,
+          "durationMs": 44.25,
+          "rowsReturned": 20,
+          "classification": "OTHER",
+          "sourceTable": "other",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": false,
+            "usesJoinProductCarApplications": false,
+            "usesJoinCarModels": false,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+          "sqlHead": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+        },
+        {
+          "seq": 2,
+          "durationMs": 3.58,
+          "rowsReturned": 20,
+          "classification": "OTHER",
+          "sourceTable": "other",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": false,
+            "usesJoinProductCarApplications": false,
+            "usesJoinCarModels": false,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+          "sqlHead": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+        },
+        {
+          "seq": 3,
+          "durationMs": 4.67,
+          "rowsReturned": 4,
+          "classification": "OTHER",
+          "sourceTable": "other",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": false,
+            "usesJoinProductCarApplications": false,
+            "usesJoinCarModels": false,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ?AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = 'ft_product_meta_keywords') ) AND INDEX_T",
+          "sqlHead": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = 'ft_product_meta_keywords') ) AND INDEX_TYPE = 'FULLTEXT'"
+        },
+        {
+          "seq": 4,
+          "durationMs": 71.05,
+          "rowsReturned": 41,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": true,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+          "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM products p LEFT JOIN product_meta pm ON pm.product_id = `p`.`id`"
+        },
+        {
+          "seq": 5,
+          "durationMs": 59.23,
+          "rowsReturned": 32,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+          "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_xe AS model, COALESCE(pc.search_priority, 0) AS search_prior"
+        },
+        {
+          "seq": 6,
+          "durationMs": 25.27,
+          "rowsReturned": 31,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ?AND TRIM(L",
+          "sqlHead": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ? AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`m"
+        },
+        {
+          "seq": 7,
+          "durationMs": 76.97,
+          "rowsReturned": 13,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": true,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+          "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName, a.tinh_tp AS provinceName, COALESCE(NULLIF(pc.canonical_nam"
+        }
+      ]
+    },
+    {
+      "label": "má phanh vios",
+      "query": {
+        "query": "má phanh vios",
+        "brand": "Toyota",
+        "model": "Vios"
+      },
+      "wallMs": 246.76,
+      "provider": "structured+fulltext",
+      "responseSummary": {
+        "groupCount": 3,
+        "categoryCount": 14,
+        "productCount": 6
+      },
+      "executionTrace": {
+        "controller": "search.controller.getSearchSuggest",
+        "service": "searchSuggest.service.buildSearchSuggestResponse",
+        "runtime": "LegacySearchRuntime",
+        "runtimeMode": "legacy",
+        "provider": "structured+fulltext",
+        "steps": [
+          "GET /api/search/suggest",
+          "search.controller.getSearchSuggest",
+          "searchSuggest.service.buildSearchSuggestResponse",
+          "getSearchRuntime() → LegacySearchRuntime",
+          "fetchSharedGroupedInventory → buildSearchInventoryContext → searchProviderChain",
+          "fetchGroupedInventoryFromMatchedCte (products CTE)",
+          "buildPreviewBlocksFromInventory → fetchBatchPreviewProductRows (products hydration inline)",
+          "assembleSearchSuggestResponse"
+        ]
+      },
+      "sqlCount": 3,
+      "sqlEvents": [
+        {
+          "seq": 8,
+          "durationMs": 69.91,
+          "rowsReturned": 20,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": true,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+          "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM products p LEFT JOIN product_meta pm ON pm.product_id = `p`.`id`"
+        },
+        {
+          "seq": 9,
+          "durationMs": 85.95,
+          "rowsReturned": 28,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+          "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_xe AS model, COALESCE(pc.search_priority, 0) AS search_prior"
+        },
+        {
+          "seq": 10,
+          "durationMs": 84.02,
+          "rowsReturned": 7,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": true,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+          "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName, a.tinh_tp AS provinceName, COALESCE(NULLIF(pc.canonical_nam"
+        }
+      ]
+    },
+    {
+      "label": "lọc dầu mazda",
+      "query": {
+        "query": "lọc dầu",
+        "brand": "Mazda"
+      },
+      "wallMs": 1748.98,
+      "provider": "like-fallback",
+      "responseSummary": {
+        "groupCount": 3,
+        "categoryCount": 2,
+        "productCount": 2
+      },
+      "executionTrace": {
+        "controller": "search.controller.getSearchSuggest",
+        "service": "searchSuggest.service.buildSearchSuggestResponse",
+        "runtime": "LegacySearchRuntime",
+        "runtimeMode": "legacy",
+        "provider": "like-fallback",
+        "steps": [
+          "GET /api/search/suggest",
+          "search.controller.getSearchSuggest",
+          "searchSuggest.service.buildSearchSuggestResponse",
+          "getSearchRuntime() → LegacySearchRuntime",
+          "fetchSharedGroupedInventory → buildSearchInventoryContext → searchProviderChain",
+          "fetchGroupedInventoryFromMatchedCte (products CTE)",
+          "buildPreviewBlocksFromInventory → fetchBatchPreviewProductRows (products hydration inline)",
+          "assembleSearchSuggestResponse"
+        ]
+      },
+      "sqlCount": 4,
+      "sqlEvents": [
+        {
+          "seq": 11,
+          "durationMs": 63.72,
+          "rowsReturned": 21,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": true,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": true,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+          "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM products p LEFT JOIN product_meta pm ON pm.product_id = `p`.`id`"
+        },
+        {
+          "seq": 12,
+          "durationMs": 842.7,
+          "rowsReturned": 13,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": true,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+          "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_xe AS model, COALESCE(pc.search_priority, 0) AS search_prior"
+        },
+        {
+          "seq": 13,
+          "durationMs": 12.81,
+          "rowsReturned": 11,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ?AND TRIM(L",
+          "sqlHead": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ? AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`m"
+        },
+        {
+          "seq": 14,
+          "durationMs": 823.92,
+          "rowsReturned": 4,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": true,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": false,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+          "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName, a.tinh_tp AS provinceName, COALESCE(NULLIF(pc.canonical_nam"
+        }
+      ]
+    },
+    {
+      "label": "04465-0D140",
+      "query": {
+        "query": "04465-0D140"
+      },
+      "wallMs": 824,
+      "provider": "like-fallback",
+      "responseSummary": {
+        "groupCount": 0,
+        "categoryCount": 0,
+        "productCount": 0
+      },
+      "executionTrace": {
+        "controller": "search.controller.getSearchSuggest",
+        "service": "searchSuggest.service.buildSearchSuggestResponse",
+        "runtime": "LegacySearchRuntime",
+        "runtimeMode": "legacy",
+        "provider": "like-fallback",
+        "steps": [
+          "GET /api/search/suggest",
+          "search.controller.getSearchSuggest",
+          "searchSuggest.service.buildSearchSuggestResponse",
+          "getSearchRuntime() → LegacySearchRuntime",
+          "fetchSharedGroupedInventory → buildSearchInventoryContext → searchProviderChain",
+          "fetchGroupedInventoryFromMatchedCte (products CTE)",
+          "buildPreviewBlocksFromInventory → fetchBatchPreviewProductRows (products hydration inline)",
+          "assembleSearchSuggestResponse"
+        ]
+      },
+      "sqlCount": 2,
+      "sqlEvents": [
+        {
+          "seq": 15,
+          "durationMs": 19.99,
+          "rowsReturned": 0,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": false,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": false,
+            "usesDistinct": true,
+            "usesCount": false
+          },
+          "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+          "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM products p LEFT JOIN product_category_map pcm ON pcm.product_id "
+        },
+        {
+          "seq": 16,
+          "durationMs": 802.05,
+          "rowsReturned": 0,
+          "classification": "PRODUCTS_ONLY",
+          "sourceTable": "products",
+          "features": {
+            "usesFulltext": false,
+            "usesLike": true,
+            "usesProductSearchIndex": false,
+            "usesProducts": true,
+            "usesJoinProductCarApplications": true,
+            "usesJoinCarModels": true,
+            "usesGroupBy": true,
+            "usesDistinct": true,
+            "usesCount": true
+          },
+          "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+          "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_xe AS model, COALESCE(pc.search_priority, 0) AS search_prior"
+        }
+      ]
+    }
+  ],
+  "explainAnalyze": [
+    {
+      "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+      "classification": "PRODUCTS_ONLY",
+      "maxDurationMs": 842.7,
+      "repeatCount": 8,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Append  (cost=24800..25085 rows=1120) (actual time=63.1..63.3 rows=32 loops=1)\n    -> Stream results  (cost=12471..12614 rows=690) (actual time=63.1..63.2 rows=23 loops=1)\n        -> Filter: (total_count > 0)  (cost=12471..12614 rows=690) (actual time=63.1..63.1 rows=23 loops=1)\n            -> Group aggregate: count(distinct matched.product_id), max(matched.search_priority)  (cost=12471..12614 rows=690) (actual time=63.1..63.1 rows=23 loops=1)\n                -> Sort: matched.canonical_name, matched.canonical_slug, matched.brand, matched.model  (cost=12471..12471 rows=1426) (actual time=63.1..63.1 rows=41 loops=1)\n                    -> Filter: ((matched.brand is not null) and (trim(matched.brand) <> '') and (matched.model is not null) and (trim(matched.model) <> ''))  (cost=10672..10835 rows=1426) (actual time=63..63 rows=41 loops=1)\n                        -> Table scan on matched  (cost=10672..10692 rows=1426) (actual time=63..63 rows=41 loops=1)\n                            -> Materialize CTE matched if needed  (cost=10672..10672 rows=1426) (actual time=63..63 rows=41 loops=1)\n                                -> Table scan on <temporary>  (cost=10509..10529 rows=1426) (actual ",
+      "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_xe AS model, COALESCE(pc.search_priority, 0) AS search_priority FROM products p LEFT JOIN product_meta pm ON pm.product_id = `p`.`id` LEFT JOIN product_category"
+    },
+    {
+      "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+      "classification": "PRODUCTS_ONLY",
+      "maxDurationMs": 823.92,
+      "repeatCount": 5,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Filter: (ranked.rn <= 12)  (cost=0.34..323 rows=950) (actual time=57.6..57.6 rows=13 loops=1)\n    -> Table scan on ranked  (cost=2.5..2.5 rows=0) (actual time=57.6..57.6 rows=13 loops=1)\n        -> Materialize  (cost=0..0 rows=0) (actual time=57.6..57.6 rows=13 loops=1)\n            -> Window aggregate: row_number() OVER (PARTITION BY canonical_name,cm.hang_xe,cm.ten_xe ORDER BY `(case when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),",
+      "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName, a.tinh_tp AS provinceName, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, cm.hang_xe AS brand, cm.ten_xe AS model, ( SELECT pi.ur"
+    },
+    {
+      "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+      "classification": "PRODUCTS_ONLY",
+      "maxDurationMs": 71.05,
+      "repeatCount": 5,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Limit: 80 row(s)  (cost=10509..10510 rows=80) (actual time=56.6..56.6 rows=41 loops=1)\n    -> Table scan on <temporary>  (cost=10509..10529 rows=1426) (actual time=56.6..56.6 rows=41 loops=1)\n        -> Temporary table with deduplication  (cost=10509..10509 rows=1426) (actual time=56.5..56.5 rows=41 loops=1)\n            -> Limit table size: 80 unique row(s)\n                -> Nested loop inner join  (cost=10366 rows=1426) (actual time=33.1..56.2 rows=41 loops=1)\n                    -> Nested loop inner join  (cost=9867 rows=1426) (actual time=0.95..55.7 rows=97 loops=1)\n                        -> Nested loop left join  (cost=9368 rows=1223) (actual time=0.933..55 rows=62 loops=1)\n                            -> Nested loop left join  (cost=8940 rows=1223) (actual time=0.917..54.7 rows=62 loops=1)\n                                -> Nested loop left join  (cost=8512 rows=1223) (actual time=0.903..54.3 rows=62 loops=1)\n                                    -> Nested loop inner join  (cost=7221 rows=1223) (actual time=0.89..54.3 rows=62 loops=1)\n                                        -> Filter: ((match p.partName,p.shortDescription,p.`description` against ('+bugi*' in boolean mode)) o",
+      "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM products p LEFT JOIN product_meta pm ON pm.product_id = `p`.`id` LEFT JOIN product_category_map pcm ON pcm.product_id = `p`.`id` LEFT JOIN product_categories pc ON "
+    },
+    {
+      "fingerprint": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partName) LIKE ?OR LOWER(p.partNu",
+      "classification": "PRODUCTS_ONLY",
+      "maxDurationMs": 68.3,
+      "repeatCount": 1,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Limit: 16 row(s)  (actual time=50.6..50.6 rows=16 loops=1)\n    -> Sort: `min((case when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u')",
+      "sqlHead": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 AND (( LOWER(p.partName) LIKE ? OR LOWER(p.partNumber) LIKE ? OR LOWER(COALESCE(p.shortDescription,'')) LIKE ? ) OR REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ?) AND EXISTS ( SELECT 1 FROM prod"
+    },
+    {
+      "fingerprint": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partN",
+      "classification": "PRODUCTS_ONLY",
+      "maxDurationMs": 47.46,
+      "repeatCount": 1,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Aggregate: count(0)  (cost=6850..6850 rows=1) (actual time=49.7..49.7 rows=1 loops=1)\n    -> Table scan on t  (cost=6687..6708 rows=1426) (actual time=49.7..49.7 rows=26 loops=1)\n        -> Materialize  (cost=6687..6687 rows=1426) (actual time=49.7..49.7 rows=26 loops=1)\n            -> Group (no aggregates)  (cost=6545 rows=1426) (actual time=31.1..49.6 rows=26 loops=1)\n                -> Nested loop inner join  (cost=6402 rows=1426) (actual time=31.1..49.5 rows=26 loops=1)\n                    -> Nested loop semijoin  (cost=5062 rows=1426) (actual time=31..49.5 rows=26 loops=1)\n                        -> Filter: ((trim(lower(p.moderation_status)) = 'approved') and (p.stock > 0) and ((lower(p.partName) like '%bugi%') or (lower(p.partNumber) like '%bugi%') or (lower(coalesce(p.shortDescription,'')) like '%bugi%') or (replace(replace(lower(p.partNumber),'-',''),' ','') = 'bugi')) and (p.shopId is not null))  (cost=4563 rows=1223) (actual time=0.901..48.5 rows=54 loops=1)\n                            -> Index scan on p using PRIMARY  (cost=4563 rows=3669) (actual time=0.0378..20.2 rows=7397 loops=1)\n                        -> Nested loop inner join  (cost=357 rows=1.17) (actual time=",
+      "sqlHead": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 AND (( LOWER(p.partName) LIKE ? OR LOWER(p.partNumber) LIKE ? OR LOWER(COALESCE(p.shortDescription,'')) LIKE ? ) OR REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ?) AND"
+    },
+    {
+      "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+      "classification": "OTHER",
+      "maxDurationMs": 44.25,
+      "repeatCount": 2,
+      "rowsExamined": 0,
+      "rowsReturned": 0,
+      "executionTimeMs": 0,
+      "explainSnippet": "-> Nested loop inner join  (cost=14.8 rows=6.55) (actual time=0.139..0.333 rows=20 loops=1)\n    -> Nested loop inner join  (cost=12.5 rows=6.55) (actual time=0.131..0.305 rows=20 loops=1)\n        -> Nested loop inner join  (cost=10.2 rows=6.55) (actual time=0.124..0.277 rows=20 loops=1)\n            -> Nested loop inner join  (cost=3.24 rows=1) (actual time=0.0864..0.0901 rows=1 loops=1)\n                -> Nested loop inner join  (cost=2.2 rows=1) (actual time=0.0539..0.0572 rows=1 loops=1)\n                    -> Covering index scan on cat using name  (cost=1.1 rows=1) (actual time=0.0322..0.0352 rows=1 loops=1)\n                    -> Single-row covering index lookup on sch using catalog_id (catalog_id=mysql.cat.id, name=database())  (cost=1.1 rows=1) (actual time=0.0199..0.0199 rows=1 loops=1)\n                -> Filter: (0 <> internal_get_view_warning_or_error(mysql.sch.`name`,mysql.tbl.`name`,mysql.tbl.`type`,mysql.tbl.`options`))  (cost=1.04 rows=1) (actual time=0.0315..0.0317 rows=1 loops=1)\n                    -> Single-row index lookup on tbl using schema_id (schema_id=mysql.sch.id, name='products')  (cost=1.04 rows=1) (actual time=0.0264..0.0265 rows=1 loops=1)\n            ->",
+      "sqlHead": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+    }
+  ],
+  "bottlenecks": {
+    "top10Slowest": [
+      {
+        "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 842.7,
+        "avgMs": 254.91,
+        "count": 8,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS cano"
+      },
+      {
+        "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 823.92,
+        "avgMs": 223.69,
+        "count": 5,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`upda"
+      },
+      {
+        "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 71.05,
+        "avgMs": 50.82,
+        "count": 5,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS m"
+      },
+      {
+        "fingerprint": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partName) LIKE ?OR LOWER(p.partNu",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 68.3,
+        "avgMs": 68.3,
+        "count": 1,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 AND (( L"
+      },
+      {
+        "fingerprint": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partN",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 47.46,
+        "avgMs": 47.46,
+        "count": 1,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' "
+      },
+      {
+        "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+        "classification": "OTHER",
+        "maxMs": 44.25,
+        "avgMs": 23.92,
+        "count": 2,
+        "usesProductSearchIndex": false,
+        "usesProducts": false,
+        "sqlHead": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+      },
+      {
+        "fingerprint": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ?AND TRIM(L",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 25.27,
+        "avgMs": 19.04,
+        "count": 2,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.c"
+      },
+      {
+        "fingerprint": "SELECT `p`.`id` AS id, CONCAT('sp-', `p`.`id`) AS slug, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`shortDescription` AS shortDescription, `p`.`description` AS description, `p`.`origin` AS origin, ",
+        "classification": "PRODUCTS_ONLY",
+        "maxMs": 11.47,
+        "avgMs": 11.47,
+        "count": 1,
+        "usesProductSearchIndex": false,
+        "usesProducts": true,
+        "sqlHead": "SELECT `p`.`id` AS id, CONCAT('sp-', `p`.`id`) AS slug, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`shortDescription` AS shortDescription, `p`.`description` "
+      },
+      {
+        "fingerprint": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ?AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = 'ft_product_meta_keywords') ) AND INDEX_T",
+        "classification": "OTHER",
+        "maxMs": 4.67,
+        "avgMs": 4.67,
+        "count": 1,
+        "usesProductSearchIndex": false,
+        "usesProducts": false,
+        "sqlHead": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = "
+      },
+      {
+        "fingerprint": "SELECT pca.productId, cm.hang_xe, cm.ten_xe, pca.year_from, pca.year_to, pca.is_primary FROM product_car_applications pca INNER JOIN car_models cm ON cm.id = pca.carModelId WHERE pca.productId IN (?) ORDER BY pca.productId, pca.is_primary D",
+        "classification": "OTHER",
+        "maxMs": 3.22,
+        "avgMs": 3.22,
+        "count": 1,
+        "usesProductSearchIndex": false,
+        "usesProducts": false,
+        "sqlHead": "SELECT pca.productId, cm.hang_xe, cm.ten_xe, pca.year_from, pca.year_to, pca.is_primary FROM product_car_applications pca INNER JOIN car_models cm ON cm.id = pca.carModelId WHERE pca.productId IN (?) "
+      }
+    ],
+    "top10Repeated": [
+      {
+        "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+        "count": 8,
+        "totalMs": 2039.28,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS cano"
+      },
+      {
+        "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+        "count": 5,
+        "totalMs": 254.09,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS m"
+      },
+      {
+        "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+        "count": 5,
+        "totalMs": 1118.46,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`upda"
+      },
+      {
+        "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+        "count": 2,
+        "totalMs": 47.83,
+        "classification": "OTHER",
+        "sqlHead": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+      },
+      {
+        "fingerprint": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.carModelId WHERE cm.hang_xe = ?AND TRIM(L",
+        "count": 2,
+        "totalMs": 38.08,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT cm.ten_xe, COUNT(DISTINCT `p`.`id`) AS total FROM products p INNER JOIN shops s ON s.id = p.shopId JOIN product_car_applications pa ON pa.productId = `p`.`id` JOIN car_models cm ON cm.id = pa.c"
+      },
+      {
+        "fingerprint": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ?AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = 'ft_product_meta_keywords') ) AND INDEX_T",
+        "count": 1,
+        "totalMs": 4.67,
+        "classification": "OTHER",
+        "sqlHead": "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND ( (TABLE_NAME = 'products' AND INDEX_NAME = 'ft_products_search_text') OR (TABLE_NAME = 'product_meta' AND INDEX_NAME = "
+      },
+      {
+        "fingerprint": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partN",
+        "count": 1,
+        "totalMs": 47.46,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' "
+      },
+      {
+        "fingerprint": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partName) LIKE ?OR LOWER(p.partNu",
+        "count": 1,
+        "totalMs": 68.3,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE 1=1 AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 AND (( L"
+      },
+      {
+        "fingerprint": "SELECT `p`.`id` AS id, CONCAT('sp-', `p`.`id`) AS slug, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`shortDescription` AS shortDescription, `p`.`description` AS description, `p`.`origin` AS origin, ",
+        "count": 1,
+        "totalMs": 11.47,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT `p`.`id` AS id, CONCAT('sp-', `p`.`id`) AS slug, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`shortDescription` AS shortDescription, `p`.`description` "
+      },
+      {
+        "fingerprint": "SELECT `p`.`id` AS id FROM products p INNER JOIN shops s ON `s`.id = `p`.`shopId` WHERE `p`.`id` IN (?) AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N",
+        "count": 1,
+        "totalMs": 2.62,
+        "classification": "PRODUCTS_ONLY",
+        "sqlHead": "SELECT `p`.`id` AS id FROM products p INNER JOIN shops s ON `s`.id = `p`.`shopId` WHERE `p`.`id` IN (?) AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'appr"
+      }
+    ],
+    "top10LargestScans": [
+      {
+        "fingerprint": "WITH matched AS ( SELECT DISTINCT `p`.`id` AS product_id, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name, COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug, cm.hang_xe AS brand, cm.ten_",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "PRODUCTS_ONLY"
+      },
+      {
+        "fingerprint": "SELECT * FROM ( SELECT `p`.`id` AS id, `p`.`shopId` AS shopId, `p`.`partNumber` AS partNumber, `p`.`partName` AS partName, `p`.`price` AS price, `p`.`origin` AS origin, `p`.`stock` AS stock, `p`.`updatedAt` AS updatedAt, s.name AS shopName,",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "PRODUCTS_ONLY"
+      },
+      {
+        "fingerprint": "SELECT DISTINCT `p`.`id` AS id, `p`.`partName` AS title, `p`.`partNumber` AS partNumber, COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS category_name, cm.hang_xe AS brand, cm.ten_xe AS model, pa.year_from, pa.year_to FROM prod",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "PRODUCTS_ONLY"
+      },
+      {
+        "fingerprint": "SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partName) LIKE ?OR LOWER(p.partNu",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "PRODUCTS_ONLY"
+      },
+      {
+        "fingerprint": "SELECT COUNT(*) AS c FROM ( SELECT p.id FROM products p JOIN shops s ON s.id = p.shopId WHERE N=N AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > N AND (( LOWER(p.partN",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "PRODUCTS_ONLY"
+      },
+      {
+        "fingerprint": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+        "rowsExamined": 0,
+        "rowsReturned": 0,
+        "executionTimeMs": 0,
+        "classification": "OTHER"
+      }
+    ]
+  }
+}

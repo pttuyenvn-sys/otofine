@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
-import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { getProductDetailHref } from "@/lib/productDetailHref";
 
 function siteOrigin() {
   if (typeof window === "undefined") return "https://otofine.com";
@@ -41,12 +41,7 @@ function SellerProductRowActions({
   function handleView(e) {
     e?.stopPropagation?.();
     try {
-      const path = buildProductSeoUrl({
-        id: product.id,
-        partName: product.partName,
-        partNumber: product.partNumber,
-        ...(product.cars?.[0] || {}),
-      });
+      const path = getProductDetailHref(product);
       const url = path.startsWith("http") ? path : siteOrigin() + path;
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {

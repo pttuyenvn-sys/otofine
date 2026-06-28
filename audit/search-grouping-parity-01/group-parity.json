@@ -1,0 +1,146 @@
+{
+  "generated_at": "2026-06-27T08:13:09.121Z",
+  "quality_gate_v2": [
+    {
+      "label": "bugi toyota",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 23,
+      "inverted_vehicle_groups": 19,
+      "legacy_category_groups": 9,
+      "inverted_category_groups": 6,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 260.88,
+      "inverted_ms": 72.47
+    },
+    {
+      "label": "đèn hậu kia",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 1556,
+      "inverted_vehicle_groups": 25,
+      "legacy_category_groups": 863,
+      "inverted_category_groups": 17,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 7980.51,
+      "inverted_ms": 615.02
+    },
+    {
+      "label": "lọc dầu mazda",
+      "top1_pct": 100,
+      "top3_pct": 66.67,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 11,
+      "inverted_vehicle_groups": 27,
+      "legacy_category_groups": 2,
+      "inverted_category_groups": 13,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "extra_product",
+        "wrong_category"
+      ],
+      "legacy_ms": 3634.41,
+      "inverted_ms": 660.81
+    },
+    {
+      "label": "má phanh vios",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 90,
+      "top20_pct": 70,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 14,
+      "inverted_vehicle_groups": 14,
+      "legacy_category_groups": 14,
+      "inverted_category_groups": 14,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "missing_product",
+        "extra_product",
+        "different_order"
+      ],
+      "legacy_ms": 373.9,
+      "inverted_ms": 419.58
+    },
+    {
+      "label": "bố thắng",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 95,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 26,
+      "inverted_vehicle_groups": 27,
+      "legacy_category_groups": 20,
+      "inverted_category_groups": 21,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 5134.79,
+      "inverted_ms": 366.82
+    },
+    {
+      "label": "04465-0D140",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 0,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 0,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 0,
+      "mismatch_types": [],
+      "legacy_ms": 2889.02,
+      "inverted_ms": 26.1
+    },
+    {
+      "label": "brake pad",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 0,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 0,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 0,
+      "mismatch_types": [
+        "extra_product"
+      ],
+      "legacy_ms": 2661.15,
+      "inverted_ms": 86.7
+    }
+  ]
+}

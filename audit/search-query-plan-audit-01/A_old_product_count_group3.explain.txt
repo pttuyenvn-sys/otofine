@@ -1,0 +1,56 @@
+--- A_old_product_count_group3 ---
+SELECT COUNT(DISTINCT `p`.`id`) total 
+    FROM products p
+
+    LEFT JOIN product_category_map pcm
+      ON pcm.product_id = `p`.`id`
+
+    LEFT JOIN product_categories pc
+      ON pc.id = pcm.category_id
+
+    LEFT JOIN product_car_applications pa
+      ON pa.productId = `p`.`id`
+
+    LEFT JOIN car_models cm
+      ON cm.id = pa.carModelId
+
+    JOIN shops s
+      ON `s`.id = `p`.`shopId`
+
+    LEFT JOIN address a
+      ON a.id = s.provinceId
+    WHERE 1=1  AND LOWER(TRIM(cm.hang_xe)) = ?  AND LOWER(TRIM(cm.ten_xe)) = ?  AND (
+      REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(pc.category_name)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE ?
+      OR (
+        NULLIF(TRIM(pc.canonical_name), '') IS NOT NULL
+        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(pc.canonical_name)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE ?
+      )
+    ) 
+          AND (
+            LOWER(`p`.`partName`) LIKE ?
+            OR LOWER(`p`.`shortDescription`) LIKE ?
+            OR LOWER(`p`.`description`) LIKE ?
+            OR LOWER(`p`.`partNumber`) LIKE ?
+          )
+           AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 
+
+--- EXPLAIN ANALYZE ---
+-> Aggregate: count(distinct p.id)  (cost=4141 rows=1) (actual time=843..843 rows=1 loops=1)
+    -> Nested loop inner join  (cost=3999 rows=1426) (actual time=481..843 rows=4 loops=1)
+        -> Nested loop inner join  (cost=3499 rows=1426) (actual time=13.3..843 rows=87 loops=1)
+            -> Nested loop left join  (cost=3000 rows=1223) (actual time=13.3..842 rows=54 loops=1)
+                -> Nested loop inner join  (cost=2572 rows=1223) (actual time=13.3..842 rows=54 loops=1)
+                    -> Nested loop inner join  (cost=2144 rows=1223) (actual time=13.3..842 rows=54 loops=1)
+                        -> Nested loop inner join  (cost=1716 rows=1223) (actual time=13.2..840 rows=54 loops=1)
+                            -> Filter: (((lower(p.partName) like '%bugi%') or (lower(p.shortDescription) like '%bugi%') or (lower(p.`description`) like '%bugi%') or (lower(p.partNumber) like '%bugi%')) and (trim(lower(p.moderation_status)) = 'approved') and (p.stock > 0) and (p.shopId is not null))  (cost=1288 rows=1223) (actual time=13.1..839 rows=54 loops=1)
+                                -> Table scan on p  (cost=1288 rows=3669) (actual time=0.0517..35.7 rows=7397 loops=1)
+                            -> Covering index lookup on pcm using uk_product_category (product_id=p.id)  (cost=0.25 rows=1) (actual time=0.0124..0.0132 rows=1 loops=54)
+                        -> Filter: ((replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(pc.category_name)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%') or ((nullif(trim(pc.canonical_name),'') is not null) and (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(pc.canonical_name)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%')))  (cost=0.25 rows=1) (actual time=0.0265..0.0266 rows=1 loops=54)
+                            -> Single-row index lookup on pc using PRIMARY (id=pcm.category_id)  (cost=0.25 rows=1) (actual time=0.0042..0.00423 rows=1 loops=54)
+                    -> Filter: (trim(lower(s.public_status)) = 'public')  (cost=0.25 rows=1) (actual time=0.00231..0.00241 rows=1 loops=54)
+                        -> Single-row index lookup on s using PRIMARY (id=p.shopId)  (cost=0.25 rows=1) (actual time=0.00111..0.00114 rows=1 loops=54)
+                -> Single-row covering index lookup on a using PRIMARY (id=s.provinceId)  (cost=0.25 rows=1) (actual time=0.00112..0.00115 rows=1 loops=54)
+            -> Index lookup on pa using fk_pca_product (productId=p.id)  (cost=0.292 rows=1.17) (actual time=0.0103..0.0117 rows=1.61 loops=54)
+        -> Filter: ((lower(trim(cm.hang_xe)) = 'toyota') and (lower(trim(cm.ten_xe)) = 'prado'))  (cost=0.25 rows=1) (actual time=0.00563..0.00563 rows=0.046 loops=87)
+            -> Single-row index lookup on cm using PRIMARY (id=pa.carModelId)  (cost=0.25 rows=1) (actual time=0.00426..0.0043 rows=1 loops=87)
+

@@ -136,6 +136,8 @@ export async function syncProduct(productId) {
       const meta = await rebuildProductMetaForProduct(conn, id, row);
       const fitment = await rebuildProductFitmentScores(conn, id);
       logInfo(SCOPE, "syncProduct done", { productId: id, aliases, meta, fitment });
+      const { queueSearchIndexSync } = await import("./search/searchIndexDispatcher.js");
+      queueSearchIndexSync(id, { source: "productService.syncProduct", reason: "keywords" });
       return { aliases, meta, fitment };
     });
   } catch (e) {

@@ -1,5 +1,22 @@
+import { getCanonicalProductPath } from "../modules/products/services/canonicalPath.server.js";
+
 function safe(v) {
   return String(v || "").trim();
+}
+
+function resolveProductHref(product) {
+  const fromApi = String(product?.canonicalPath ?? "").trim();
+  if (fromApi.startsWith("/") && fromApi !== "/") {
+    return fromApi;
+  }
+
+  const path = getCanonicalProductPath(product);
+  if (path && path.startsWith("/") && path !== "/") {
+    return path;
+  }
+
+  const id = product?.id;
+  return id != null && id !== "" ? `/p/${id}` : "/";
 }
 
 function money(v) {
@@ -41,7 +58,7 @@ export function buildVehicleSeoArticle(data) {
   const topProducts = products
     .slice(0, 12)
     .map((p) => {
-      const href = p.slug ? `/san-pham/${p.slug}` : `/product/${p.id}`;
+      const href = resolveProductHref(p);
 
       return `
       <li class="vehicle-seo-part-item">
@@ -98,7 +115,7 @@ export function buildVehicleSeoArticle(data) {
 
           <td>
             <a
-              href="${p.slug ? `/san-pham/${p.slug}` : `/product/${p.id}`}"
+              href="${resolveProductHref(p)}"
             >
               ${safe(p.partName)}
             </a>

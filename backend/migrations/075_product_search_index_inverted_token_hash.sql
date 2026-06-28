@@ -1,0 +1,2 @@
+-- SEARCH-INVERTED-INDEX-BUILDER-OPTIMIZATION-01
+-- inverted_token_hash on product_search_index (applied via ensureSearchTokenIndexSchema.js)

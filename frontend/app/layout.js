@@ -7,6 +7,7 @@ import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
 import { Inter } from "next/font/google";
 import PushInit from "@/components/PushInit";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -62,6 +63,9 @@ export default function RootLayout({ children }) {
             singleton store) so leaving it mounted at the root level
             is safe across every route. */}
         <SellerToaster />
+        <GoogleAnalytics
+          gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+        />
       </body>
     </html>
   );

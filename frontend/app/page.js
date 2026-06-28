@@ -2,19 +2,18 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { getSiteUrl } from "@/lib/seo/siteUrl";
 import FaqPageJsonLd from "@/components/seo/FaqPageJsonLd";
+import HomeDiscoveryNav from "@/components/discovery/HomeDiscoveryNav.server";
 
 export const metadata = {
-  title: "Tìm phụ tùng đúng xe trong 10 giây | Otofine",
-  description:
-    "Chợ phụ tùng ô tô: tìm theo hãng, dòng xe, mã phụ tùng; giá minh bạch, shop xác minh, thân thiện mobile — Otofine.",
+  title: "Phụ tùng ô tô chính hãng giá tốt | Otofine",
+  description: "Phụ tùng ô tô chính hãng giá tốt",
   alternates: {
     canonical: getSiteUrl(),
   },
   openGraph: {
     url: getSiteUrl(),
-    title: "Tìm phụ tùng đúng xe trong 10 giây | Otofine",
-    description:
-      "So sánh giá nhiều cửa hàng, tìm đúng phụ tùng theo xe. Otofine — marketplace phụ tùng minh bạch.",
+    title: "Phụ tùng ô tô chính hãng giá tốt | Otofine",
+    description: "Phụ tùng ô tô chính hãng giá tốt",
     images: [
       { url: "/logo.png", width: 512, height: 512, alt: "Otofine — phụ tùng ô tô" },
     ],
@@ -69,6 +68,7 @@ const homeLoading = (
 export default function Page() {
   return (
     <>
+      <HomeDiscoveryNav />
       <FaqPageJsonLd />
       <Suspense fallback={homeLoading}>
         <Home />

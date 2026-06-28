@@ -23,12 +23,27 @@ import { useDebouncedValue } from "@/lib/shopsite/useDebouncedValue";
  * Selecting a brand re-narrows the model dropdown to that brand's
  * models; clearing the brand exposes the full union again.
  */
-export default function ShopFilters({ fitments, basePath = "" }) {
-  const { params, setParam, setParams } = useShopFilterParams({ basePath });
+export default function ShopFilters({
+  fitments,
+  categories = null,
+  entity = null,
+  basePath = "",
+  shopBasePath = "",
+  shopSlug = "",
+}) {
+  const { params, readFilters, setParam, navigateSeoFilters } = useShopFilterParams({
+    basePath,
+    shopBasePath,
+    shopSlug,
+    fitments,
+    categories,
+    entity,
+  });
 
-  const brand = params.brand || "";
-  const model = params.model || "";
-  const year = params.year || "";
+  const brand = readFilters.brand || "";
+  const model = readFilters.model || "";
+  const year = readFilters.year || "";
+  const category = readFilters.category || "";
 
   // The server params are the source of truth; local state only exists
   // for the search input so we can debounce it before pushing.
@@ -65,7 +80,12 @@ export default function ShopFilters({ fitments, basePath = "" }) {
     // Changing brand invalidates the model selection (unless still valid).
     const nextModels = next ? modelsByBrand[next] || [] : allModels;
     const keepModel = model && nextModels.includes(model);
-    setParams({ brand: next || null, model: keepModel ? model : null });
+    void navigateSeoFilters({
+      category: category || null,
+      brand: next || null,
+      model: keepModel ? model : null,
+      year: keepModel ? year : null,
+    });
   };
 
   return (
@@ -90,7 +110,14 @@ export default function ShopFilters({ fitments, basePath = "" }) {
         <FilterSelect
           icon="🚙"
           value={model}
-          onChange={(v) => setParam("model", v || null)}
+          onChange={(v) =>
+            void navigateSeoFilters({
+              category: category || null,
+              brand: brand || null,
+              model: v || null,
+              year: year || null,
+            })
+          }
           placeholder={brand ? "Dòng xe" : "Tên xe / Dòng xe"}
           options={models}
           className="lg:col-span-3"
@@ -98,7 +125,14 @@ export default function ShopFilters({ fitments, basePath = "" }) {
         <FilterSelect
           icon="📅"
           value={year}
-          onChange={(v) => setParam("year", v || null)}
+          onChange={(v) =>
+            void navigateSeoFilters({
+              category: category || null,
+              brand: brand || null,
+              model: model || null,
+              year: v || null,
+            })
+          }
           placeholder="Năm sản xuất"
           options={years.map(String)}
           className="lg:col-span-2"

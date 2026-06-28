@@ -40,14 +40,26 @@ import { useDebouncedValue } from "@/lib/shopsite/useDebouncedValue";
  */
 export default function ShopMobileFilters({
   fitments,
+  categories = null,
+  entity = null,
   basePath = "",
+  shopBasePath = "",
+  shopSlug = "",
   className = "",
 }) {
-  const { params, setParam, setParams } = useShopFilterParams({ basePath });
+  const { params, readFilters, setParam, navigateSeoFilters } = useShopFilterParams({
+    basePath,
+    shopBasePath,
+    shopSlug,
+    fitments,
+    categories,
+    entity,
+  });
 
-  const brand = params.brand || "";
-  const model = params.model || "";
-  const year = params.year || "";
+  const brand = readFilters.brand || "";
+  const model = readFilters.model || "";
+  const year = readFilters.year || "";
+  const category = readFilters.category || "";
 
   const [searchInput, setSearchInput] = useState(params.q || "");
   const debouncedSearch = useDebouncedValue(searchInput, 300);
@@ -95,7 +107,12 @@ export default function ShopMobileFilters({
   const handleBrand = (next) => {
     const nextModels = next ? modelsByBrand[next] || [] : allModels;
     const keepModel = model && nextModels.includes(model);
-    setParams({ brand: next || null, model: keepModel ? model : null });
+    void navigateSeoFilters({
+      category: category || null,
+      brand: next || null,
+      model: keepModel ? model : null,
+      year: keepModel ? year : null,
+    });
   };
 
   return (
@@ -190,14 +207,28 @@ export default function ShopMobileFilters({
               <SheetSelect
                 label="Dòng xe"
                 value={model}
-                onChange={(v) => setParam("model", v || null)}
+                onChange={(v) =>
+                  void navigateSeoFilters({
+                    category: category || null,
+                    brand: brand || null,
+                    model: v || null,
+                    year: year || null,
+                  })
+                }
                 options={models}
                 placeholder={brand ? `Dòng xe của ${brand}` : "Tất cả dòng xe"}
               />
               <SheetSelect
                 label="Năm sản xuất"
                 value={year}
-                onChange={(v) => setParam("year", v || null)}
+                onChange={(v) =>
+                  void navigateSeoFilters({
+                    category: category || null,
+                    brand: brand || null,
+                    model: model || null,
+                    year: v || null,
+                  })
+                }
                 options={years.map(String)}
               />
             </div>
@@ -205,9 +236,7 @@ export default function ShopMobileFilters({
             <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setParams({ brand: null, model: null, year: null })
-                }
+                onClick={() => void navigateSeoFilters({})}
                 className="text-sm text-gray-600 hover:text-[#e60012] font-medium"
               >
                 Đặt lại

@@ -1,66 +1,65 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 
 const NO_IMAGE = "/no-image.png";
 
 /** Cùng `images.qualities` trong `next.config.mjs` (Next.js 16+). */
 export const IMAGE_QUALITY = 80;
-const SUGGEST_THUMB_QUALITY = 75;
 
-/**
- * Ảnh sản phẩm trong lưới — fill trong `.product-image` (position: relative, aspect-ratio).
- */
-export function ProductCardImage({ src, alt, sizes, priority }) {
-  const normalized = src && String(src).trim() ? String(src).trim() : "";
-  const [current, setCurrent] = useState(normalized || NO_IMAGE);
+export function ProductCardImage({
+  src,
+  alt,
+  priority,
+}) {
+  const normalized =
+    src && String(src).trim()
+      ? String(src).trim()
+      : NO_IMAGE;
 
-  useEffect(() => {
-    setCurrent(normalized || NO_IMAGE);
-  }, [normalized]);
+  const dim = productImageDimensionProps({
+    src: normalized,
+    layout: "square",
+  });
 
   return (
-    <Image
-      fill
-      src={current}
+    <img
+      src={normalized}
       alt={alt}
-      sizes={sizes}
-      priority={Boolean(priority)}
-      quality={IMAGE_QUALITY}
       className="product-image-next"
-      onError={() => {
-        if (current !== NO_IMAGE) setCurrent(NO_IMAGE);
-      }}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      {...dim}
     />
   );
 }
 
 /**
- * Thumbnail gợi ý tìm kiếm — kích thước cố định 40×40 (CSS `.search-suggest-thumb`).
+ * Ảnh sản phẩm trong lưới — fill trong `.product-image` (position: relative, aspect-ratio).
  */
-export function SearchSuggestThumb({ src }) {
-  const normalized = src && String(src).trim() ? String(src).trim() : "";
-  const [current, setCurrent] = useState(normalized);
+export function SearchSuggestThumb({ src, alt = "" }) {
+  const normalized =
+    src && String(src).trim()
+      ? String(src).trim()
+      : "";
 
-  useEffect(() => {
-    setCurrent(normalized);
-  }, [normalized]);
-
-  if (!current) {
+  if (!normalized) {
     return <span className="search-suggest-thumb search-suggest-thumb--empty" />;
   }
 
+  const dim = productImageDimensionProps({
+    src: normalized,
+    layout: "thumb100",
+  });
+
   return (
-    <Image
-      width={40}
-      height={40}
-      src={current}
-      alt=""
+    <img
+      src={normalized}
+      alt={alt}
       className="search-suggest-thumb"
       loading="lazy"
-      quality={SUGGEST_THUMB_QUALITY}
-      onError={() => setCurrent(NO_IMAGE)}
+      decoding="async"
+      {...dim}
     />
   );
 }

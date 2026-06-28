@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-06-26T14:24:31.583Z",
+  "corpusPath": "/var/www/otofine/audit/search-index-parity-audit-01/queries.json",
+  "queryCount": 25,
+  "documentHealth": {
+    "indexDocuments": 8602,
+    "indexProducts": 7385,
+    "nullHashRows": 0,
+    "staleVersionRows": 0,
+    "nullCanonicalSlug": 51,
+    "missingPublicProducts": 0,
+    "orphanIndexProducts": 0,
+    "duplicateKeys": 0,
+    "deletedProductsInIndex": [],
+    "hashMismatchSample": 149,
+    "hashMismatchSampleSize": 150
+  },
+  "parity": {
+    "top1": 84,
+    "top3": 94.667,
+    "top5": 94.667,
+    "top10": 94.667,
+    "top20": 94.667,
+    "ndcg10": 0.9261,
+    "mrr": 0.88,
+    "exactOrder10": 100
+  },
+  "mismatchStats": {
+    "totalQueries": 25,
+    "identical": 21,
+    "orderOnly": 1,
+    "withMissingOrExtra": 3,
+    "totalMismatches": 4
+  },
+  "noiseAnalysis": {
+    "broad": {
+      "n": 0,
+      "mismatch": 0
+    },
+    "scoped": {
+      "n": 25,
+      "mismatch": 4
+    }
+  },
+  "latency": {
+    "legacy": {
+      "n": 25,
+      "avg": 859.23,
+      "p50": 855.46,
+      "p95": 899.46,
+      "p99": 905.2,
+      "max": 921.49
+    },
+    "index": {
+      "n": 25,
+      "avg": 138.83,
+      "p50": 137.75,
+      "p95": 173.8,
+      "p99": 176.47,
+      "max": 176.73
+    }
+  },
+  "rankingAnalysis": {
+    "differentProducts": 3,
+    "sameProductsDifferentOrder": 1
+  }
+}

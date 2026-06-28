@@ -1,0 +1,46 @@
+{
+  "methodology": {
+    "observed_table_bytes": 81920,
+    "observed_rows": 31691,
+    "information_schema_note": "InnoDB reports minimum 16KB data pages; observed ~2.6 bytes/row is under-reported for small tables.",
+    "estimated_bytes_per_row": {
+      "low": 180,
+      "mid": 320,
+      "high": 480,
+      "basis": "token VARCHAR(255) + ENUM + indexes on (token,token_type) and (product_id,token,token_type)"
+    }
+  },
+  "current": {
+    "products_with_tokens": 50,
+    "active_products_total": 7385,
+    "coverage_pct": 0.68,
+    "total_tokens": 31691,
+    "avg_tokens_per_product": 633.82,
+    "observed_total_mb": 0.08,
+    "estimated_total_mb_mid": 9.68
+  },
+  "full_corpus_projection_7385_products": {
+    "estimated_rows": 4678505,
+    "estimated_mb_mid": 1427,
+    "estimated_gb_mid": 1.39
+  },
+  "forecast_100k": {
+    "products": 100000,
+    "estimated_rows": 63382000,
+    "estimated_mb": { "low": 10898, "mid": 19391, "high": 29082 },
+    "estimated_gb": { "low": 10.6, "mid": 18.9, "high": 28.4 }
+  },
+  "forecast_500k": {
+    "products": 500000,
+    "estimated_rows": 316910000,
+    "estimated_mb": { "low": 54489, "mid": 96954, "high": 145410 },
+    "estimated_gb": { "low": 53.2, "mid": 94.7, "high": 142.0 }
+  },
+  "forecast_1m": {
+    "products": 1000000,
+    "estimated_rows": 633820000,
+    "estimated_mb": { "low": 108978, "mid": 193908, "high": 290820 },
+    "estimated_gb": { "low": 106.4, "mid": 189.4, "high": 284.0 }
+  },
+  "extrapolation_caveat": "Linear extrapolation from 50-product sample. Token count variance is artificially low (stddev 9.92) because all sampled products share the same global synonym blob. Fitment-heavy SKUs may increase counts further."
+}

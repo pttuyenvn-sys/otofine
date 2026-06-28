@@ -1,0 +1,432 @@
+[
+  {
+    "query": "bugi toyota",
+    "before": {
+      "label": "bugi toyota",
+      "candidate_recall_pct": 100,
+      "top1_pct": 0,
+      "top3_pct": 0,
+      "top10_pct": 30,
+      "top20_pct": 75,
+      "latency_ms": 44.62,
+      "ranking_ms": 10.28,
+      "legacy_top10": [
+        5279,
+        5286,
+        5293,
+        4440,
+        5280,
+        5287,
+        5294,
+        4441,
+        5281,
+        5288
+      ],
+      "inverted_top10": [
+        4552,
+        5294,
+        5295,
+        6256,
+        6257,
+        7025,
+        7113,
+        4440,
+        4441,
+        4442
+      ]
+    },
+    "after": {
+      "label": "bugi toyota",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 45.13,
+      "ranking_ms": 11.49,
+      "legacy_top10": [
+        5279,
+        5286,
+        5293,
+        4440,
+        5280,
+        5287,
+        5294,
+        4441,
+        5281,
+        5288
+      ],
+      "inverted_top10": [
+        5279,
+        5286,
+        5293,
+        4440,
+        5280,
+        5287,
+        5294,
+        4441,
+        5281,
+        5288
+      ]
+    },
+    "top10_delta_pct": 70
+  },
+  {
+    "query": "đèn hậu kia",
+    "before": {
+      "label": "đèn hậu kia",
+      "candidate_recall_pct": 83,
+      "top1_pct": 0,
+      "top3_pct": 0,
+      "top10_pct": 30,
+      "top20_pct": 80,
+      "latency_ms": 308.45,
+      "ranking_ms": 215.03,
+      "legacy_top10": [
+        792,
+        799,
+        806,
+        813,
+        793,
+        800,
+        807,
+        794,
+        801,
+        808
+      ],
+      "inverted_top10": [
+        788,
+        789,
+        790,
+        791,
+        792,
+        793,
+        794,
+        795,
+        796,
+        797
+      ]
+    },
+    "after": {
+      "label": "đèn hậu kia",
+      "candidate_recall_pct": 83,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 209.18,
+      "ranking_ms": 80.23,
+      "legacy_top10": [
+        792,
+        799,
+        806,
+        813,
+        793,
+        800,
+        807,
+        794,
+        801,
+        808
+      ],
+      "inverted_top10": [
+        792,
+        799,
+        806,
+        813,
+        793,
+        800,
+        807,
+        794,
+        801,
+        808
+      ]
+    },
+    "top10_delta_pct": 70
+  },
+  {
+    "query": "lọc dầu mazda",
+    "before": {
+      "label": "lọc dầu mazda",
+      "candidate_recall_pct": 100,
+      "top1_pct": 0,
+      "top3_pct": 33.33,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 354.97,
+      "ranking_ms": 274.14,
+      "legacy_top10": [
+        2346,
+        2347,
+        2349,
+        2350,
+        2348,
+        2351
+      ],
+      "inverted_top10": [
+        2349,
+        2350,
+        2351,
+        2346,
+        2347,
+        2348,
+        1773,
+        1774,
+        2072,
+        2073
+      ]
+    },
+    "after": {
+      "label": "lọc dầu mazda",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 66.67,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 194.59,
+      "ranking_ms": 106.13,
+      "legacy_top10": [
+        2346,
+        2347,
+        2349,
+        2350,
+        2348,
+        2351
+      ],
+      "inverted_top10": [
+        2346,
+        2347,
+        2362,
+        2349,
+        2350,
+        2348,
+        2351,
+        1976,
+        1774,
+        1921
+      ]
+    },
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "má phanh vios",
+    "before": {
+      "label": "má phanh vios",
+      "candidate_recall_pct": 100,
+      "top1_pct": 0,
+      "top3_pct": 66.67,
+      "top10_pct": 70,
+      "top20_pct": 95,
+      "latency_ms": 483.22,
+      "ranking_ms": 314,
+      "legacy_top10": [
+        6651,
+        6660,
+        6628,
+        6629,
+        6650,
+        5790,
+        5804,
+        5811,
+        5791,
+        5792
+      ],
+      "inverted_top10": [
+        6650,
+        6651,
+        6660,
+        6628,
+        6629,
+        5802,
+        5803,
+        5804,
+        5811,
+        5942
+      ]
+    },
+    "after": {
+      "label": "má phanh vios",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 90,
+      "top20_pct": 70,
+      "latency_ms": 157,
+      "ranking_ms": 79.68,
+      "legacy_top10": [
+        6651,
+        6660,
+        6628,
+        6629,
+        6650,
+        5790,
+        5804,
+        5811,
+        5791,
+        5792
+      ],
+      "inverted_top10": [
+        6651,
+        6660,
+        6628,
+        6629,
+        6650,
+        5790,
+        5804,
+        5811,
+        5637,
+        5791
+      ]
+    },
+    "top10_delta_pct": 20
+  },
+  {
+    "query": "bố thắng",
+    "before": {
+      "label": "bố thắng",
+      "candidate_recall_pct": 97.3,
+      "top1_pct": 0,
+      "top3_pct": 0,
+      "top10_pct": 60,
+      "top20_pct": 45,
+      "latency_ms": 161.22,
+      "ranking_ms": 135.48,
+      "legacy_top10": [
+        4691,
+        4692,
+        4693,
+        4694,
+        4689,
+        4690,
+        2997,
+        4285,
+        4726,
+        4733
+      ],
+      "inverted_top10": [
+        389,
+        390,
+        4472,
+        4689,
+        4690,
+        4691,
+        4692,
+        4693,
+        4694,
+        4730
+      ]
+    },
+    "after": {
+      "label": "bố thắng",
+      "candidate_recall_pct": 97.3,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 95,
+      "latency_ms": 57.97,
+      "ranking_ms": 28.65,
+      "legacy_top10": [
+        4691,
+        4692,
+        4693,
+        4694,
+        4689,
+        4690,
+        2997,
+        4285,
+        4726,
+        4733
+      ],
+      "inverted_top10": [
+        4691,
+        4692,
+        4693,
+        4694,
+        4689,
+        4690,
+        2997,
+        4285,
+        4726,
+        4733
+      ]
+    },
+    "top10_delta_pct": 40
+  },
+  {
+    "query": "04465-0D140",
+    "before": {
+      "label": "04465-0D140",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 7.01,
+      "ranking_ms": 0,
+      "legacy_top10": [],
+      "inverted_top10": []
+    },
+    "after": {
+      "label": "04465-0D140",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 7.52,
+      "ranking_ms": 0,
+      "legacy_top10": [],
+      "inverted_top10": []
+    },
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "brake pad",
+    "before": {
+      "label": "brake pad",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 48.13,
+      "ranking_ms": 35.33,
+      "legacy_top10": [],
+      "inverted_top10": [
+        437,
+        603,
+        604,
+        605,
+        606,
+        698,
+        703,
+        704,
+        1476,
+        1477
+      ]
+    },
+    "after": {
+      "label": "brake pad",
+      "candidate_recall_pct": 100,
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "latency_ms": 34.14,
+      "ranking_ms": 12.27,
+      "legacy_top10": [],
+      "inverted_top10": [
+        603,
+        1478,
+        1562,
+        1639,
+        4775,
+        5804,
+        5811,
+        5818,
+        7071,
+        604
+      ]
+    },
+    "top10_delta_pct": 0
+  }
+]

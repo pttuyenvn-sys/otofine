@@ -8,6 +8,7 @@ import {
 import { syncProductListViewByProductId } from "../services/productListViewSync.service.js";
 import { queueUpsertProductInTypesense } from "../services/typesenseRealtimeSync.service.js";
 import { invalidateListCache } from "../services/listCache.service.js";
+import { replaceProductCarApplications } from "../modules/products/services/productFitmentPrimary.server.js";
 import {
   importImagesBatch,
   processSingleImage,
@@ -303,6 +304,7 @@ export const getProductCars = async (req, res) => {
       FROM product_car_applications pca
       JOIN car_models acm ON pca.carModelId = acm.id
       WHERE pca.productId = ?
+      ORDER BY pca.is_primary DESC, pca.id ASC
     `,
       [productId],
     );
@@ -357,24 +359,12 @@ export const addProduct = async (req, res) => {
 
     // 🔥 LƯU cars + attribute + cc
     if (data.cars && data.cars.length > 0) {
-      // xóa mapping cũ (nếu update)
-      await pool.query(
-        "DELETE FROM product_car_applications WHERE productId = ?",
-        [productId],
-      );
+      await replaceProductCarApplications(pool, productId, data.cars);
 
       for (const c of data.cars) {
         const { carModelId, year_from, year_to } = c;
 
-        // 1. mapping product ↔ car
-        await pool.query(
-          `INSERT INTO product_car_applications
-       (productId, carModelId, year_from, year_to)
-       VALUES (?, ?, ?, ?)`,
-          [productId, carModelId, year_from, year_to],
-        );
-
-        // 2. attribute
+        // attribute
         const attributeMap = {
           dong_co: 1,
           hop_so: 2,

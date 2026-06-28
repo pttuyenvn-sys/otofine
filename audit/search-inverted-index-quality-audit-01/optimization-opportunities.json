@@ -1,0 +1,105 @@
+[
+  {
+    "rank": 1,
+    "cause": "PHRASE n-gram combinatorics (n=2..4) on title + vehicle per fitment row",
+    "est_reduction_pct": 30,
+    "tokens": 790
+  },
+  {
+    "rank": 2,
+    "cause": "Replay of search_tokens + normalized_tokens + synonym_tokens columns",
+    "est_reduction_pct": 22,
+    "tokens": 29454
+  },
+  {
+    "rank": 3,
+    "cause": "Multi-fitment duplication: N fitment rows re-emit shared title/OEM/category",
+    "est_reduction_pct": 15
+  },
+  {
+    "rank": 4,
+    "cause": "Cross-type duplication (same string as WORD+PHRASE+SYNONYM)",
+    "est_reduction_pct": 8,
+    "tokens": 50
+  },
+  {
+    "rank": 5,
+    "cause": "SEO alias → SYNONYM + WORD via addTextTokens",
+    "est_reduction_pct": 4
+  },
+  {
+    "rank": 6,
+    "cause": "Brand/model slug + name + primary_* triple emit",
+    "est_reduction_pct": 4
+  },
+  {
+    "rank": 7,
+    "cause": "Location as LOCATION + WORD",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 8,
+    "cause": "OEM triple (raw, normalized, part_number_norm)",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 9,
+    "cause": "Year quad emit (year_from/to, primary_year_from/to)",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 10,
+    "cause": "Category name + slug both indexed",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 11,
+    "cause": "search_keywords WORD tokenization on long meta strings",
+    "est_reduction_pct": 3
+  },
+  {
+    "rank": 12,
+    "cause": "vehicle_label PHRASE on redundant fitment text",
+    "est_reduction_pct": 5
+  },
+  {
+    "rank": 13,
+    "cause": "Low-value PHRASE tokens (4+ words rare but stored)",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 14,
+    "cause": "Synonym graph symmetric expansion inflates synonym_tokens column",
+    "est_reduction_pct": 4
+  },
+  {
+    "rank": 15,
+    "cause": "Generic WORD tokens (e.g. phu, tung) with high document frequency",
+    "est_reduction_pct": 3
+  },
+  {
+    "rank": 16,
+    "cause": "No stopword filtering",
+    "est_reduction_pct": 2
+  },
+  {
+    "rank": 17,
+    "cause": "No minimum selectivity threshold for PHRASE indexing",
+    "est_reduction_pct": 3
+  },
+  {
+    "rank": 18,
+    "cause": "Per-fitment YEAR/BRAND/MODEL when product-level would suffice",
+    "est_reduction_pct": 4
+  },
+  {
+    "rank": 19,
+    "cause": "Index row iteration without product-level dedup before tokenize",
+    "est_reduction_pct": 10
+  },
+  {
+    "rank": 20,
+    "cause": "Missing corpus-wide token frequency cap (hub tokens)",
+    "est_reduction_pct": 2
+  }
+]

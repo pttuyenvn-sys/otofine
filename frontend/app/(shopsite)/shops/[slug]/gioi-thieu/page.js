@@ -3,23 +3,29 @@ import ShopSection from "@/components/shopsite/ShopSection";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 import ShopRichContentRenderer from "@/components/shopsite/ShopRichContentRenderer";
 import ShopIntroClamp from "@/components/shopsite/ShopIntroClamp";
+import ShopTenantJsonLd from "@/components/shopsite/ShopTenantJsonLd";
 import ShopImage from "@/components/shopsite/ShopImage";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
   fetchPublicShopProductsSafe,
-  getShopCanonicalUrl,
+  getShopSeoContext,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
+  const [shop, seo] = await Promise.all([
     fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, "gioi-thieu"),
+    getShopSeoContext(slug, "gioi-thieu"),
   ]);
-  return buildShopMetadata({ shop, page: { subtitle: "Giới thiệu" }, canonical });
+  return buildShopMetadata({
+    shop,
+    page: { subtitle: "Giới thiệu" },
+    canonical: seo.canonical,
+    apexDiscoveryMirror: seo.apexDiscoveryMirror,
+  });
 }
 
 export default async function ShopTenantAboutPage({ params }) {
@@ -52,7 +58,10 @@ export default async function ShopTenantAboutPage({ params }) {
   const aboutHero = visuals.aboutHero;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <>
+      <ShopTenantJsonLd slug={slug} subPath="gioi-thieu" shop={shop} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      <h1 className="sr-only">{`Giới thiệu ${shop.name}`}</h1>
       <div className="lg:col-span-8 space-y-3">
         <ShopSection title="Giới thiệu" bodyClassName="!p-0">
           {aboutHero && (
@@ -106,6 +115,7 @@ export default async function ShopTenantAboutPage({ params }) {
         <ShopContactCard shop={toContactShape(shop)} />
       </aside>
     </div>
+    </>
   );
 }
 

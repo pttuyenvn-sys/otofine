@@ -39,11 +39,12 @@ export function isPresentNonEmptyFilterString(value) {
 
 /**
  * @param {unknown} value
- * @returns {number | undefined}
+ * @returns {number | string | undefined}
  */
 export function normalizeListFilterYear(value) {
   const v = cleanHttpQueryValue(value);
   if (v == null) return undefined;
+  if (/^(19|20)\d{2}-(19|20)\d{2}$/.test(v)) return v;
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) return undefined;
   return n;
@@ -93,7 +94,9 @@ export function listingQueryNeedsVehicleFitmentJoin(raw = {}) {
   return Boolean(
     n.brand ||
     n.model ||
-    (n.year != null && Number.isFinite(Number(n.year)))
+    (n.year != null &&
+      (Number.isFinite(Number(n.year)) ||
+        /^(19|20)\d{2}-(19|20)\d{2}$/.test(String(n.year)))),
   );
 }
 

@@ -5,12 +5,11 @@ const API_BASE =
 export async function getVehicleSeoPage(slug) {
     let apiSlug = slug;
 
-    // 🔥 strip prefix public SEO
-    if (apiSlug.startsWith("phu-tung-")) {
-        apiSlug = apiSlug.replace(
-            /^phu-tung-/,
-            ""
-        );
+    // Strip public SEO prefixes → apex API slug (toyota-vios)
+    if (apiSlug.startsWith("phu-tung-o-to-")) {
+        apiSlug = apiSlug.slice("phu-tung-o-to-".length);
+    } else if (apiSlug.startsWith("phu-tung-")) {
+        apiSlug = apiSlug.slice("phu-tung-".length);
     }
 
     const res = await fetch(

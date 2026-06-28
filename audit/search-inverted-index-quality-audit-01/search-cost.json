@@ -1,0 +1,134 @@
+{
+  "avg_postings_list_size": 20.75,
+  "max_postings": 50,
+  "min_postings": 1,
+  "top_tokens": [
+    {
+      "token": "091",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "091",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "1134",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "1134",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "1136",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "1136",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "1140",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "1140",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "1163",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "1163",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "1164",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "1164",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "11pt",
+      "token_type": "WORD",
+      "postings": 50
+    },
+    {
+      "token": "11pt",
+      "token_type": "SYNONYM",
+      "postings": 50
+    },
+    {
+      "token": "12pt",
+      "token_type": "WORD",
+      "postings": 50
+    }
+  ],
+  "bottom_tokens": [
+    {
+      "token": "2006 2012",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2011 2013",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2102004912",
+      "token_type": "WORD",
+      "postings": 1
+    },
+    {
+      "token": "2011 2012",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2011 2015",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2006",
+      "token_type": "YEAR",
+      "postings": 1
+    },
+    {
+      "token": "2013 2018",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2009 2014",
+      "token_type": "PHRASE",
+      "postings": 1
+    },
+    {
+      "token": "2006",
+      "token_type": "SYNONYM",
+      "postings": 1
+    },
+    {
+      "token": "2006",
+      "token_type": "WORD",
+      "postings": 1
+    }
+  ]
+}

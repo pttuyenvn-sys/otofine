@@ -3,8 +3,18 @@ import Link from "next/link";
 import { FiPhoneCall, FiTruck, FiShield, FiCheckCircle } from "react-icons/fi";
 import { formatPrice, generateCategoryBreadcrumb } from "@/lib/seo/categorySeoContent";
 import { buildProductSeoUrl } from "@/lib/seo/productSeoUrl";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 import "./seo-landing.css";
 import "./seo-article.css";
+
+function getDisplayTitle(product) {
+  return (
+    product.displayTitle ||
+    product.productIdentity?.h1 ||
+    "Sản phẩm"
+  );
+}
 
 /**
  * JSON-LD structured data component
@@ -332,8 +342,9 @@ export function CategorySeoContentWithProducts({
                   {product.imageUrl ? (
                     <img 
                       src={product.imageUrl} 
-                      alt={product.partName || product.shortDescription || 'Sản phẩm'}
+                      alt={buildProductImageAlt(product)}
                       loading="lazy"
+                      {...productImageDimensionProps({ src: product.imageUrl, layout: "square" })}
                     />
                   ) : (
                     <div className="product-image-placeholder">
@@ -343,7 +354,7 @@ export function CategorySeoContentWithProducts({
                 </div>
                 <div className="product-info">
                   <h3 className="product-name">
-                    {product.partName || product.shortDescription || 'Sản phẩm'}
+                    {getDisplayTitle(product)}
                   </h3>
                   {product.brand && (
                     <span className="product-brand">{product.brand}</span>

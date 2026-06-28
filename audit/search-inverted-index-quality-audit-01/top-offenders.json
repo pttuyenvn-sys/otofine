@@ -1,0 +1,837 @@
+[
+  {
+    "product_id": 161,
+    "title": "Bi tê Kia Rio 2011-2013",
+    "fitment_rows": 4,
+    "token_count": 651,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 332,
+      "YEAR": 2,
+      "PHRASE": 27,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 4,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 133,
+    "title": "Bát bắt cản trước, bên hông, trái Kia Carnival",
+    "fitment_rows": 1,
+    "token_count": 650,
+    "breakdown": {
+      "WORD": 284,
+      "SYNONYM": 339,
+      "OEM": 1,
+      "PHRASE": 21,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 159,
+    "title": "Bi tăng curoa tổng Kia Sedona 2013-2018",
+    "fitment_rows": 2,
+    "token_count": 649,
+    "breakdown": {
+      "WORD": 282,
+      "SYNONYM": 335,
+      "YEAR": 2,
+      "PHRASE": 23,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 2,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 130,
+    "title": "Bát bắt cản trước trên bên lái Kia Carnival",
+    "fitment_rows": 1,
+    "token_count": 648,
+    "breakdown": {
+      "WORD": 283,
+      "SYNONYM": 338,
+      "OEM": 1,
+      "PHRASE": 21,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 134,
+    "title": "Bát bèo giảm xóc trước Kia Sorento 2009-2012",
+    "fitment_rows": 1,
+    "token_count": 648,
+    "breakdown": {
+      "WORD": 282,
+      "SYNONYM": 337,
+      "YEAR": 2,
+      "PHRASE": 21,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 153,
+    "title": "Bi moay ơ trước Kia Forte 2008-2013",
+    "fitment_rows": 2,
+    "token_count": 648,
+    "breakdown": {
+      "WORD": 282,
+      "SYNONYM": 337,
+      "YEAR": 2,
+      "PHRASE": 20,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 2,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 116,
+    "title": "Bạc cao su tay đỡ giảm xóc sau Kia Sedona 2016",
+    "fitment_rows": 1,
+    "token_count": 646,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 333,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 27,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 117,
+    "title": "Bạc cao su tay đỡ giảm xóc sau Kia Sedona 2016",
+    "fitment_rows": 1,
+    "token_count": 646,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 333,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 27,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 147,
+    "title": "Bi bát bèo Kia Cerato 2010-2013",
+    "fitment_rows": 2,
+    "token_count": 645,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 335,
+      "YEAR": 2,
+      "PHRASE": 20,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 2,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 146,
+    "title": "Bi bát bèo Kia Forte 2010-2013",
+    "fitment_rows": 2,
+    "token_count": 645,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 335,
+      "YEAR": 2,
+      "PHRASE": 20,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 2,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 149,
+    "title": "Bi bát bèo trước Kia Rio 2011-2020",
+    "fitment_rows": 1,
+    "token_count": 643,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 336,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 154,
+    "title": "Bi moay ơ trước Kia Cerato 2008-2013",
+    "fitment_rows": 1,
+    "token_count": 641,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 337,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 115,
+    "title": "Bạc càng bánh sau Kia Sedona 2014-2020",
+    "fitment_rows": 1,
+    "token_count": 640,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 334,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 114,
+    "title": "Bạc càng bánh sau Kia Sedona 2014-2020",
+    "fitment_rows": 1,
+    "token_count": 640,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 334,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 156,
+    "title": "Bi moay ở trước Kia Cerato 2018-2021",
+    "fitment_rows": 1,
+    "token_count": 640,
+    "breakdown": {
+      "WORD": 281,
+      "SYNONYM": 336,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 138,
+    "title": "Bát bèo trước Kia Cerato 2008-2013",
+    "fitment_rows": 1,
+    "token_count": 639,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 336,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 110,
+    "title": "Bạc balie Kia Rio 2015",
+    "fitment_rows": 4,
+    "token_count": 639,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 331,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 18,
+      "CATEGORY": 2,
+      "MODEL": 4,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 137,
+    "title": "Bát bèo trước Kia Cerato 2018-2021",
+    "fitment_rows": 1,
+    "token_count": 638,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 335,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 122,
+    "title": "Bàn ép Kia Rio 2012-2018",
+    "fitment_rows": 3,
+    "token_count": 638,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 329,
+      "YEAR": 2,
+      "PHRASE": 22,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 3,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 121,
+    "title": "Bàn ép Kia Rio 2012-2018",
+    "fitment_rows": 3,
+    "token_count": 638,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 329,
+      "YEAR": 2,
+      "PHRASE": 22,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 3,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 145,
+    "title": "Bi bát bèo Kia Sorento 2009-2012",
+    "fitment_rows": 1,
+    "token_count": 638,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 335,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 148,
+    "title": "Bi bát bèo trước Kia Cerato 2019",
+    "fitment_rows": 1,
+    "token_count": 637,
+    "breakdown": {
+      "WORD": 280,
+      "SYNONYM": 335,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 15,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 126,
+    "title": "Bản lề capo trái Kia Carens 2006-2012",
+    "fitment_rows": 1,
+    "token_count": 636,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 332,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 119,
+    "title": "Bạc lót càng gạt bi tê Kia Morning",
+    "fitment_rows": 1,
+    "token_count": 636,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 333,
+      "PHRASE": 18,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "OEM": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 158,
+    "title": "Bi tăng curoa Kia Morning 2011-2017",
+    "fitment_rows": 1,
+    "token_count": 635,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 333,
+      "YEAR": 2,
+      "PHRASE": 15,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 112,
+    "title": "Bạc biên Kia Rio 2011-2012",
+    "fitment_rows": 2,
+    "token_count": 633,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 330,
+      "YEAR": 2,
+      "PHRASE": 17,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 2,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 155,
+    "title": "Bi moay ơ trước Kia Cerato 2017",
+    "fitment_rows": 1,
+    "token_count": 632,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 334,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 12,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 123,
+    "title": "Bàn ép Kia Carens 2008-2013",
+    "fitment_rows": 2,
+    "token_count": 632,
+    "breakdown": {
+      "WORD": 276,
+      "SYNONYM": 330,
+      "YEAR": 2,
+      "PHRASE": 17,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "MODEL": 2,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 118,
+    "title": "Bạc cao su trục cầu sau Kia Rio 2011-2017",
+    "fitment_rows": 1,
+    "token_count": 632,
+    "breakdown": {
+      "WORD": 273,
+      "SYNONYM": 327,
+      "YEAR": 2,
+      "PHRASE": 24,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 128,
+    "title": "Bánh bèo nhún trước Kia Sorento",
+    "fitment_rows": 1,
+    "token_count": 631,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 334,
+      "OEM": 1,
+      "PHRASE": 12,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 125,
+    "title": "Bàn ép Kia Morning 2011-2015",
+    "fitment_rows": 2,
+    "token_count": 631,
+    "breakdown": {
+      "WORD": 276,
+      "SYNONYM": 329,
+      "YEAR": 2,
+      "PHRASE": 17,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 2,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 141,
+    "title": "Bầu hơi trợ lực phanh Kia Cerato",
+    "fitment_rows": 1,
+    "token_count": 629,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 331,
+      "OEM": 1,
+      "PHRASE": 15,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 111,
+    "title": "Bạc balie Kia Morning 2011-2017",
+    "fitment_rows": 1,
+    "token_count": 628,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 331,
+      "YEAR": 2,
+      "PHRASE": 12,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 129,
+    "title": "Bánh đà Kia Sorento 2009-2014",
+    "fitment_rows": 1,
+    "token_count": 628,
+    "breakdown": {
+      "WORD": 277,
+      "SYNONYM": 331,
+      "YEAR": 2,
+      "PHRASE": 12,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 152,
+    "title": "Bi moay ơ trước Kia Sedona",
+    "fitment_rows": 1,
+    "token_count": 628,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 334,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 157,
+    "title": "Bi moay trước Kia Sportage",
+    "fitment_rows": 1,
+    "token_count": 628,
+    "breakdown": {
+      "WORD": 279,
+      "SYNONYM": 334,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 144,
+    "title": "Bầu lọc hơi xăng Kia Morning 2011-2017",
+    "fitment_rows": 1,
+    "token_count": 626,
+    "breakdown": {
+      "WORD": 273,
+      "SYNONYM": 327,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 136,
+    "title": "Bát bèo trước Kia Morning",
+    "fitment_rows": 1,
+    "token_count": 626,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 333,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 135,
+    "title": "Bát bèo trước Kia Sorento",
+    "fitment_rows": 1,
+    "token_count": 626,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 333,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 113,
+    "title": "Bạc biên Kia Morning 2011-2020",
+    "fitment_rows": 1,
+    "token_count": 626,
+    "breakdown": {
+      "WORD": 276,
+      "SYNONYM": 330,
+      "YEAR": 2,
+      "PHRASE": 12,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 142,
+    "title": "Bầu hơi xăng Kia Rio 2012",
+    "fitment_rows": 1,
+    "token_count": 625,
+    "breakdown": {
+      "WORD": 276,
+      "SYNONYM": 330,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 12,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 160,
+    "title": "Bi tăng tổng Kia Soluto",
+    "fitment_rows": 1,
+    "token_count": 625,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 332,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 150,
+    "title": "Bi moay ơ sau Kia Sedona",
+    "fitment_rows": 1,
+    "token_count": 625,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 332,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 151,
+    "title": "Bi moay ơ sau Kia Sedona",
+    "fitment_rows": 1,
+    "token_count": 625,
+    "breakdown": {
+      "WORD": 278,
+      "SYNONYM": 332,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 108,
+    "title": "Ăng ten đuôi cá Kia Sedona 2014-2020",
+    "fitment_rows": 1,
+    "token_count": 622,
+    "breakdown": {
+      "WORD": 271,
+      "SYNONYM": 325,
+      "YEAR": 2,
+      "PHRASE": 18,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 143,
+    "title": "Bầu lọc hơi xăng Kia K3 2015",
+    "fitment_rows": 1,
+    "token_count": 622,
+    "breakdown": {
+      "WORD": 273,
+      "SYNONYM": 327,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 15,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 124,
+    "title": "Bàn ép Kia Soluto 2019",
+    "fitment_rows": 1,
+    "token_count": 618,
+    "breakdown": {
+      "WORD": 274,
+      "SYNONYM": 328,
+      "YEAR": 1,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 140,
+    "title": "Bầu e gió Kia Carens",
+    "fitment_rows": 1,
+    "token_count": 616,
+    "breakdown": {
+      "WORD": 275,
+      "SYNONYM": 329,
+      "OEM": 1,
+      "CATEGORY": 2,
+      "PHRASE": 6,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 120,
+    "title": "Bàn ép Kia Sonet",
+    "fitment_rows": 1,
+    "token_count": 612,
+    "breakdown": {
+      "WORD": 273,
+      "SYNONYM": 327,
+      "OEM": 1,
+      "PHRASE": 6,
+      "CATEGORY": 2,
+      "BRAND": 1,
+      "MODEL": 1,
+      "LOCATION": 1
+    }
+  },
+  {
+    "product_id": 139,
+    "title": "Bầu bô e gió Kia Carnival",
+    "fitment_rows": 1,
+    "token_count": 611,
+    "breakdown": {
+      "WORD": 271,
+      "SYNONYM": 325,
+      "OEM": 1,
+      "PHRASE": 9,
+      "CATEGORY": 2,
+      "MODEL": 1,
+      "BRAND": 1,
+      "LOCATION": 1
+    }
+  }
+]

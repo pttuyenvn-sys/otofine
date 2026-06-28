@@ -1,13 +1,20 @@
 /**
- * Centralized public storefront visibility rules — Phase 3A Slice 2.
+ * Centralized product visibility — two surfaces:
  *
- * A product is publicly visible only when ALL of:
+ * STORE_VISIBILITY (listings, search, Typesense, shop subdomain):
  *   - moderation_status = 'approved' (when column exists)
  *   - product listing is active (when a status column exists)
- *   - shop.public_status = 'public' (active shop, not governance-suspended)
+ *   - optional stock > 0 (when stock column exists)
+ *   - shop.public_status = 'public'
  *
- * Rejected / draft / hidden / pending_review products must not appear on
- * public surfaces. Direct detail access for non-public products returns 404.
+ * PDP_VISIBILITY (marketplace product detail only — otofine.com/<slug>-<id>):
+ *   - moderation_status = 'approved'
+ *   - product listing is active
+ *   - not soft-deleted (seller_deleted_at / deleted_at when present)
+ *   - shop status is NOT consulted (closed shops keep archive PDPs live)
+ *
+ * Rejected / draft / deleted products return 404 on PDP and are excluded
+ * from store surfaces.
  */
 
 import { pool } from "../config/db.js";
@@ -36,6 +43,8 @@ async function resolveMeta() {
       );
       const productCols = new Set(rows.map((r) => String(r.COLUMN_NAME)));
       const hasModerationStatus = productCols.has("moderation_status");
+      const hasSellerDeletedAt = productCols.has("seller_deleted_at");
+      const hasDeletedAt = productCols.has("deleted_at");
 
       const statusCol = pc.physical.status;
       let productActiveSql = null;
@@ -47,7 +56,13 @@ async function resolveMeta() {
         }
       }
 
-      return { pc, hasModerationStatus, productActiveSql };
+      return {
+        pc,
+        hasModerationStatus,
+        hasSellerDeletedAt,
+        hasDeletedAt,
+        productActiveSql,
+      };
     })();
   }
   return metaCache;
@@ -100,11 +115,79 @@ export async function getProductPublicVisibilityClauses(
 }
 
 /**
- * Product-level visibility only (no shop gate). Use when the shop is
+ * PDP-only visibility clauses — no shop gate, no stock gate.
+ *
+ * @param {string} aliasP
+ * @returns {Promise<string[]>}
+ */
+export async function getPdpVisibilityClauses(aliasP = "p") {
+  try {
+    const meta = await resolveMeta();
+    const clauses = [];
+
+    if (meta.hasModerationStatus) {
+      clauses.push(
+        `TRIM(LOWER(${qual(aliasP, "moderation_status")})) = 'approved'`,
+      );
+    }
+
+    if (meta.productActiveSql) {
+      const statusCol = meta.pc.physical.status;
+      if (statusCol) {
+        if (["is_active", "is_published", "published"].includes(statusCol)) {
+          clauses.push(`${qual(aliasP, statusCol)} = 1`);
+        } else {
+          clauses.push(`${qual(aliasP, statusCol)} = 'active'`);
+        }
+      }
+    }
+
+    if (meta.hasSellerDeletedAt) {
+      clauses.push(`${qual(aliasP, "seller_deleted_at")} IS NULL`);
+    }
+
+    if (meta.hasDeletedAt) {
+      clauses.push(`${qual(aliasP, "deleted_at")} IS NULL`);
+    }
+
+    return clauses;
+  } catch (err) {
+    console.error(
+      "[productVisibility] failed to build PDP visibility clauses:",
+      err?.message || String(err),
+    );
+    return [];
+  }
+}
+
+/**
+ * Archive state when the owning shop is closed but PDP remains live.
+ *
+ * @param {string | null | undefined} publicStatus
+ * @returns {{ archived: boolean, sellerUnavailable: boolean }}
+ */
+export function resolvePdpArchiveState(publicStatus) {
+  const status = String(publicStatus ?? "")
+    .trim()
+    .toLowerCase();
+  const archived = status === "private" || status === "suspended";
+  return { archived, sellerUnavailable: archived };
+}
+
+/**
+ * Product-level store visibility only (no shop gate). Use when the shop is
  * already verified public or the query is scoped to a single shopId.
  */
 export async function getProductOnlyPublicVisibilitySql(aliasP = "p") {
   return getProductPublicVisibilitySql(aliasP, "s", { skipShopGate: true });
+}
+
+/**
+ * Returns an AND-prefixed SQL fragment for marketplace PDP queries.
+ */
+export async function getPdpVisibilitySql(aliasP = "p") {
+  const clauses = await getPdpVisibilityClauses(aliasP);
+  return clauses.length ? ` AND ${clauses.join(" AND ")} ` : "";
 }
 
 /**
@@ -173,7 +256,33 @@ export async function filterPublicProductIds(ids) {
 }
 
 /**
- * Returns true when the product id is publicly visible.
+ * Returns true when the product id is eligible for marketplace PDP.
+ */
+export async function isProductPdpVisible(productId) {
+  const id = Number(productId);
+  if (!Number.isFinite(id) || id <= 0) return false;
+
+  const meta = await resolveMeta();
+  const pc = meta.pc;
+  const clauses = await getPdpVisibilityClauses("p");
+  const where = [`${pc.idExpr("p")} = ?`, ...clauses].join(" AND ");
+
+  const [rows] = await pool.query(
+    `
+      SELECT 1 AS ok
+      FROM products p
+      INNER JOIN shops s ON ${pc.shopJoinOn("p", "s")}
+      WHERE ${where}
+      LIMIT 1
+    `,
+    [id],
+  );
+
+  return rows.length > 0;
+}
+
+/**
+ * Returns true when the product id is publicly visible on store surfaces.
  */
 export async function isProductPubliclyVisible(productId) {
   const id = Number(productId);

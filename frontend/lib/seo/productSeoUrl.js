@@ -1,3 +1,8 @@
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../identity/buildProductIdentity.js";
+
 /**
  * Product detail SEO-URL builder + parser.
  *
@@ -74,32 +79,24 @@ export function slugifyVi(text) {
   return s;
 }
 
-/**
- * Resolve a list of vehicle applications down to the most descriptive
- * primary fitment for slug generation. Heuristic, NOT business logic:
- *
- *   - Prefer rows with the most fields populated (brand + model + year).
- *   - Tiebreaker: pick the earliest-listed row (matches the order the
- *     API already returns — usually the seller-listed primary fitment).
- *   - Fields can come from either snake_case (raw API: hang_xe / ten_xe
- *     / year_from / year_to) or camelCase (product-list shape: brand /
- *     model / yearFrom / yearTo). Both supported.
- */
-function pickPrimaryCar(cars) {
-  if (!Array.isArray(cars) || cars.length === 0) return null;
-  const scored = cars.map((c, idx) => {
-    const brand = c?.brand ?? c?.hang_xe ?? "";
-    const model = c?.model ?? c?.ten_xe ?? "";
-    const yFrom = c?.yearFrom ?? c?.year_from ?? null;
-    const yTo = c?.yearTo ?? c?.year_to ?? null;
-    let score = 0;
-    if (brand && String(brand).trim()) score += 4;
-    if (model && String(model).trim()) score += 2;
-    if (yFrom != null && yFrom !== "") score += 1;
-    return { idx, brand, model, yFrom, yTo, score };
-  });
-  scored.sort((a, b) => (b.score - a.score) || (a.idx - b.idx));
-  return scored[0] || null;
+function resolvePrimaryFitmentFromInput(input) {
+  if (Array.isArray(input?.cars)) {
+    const row = pickPrimaryFitment(input.cars);
+    if (row) return row;
+  }
+  const brand = input?.hang_xe ?? input?.brand ?? "";
+  const model = input?.ten_xe ?? input?.model ?? "";
+  const yearFrom = input?.year_from ?? input?.yearFrom ?? null;
+  const yearTo = input?.year_to ?? input?.yearTo ?? null;
+  if (brand || model || yearFrom != null || yearTo != null) {
+    return {
+      hang_xe: brand,
+      ten_xe: model,
+      year_from: yearFrom,
+      year_to: yearTo,
+    };
+  }
+  return null;
 }
 
 /**
@@ -116,63 +113,19 @@ function pickPrimaryCar(cars) {
  */
 export function buildProductSeoSlug(input) {
   if (!input || typeof input !== "object") return "";
-
-  // Product name candidates, ordered by descriptiveness.
-  const nameRaw =
-    input.partName ||
-    input.name ||
-    input.title ||
-    input.shortDescription ||
-    "";
-  // The product-list API hands back `shortDescription` as HTML; the
-  // sanitizer-strip is intentionally cheap and safe (no DOMParser
-  // dependency on the server). Empty after strip → falls through.
-  const name = stripHtml(nameRaw).trim();
-
-  // Vehicle fitment — first prefer a `cars[]` array (richest), then
-  // any flat brand/model/year fields on the input itself (cards).
-  let car = pickPrimaryCar(input.cars);
-  if (!car) {
-    const flatBrand = input.brand || input.hang_xe || "";
-    const flatModel = input.model || input.ten_xe || "";
-    const flatFrom = input.yearFrom ?? input.year_from ?? null;
-    const flatTo = input.yearTo ?? input.year_to ?? null;
-    if (flatBrand || flatModel || flatFrom || flatTo) {
-      car = { brand: flatBrand, model: flatModel, yFrom: flatFrom, yTo: flatTo };
-    }
+  const id = input.id ?? input.productId ?? input.product_id ?? null;
+  if (id == null || id === "") return "";
+  const identity = buildProductIdentity(
+    input,
+    resolvePrimaryFitmentFromInput(input),
+  );
+  const path = String(identity.canonicalPath || "");
+  const suffix = `-${id}`;
+  if (path.startsWith("/p/")) return "";
+  if (path.startsWith("/") && path.endsWith(suffix)) {
+    return path.slice(1, -suffix.length);
   }
-
-  // OEM / part numbers like "23300-21010" or "96210A9000SWP" should
-  // collapse into a single alphanumeric token in the slug. If we left
-  // the dash in, slugifyVi would turn it into yet another separator
-  // and the URL would read like "…-2013-23300-21010-2913" — visually
-  // ambiguous with a year range or the trailing id. Stripping non-
-  // alphanumerics here keeps the OEM as a single readable token,
-  // matching SERP convention used by Shopee / Lazada / Tiki for
-  // technical part listings.
-  const partNumberRaw = input.partNumber || input.part_number || "";
-  const partNumber = String(partNumberRaw).replace(/[^A-Za-z0-9]+/g, "");
-
-  // Year segment: prefer yearFrom; if absent, yearTo; if both equal,
-  // single year. We deliberately do NOT emit "2014-2020" ranges here
-  // because dash-runs collide with the slug separator and force the
-  // slugifier to re-collapse them — the canonical handler treats
-  // either as equivalent for redirect anyway.
-  let yearPart = "";
-  if (car) {
-    const yf = car.yFrom != null && car.yFrom !== "" ? Number(car.yFrom) : null;
-    const yt = car.yTo != null && car.yTo !== "" ? Number(car.yTo) : null;
-    if (Number.isFinite(yf) && yf > 0) yearPart = String(yf);
-    else if (Number.isFinite(yt) && yt > 0) yearPart = String(yt);
-  }
-
-  const pieces = [name];
-  if (car?.brand) pieces.push(String(car.brand));
-  if (car?.model) pieces.push(String(car.model));
-  if (yearPart) pieces.push(yearPart);
-  if (partNumber) pieces.push(String(partNumber));
-
-  return slugifyVi(pieces.filter(Boolean).join(" "));
+  return path.startsWith("/") ? path.slice(1) : path;
 }
 
 /**
@@ -222,15 +175,6 @@ export function extractProductIdFromSeoSlug(slug) {
   if (!m) return null;
   const n = Number(m[1]);
   return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function stripHtml(html) {
-  if (!html) return "";
-  return String(html)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/\s+/g, " ");
 }
 
 /**
@@ -295,6 +239,8 @@ export function looksLikeProductSlug(slug) {
   const prefix = m[1];
   const idStr = m[2];
 
+  if (!/\d/.test(prefix)) return false;
+
   if (idStr.startsWith("0")) return false;
   const n = Number(idStr);
   if (!Number.isFinite(n) || n <= 0) return false;
@@ -304,6 +250,16 @@ export function looksLikeProductSlug(slug) {
   // product slugs reaching this state would carry a digit-bearing
   // partNumber or year fitment in the prefix.
   if (/^(19|20)\d{2}$/.test(idStr) && !/[0-9]/.test(prefix)) {
+    return false;
+  }
+
+  // Year-range listing guard: "can-truoc-kia-sedona-2014-2020" → trailing
+  // 2020 is an end-year, not a product id. Reject when the penultimate
+  // token is also a 4-digit year (…-YYYY-YYYY).
+  if (
+    /^(19|20)\d{2}$/.test(idStr) &&
+    /-(19|20)\d{2}$/.test(prefix)
+  ) {
     return false;
   }
 

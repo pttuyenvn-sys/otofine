@@ -1,5 +1,6 @@
 /**
- * H1 trang listing Home — dùng chung client + server (metadata).
+ * Listing tier classification for Home (SEO article sections, scroll keys).
+ * Visible H1 is owned by buildPageTitle() in listingSeoState.js — not here.
  *
  * Tier priority (highest → lowest):
  *   1 = part + car + year + city   "Má phanh Toyota Camry 2020 tại HCM"
@@ -60,46 +61,4 @@ export function classifyListingTier(state) {
   if (cat) return { tier: 5, label: "part_only" };
   if (hasCity) return { tier: 6, label: "city_only" };
   return { tier: 7, label: "homepage" };
-}
-
-/**
- * @param {{
- *   category?: string,
- *   brand?: string,
- *   model?: string,
- *   year?: string,
- *   location?: string,
- * }} state
- */
-export function buildHomePageTitle(state) {
-  const cat = (state.category || "").trim();
-  const { tier } = classifyListingTier(state);
-  const city = (state.location || "").trim();
-
-  const vehicleParts = [
-    state.brand,
-    state.model,
-    state.year != null && String(state.year).trim() !== "" ? String(state.year) : "",
-  ].filter((x) => x != null && String(x).trim() !== "");
-
-  const tail = vehicleParts;
-  const cityTail = city ? ` tại ${city}` : "";
-
-  switch (tier) {
-    case 1: // part + car + year + city
-      return `${cat} ${tail.join(" ")}${cityTail}`;
-    case 2: // part + car + year
-      return `${cat} ${tail.join(" ")}`;
-    case 3: // part + car
-      return [cat, ...tail].join(" ");
-    case 4: // car only
-      return `Phụ tùng ${tail.join(" ")}${cityTail}`;
-    case 5: // part only
-      return `${cat} ô tô${cityTail}`;
-    case 6: // city only
-      return `Phụ tùng ô tô tại ${city}`;
-    case 7: // homepage
-    default:
-      return "Phụ tùng ô tô chính hãng giá tốt";
-  }
 }

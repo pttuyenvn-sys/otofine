@@ -1,0 +1,224 @@
+{
+  "generatedAt": "2026-06-26T07:46:42.569Z",
+  "mysqlVersion": "8.0.44-0ubuntu0.22.04.2",
+  "testQuery": {
+    "query": "bugi",
+    "brand": "Toyota"
+  },
+  "plans": [
+    {
+      "label": "A_old_category_sql",
+      "elapsedMs": 910.36,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00365,
+        "usesMaterialize": false,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": true,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "A_old_preview_group_sql",
+      "elapsedMs": 913.99,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00402,
+        "usesMaterialize": false,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": true,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "A_old_product_count_group1",
+      "elapsedMs": 868.01,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00481,
+        "usesMaterialize": false,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": false,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "A_old_product_count_group2",
+      "elapsedMs": 861.57,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00495,
+        "usesMaterialize": false,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": false,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "A_old_product_count_group3",
+      "elapsedMs": 851.62,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.0043,
+        "usesMaterialize": false,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": false,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "A_old_product_select_group1",
+      "elapsedMs": 918.89,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00425,
+        "usesMaterialize": false,
+        "usesTempTable": true,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": false,
+        "nestedLoopCount": 6,
+        "countDistinct": false,
+        "distinctOp": false,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "B_new_unified_cte_sql",
+      "elapsedMs": 924.84,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.0193,
+        "usesMaterialize": true,
+        "usesTempTable": true,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": true,
+        "nestedLoopCount": 6,
+        "countDistinct": true,
+        "distinctOp": true,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "B_new_batch_preview_sql",
+      "elapsedMs": 885.76,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00928,
+        "usesMaterialize": true,
+        "usesTempTable": false,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": true,
+        "nestedLoopCount": 8,
+        "countDistinct": false,
+        "distinctOp": false,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    },
+    {
+      "label": "B_new_cte_matched_only",
+      "elapsedMs": 886.59,
+      "summary": {
+        "rowsExamined": null,
+        "lastActualMs": 0.00537,
+        "usesMaterialize": true,
+        "usesTempTable": true,
+        "usesFilesort": false,
+        "usesHashAggregate": false,
+        "usesSort": false,
+        "nestedLoopCount": 6,
+        "countDistinct": false,
+        "distinctOp": false,
+        "union": false,
+        "tableScanProducts": true,
+        "likeFilterLoops": 1
+      }
+    }
+  ],
+  "timings": [
+    {
+      "label": "old_category_sql",
+      "ms": 924
+    },
+    {
+      "label": "old_preview_group_sql",
+      "ms": 967
+    },
+    {
+      "label": "old_category_parallel_preview_group",
+      "ms": 1009
+    },
+    {
+      "label": "old_3x_count_plus_select_parallel",
+      "ms": 1984
+    },
+    {
+      "label": "new_unified_cte_sql",
+      "ms": 843
+    },
+    {
+      "label": "new_batch_preview_sql",
+      "ms": 916
+    },
+    {
+      "label": "new_both_sequential",
+      "ms": 1822
+    }
+  ],
+  "joinExpansion": [
+    {
+      "label": "full_join_rowcount",
+      "elapsedMs": 883.54,
+      "rowsReturned": 1
+    },
+    {
+      "label": "distinct_product_vehicle_category_tuples",
+      "elapsedMs": 911.21,
+      "rowsReturned": 1
+    }
+  ],
+  "cteMaterialized": true
+}

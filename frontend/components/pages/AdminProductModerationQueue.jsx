@@ -14,6 +14,8 @@ import ModerationQueueTabs from "@/components/moderation/ModerationQueueTabs";
 import ModerationFilters, { RISK_LEVELS, REJECT_REASON_LABELS, RISK_FLAG_LABELS } from "@/components/moderation/ModerationFilters";
 import ProductReviewDrawer from "@/components/moderation/ProductReviewDrawer";
 import { prefetchModerationDetail } from "@/lib/moderation/moderationDetailCache";
+import { toThumb100 } from "@/lib/imageVariants";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 import styles from "./AdminProductModerationQueue.module.css";
 
 const QUEUE_STORAGE_KEY = "moderationQueueOrder";
@@ -165,9 +167,10 @@ function Thumbnail({ url, onClick }) {
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={url}
+          src={toThumb100(url)}
           alt=""
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          {...productImageDimensionProps({ src: toThumb100(url), layout: "thumb100" })}
         />
       ) : (
         <div style={{ fontSize: 12, opacity: 0.6 }}>No img</div>
@@ -202,7 +205,13 @@ function MultiThumbs({ images = [], onClick, compact = false }) {
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={u} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <img
+            src={toThumb100(u)}
+            alt=""
+            loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            {...productImageDimensionProps({ src: toThumb100(u), layout: "thumb100" })}
+          />
         </button>
       ))}
       {extra > 0 && (
@@ -246,7 +255,12 @@ function GalleryModal({ images = [], index = 0, onClose }) {
       <div style={{ width: "100%", maxWidth: 1000, background: "white", borderRadius: 12, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ position: "relative", background: "#111" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgs[i]} alt="" style={{ width: "100%", height: "80vh", objectFit: "contain", display: "block", background: "#000" }} />
+          <img
+            src={imgs[i]}
+            alt=""
+            style={{ width: "100%", height: "80vh", objectFit: "contain", display: "block", background: "#000" }}
+            {...productImageDimensionProps({ src: imgs[i], layout: "pdp-main" })}
+          />
           <button type="button" onClick={() => setI((s) => Math.max(0, s - 1))} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.8)", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer" }}>‹</button>
           <button type="button" onClick={() => setI((s) => Math.min(s + 1, imgs.length - 1))} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.8)", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer" }}>›</button>
           <button type="button" onClick={onClose} style={{ position: "absolute", right: 8, top: 8, background: "transparent", border: "none", fontSize: 20, color: "white", cursor: "pointer" }}>×</button>
@@ -255,7 +269,13 @@ function GalleryModal({ images = [], index = 0, onClose }) {
           {imgs.map((u, idx) => (
             <button key={idx} type="button" onClick={() => setI(idx)} style={{ border: i === idx ? "2px solid #059669" : "1px solid #e5e7eb", padding: 0, borderRadius: 6, overflow: "hidden" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u} alt="" loading="lazy" style={{ width: 80, height: 60, objectFit: "cover", display: "block" }} />
+              <img
+                src={u}
+                alt=""
+                loading="lazy"
+                style={{ width: 80, height: 60, objectFit: "cover", display: "block" }}
+                {...productImageDimensionProps({ src: u, layout: "thumb100" })}
+              />
             </button>
           ))}
         </div>
@@ -309,7 +329,12 @@ function ImagePreviewModal({ url, title, onClose }) {
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="" style={{ width: "100%", maxHeight: "70vh", objectFit: "contain", display: "block" }} />
+          <img
+            src={url}
+            alt=""
+            style={{ width: "100%", maxHeight: "70vh", objectFit: "contain", display: "block" }}
+            {...productImageDimensionProps({ src: url, layout: "pdp-main" })}
+          />
         </div>
       </div>
     </div>

@@ -10,6 +10,8 @@ import {
   pickProductThumb,
   formatProductCarLine,
 } from "../../products/sellerProductUi";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 
 export default function ProductMobileCard({
   product,
@@ -39,9 +41,12 @@ export default function ProductMobileCard({
   }, [editingStock]);
 
   const thumb = pickProductThumb(product);
+  const thumbDim = productImageDimensionProps({ src: thumb, layout: "thumb100" });
   const price = Number(product.price || 0);
   const stock = localStock;
   const fitmentLine = formatProductCarLine(product);
+  const displayTitle =
+    product.displayTitle || product.productIdentity?.h1 || "Sản phẩm";
   const isRejected = product.sellerLifecycle === "rejected";
   const resubmitting = resubmittingId === product.id;
 
@@ -78,7 +83,7 @@ export default function ProductMobileCard({
           type="checkbox"
           checked={selected}
           onChange={() => onSelectToggle(product.id)}
-          aria-label={`Chọn ${product.partName || product.partNumber}`}
+          aria-label={`Chọn ${displayTitle}`}
           className="seller-dash-mobile-check"
         />
 
@@ -91,8 +96,9 @@ export default function ProductMobileCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={thumb || FALLBACK_PRODUCT_IMG}
-            alt=""
+            alt={buildProductImageAlt(product)}
             loading="lazy"
+            {...thumbDim}
             onError={(e) => {
               if (e.currentTarget.src !== FALLBACK_PRODUCT_IMG) {
                 e.currentTarget.src = FALLBACK_PRODUCT_IMG;
@@ -103,7 +109,7 @@ export default function ProductMobileCard({
 
         <div className="seller-dash-mobile-content">
           <button type="button" onClick={() => onEdit(product)} className="seller-dash-mobile-title-btn">
-            <span className="seller-dash-mobile-title">{product.partName || product.partNumber || "Sản phẩm"}</span>
+            <span className="seller-dash-mobile-title">{displayTitle}</span>
           </button>
 
           <div className="seller-dash-mobile-meta">

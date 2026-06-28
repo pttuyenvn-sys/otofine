@@ -1,7 +1,12 @@
 import Typesense from "typesense";
 import { pool } from "../config/db.js";
 import * as cardRepo from "../repositories/productCard.repository.js";
-import { normalizeText } from "../repositories/productList.repository.js";
+import {
+  buildKeywordRelevanceOrderSql,
+  formatKeywordRelevanceOrderPrefix,
+  normalizeSearchText,
+  scoreKeywordRelevance,
+} from "../utils/keywordRelevanceRanking.js";
 import { stripHtml, formatVND } from "../utils/textFormat.js";
 import { buildProductCardHighlights } from "../utils/productCardSubtitle.js";
 import { legacySlugForId } from "../utils/productSlug.js";
@@ -14,6 +19,14 @@ import {
   normalizeListFilterYear,
   normalizePartNumber,
 } from "../utils/listingQueryNormalize.js";
+import {
+  attachCanonicalFieldsFromMap,
+  loadPrimaryFitmentCarsByProductIds,
+} from "../modules/products/services/canonicalPath.server.js";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../../frontend/lib/identity/buildProductIdentity.js";
 
 const COLLECTION =
   process.env.TYPESENSE_PRODUCT_COLLECTION || "otofine_products";
@@ -99,7 +112,7 @@ async function mysqlSearchIds(opts) {
   }
 
   const normalizedQ = normalizePartNumber(q);
-  const words = normalizeText(q)
+  const words = normalizeSearchText(q)
     .split(/\s+/)
     .filter(Boolean);
   let where = ` WHERE 1=1 ${vis.sql} `;
@@ -161,7 +174,7 @@ async function mysqlSearchIds(opts) {
     where += ` AND s.provinceId = ? `;
     params.push(cityId);
   } else if (cityName) {
-    const cityFolded = normalizeText(cityName);
+    const cityFolded = normalizeSearchText(cityName);
     const citySlug = cityFolded.replace(/\s+/g, "-");
     where += ` AND (
       a.tinh_tp_norm = ?
@@ -178,8 +191,17 @@ async function mysqlSearchIds(opts) {
     params.push(filterCategory);
   }
 
-  const kw = normalizeText(q);
-  const likePN = `%${kw}%`;
+  const relevanceCase = buildKeywordRelevanceOrderSql({
+    titleExpr: "p.partName",
+    partNumberExpr: "p.partNumber",
+    shortDescExpr: "COALESCE(p.shortDescription,'')",
+    descExpr: "COALESCE(p.description,'')",
+    query: q,
+  });
+  const relevanceOrder = formatKeywordRelevanceOrderPrefix(relevanceCase, true);
+
+  const pc = await getProductsColumnsResolved();
+  const ord = pc.orderExprQualified("p");
 
   const [[countRow]] = await pool.query(
     `
@@ -197,10 +219,7 @@ async function mysqlSearchIds(opts) {
 
   const found = Number(countRow?.c) || 0;
 
-  const pc = await getProductsColumnsResolved();
-  const ord = pc.orderExprQualified("p");
-
-  const orderParams = [...params, likePN, likePN, normalizedQ, perPage, offset];
+  const orderParams = [...params, perPage, offset];
   const [rows] = await pool.query(
     `
     SELECT p.id
@@ -209,9 +228,7 @@ async function mysqlSearchIds(opts) {
     ${where}
     GROUP BY p.id
     ORDER BY
-      MIN(CASE WHEN REPLACE(REPLACE(LOWER(p.partNumber), '-', ''), ' ', '') = ? THEN 0 ELSE 1 END),
-      MIN(CASE WHEN LOWER(p.partNumber) LIKE ? THEN 0 ELSE 1 END),
-      MIN(CASE WHEN LOWER(p.partName) LIKE ? THEN 0 ELSE 1 END),
+      ${relevanceOrder}
       MAX(${ord}) DESC
     LIMIT ? OFFSET ?
     `,
@@ -372,6 +389,12 @@ export async function hydrateProductsByIds(ids) {
 }
 
 export async function searchProductsPublic(opts) {
+  const { getSearchRuntime } = await import("./search/runtime/searchRuntime.js");
+  const { isSearchIndexRuntime, isSearchInvertedRuntime } = await import("../config/searchRuntimeConfig.js");
+  if (isSearchIndexRuntime() || isSearchInvertedRuntime()) {
+    return getSearchRuntime().searchProducts(opts);
+  }
+
   const perPage = Math.min(100, Math.max(1, Number(opts.perPage) || 16));
   const pageNum = Math.max(1, Number(opts.page) || 1);
   const { ids, found, source } = await searchProductIds({
@@ -390,11 +413,22 @@ export async function searchProductsPublic(opts) {
     };
   }
   const hydrated = await cardRepo.hydrateHomeCardsByIdsInOrder(ids);
+  const fitmentMap = await loadPrimaryFitmentCarsByProductIds(pool, ids);
 
   const data = hydrated.map((row) => {
     const shortDescription = stripHtml(row.shortDescription);
+    const primaryFitment = pickPrimaryFitment(fitmentMap.get(Number(row.id)) || []);
+    const identity = buildProductIdentity(
+      {
+        id: row.id,
+        partName: row.partName,
+        partNumber: row.partNumber,
+      },
+      primaryFitment,
+    );
+    const displayTitle = identity.h1;
     const sub = buildProductCardHighlights({
-      productTitle: shortDescription,
+      productTitle: displayTitle,
       partNumber: row.partNumber,
       partName: row.partName,
       origin: row.origin,
@@ -404,25 +438,51 @@ export async function searchProductsPublic(opts) {
       stock: row.stock,
       updatedAt: row.updatedAt,
     });
-    return {
-      id: row.id,
-      slug: row.slug,
-      legacySlug: legacySlugForId(row.id),
-      partNumber: row.partNumber,
-      partName: row.partName,
-      shortDescription,
-      priceText: formatVND(row.price),
-      summary: sub.summary,
-      cardHighlights: sub.cardHighlights,
-      subtitleLine1: sub.subtitleLine1,
-      subtitleLine2: sub.subtitleLine2,
-      image: normalizeThumbnailUrl(row.thumbRaw),
-      origin: row.origin,
-      shopName: row.shopName,
-      provinceName: row.provinceName,
-      phone: row.phone,
-    };
+    return attachCanonicalFieldsFromMap(
+      {
+        id: row.id,
+        slug: row.slug,
+        legacySlug: legacySlugForId(row.id),
+        partNumber: row.partNumber,
+        partName: row.partName,
+        shortDescription,
+        displayTitle,
+        priceText: formatVND(row.price),
+        summary: sub.summary,
+        cardHighlights: sub.cardHighlights,
+        subtitleLine1: sub.subtitleLine1,
+        subtitleLine2: sub.subtitleLine2,
+        image: normalizeThumbnailUrl(row.thumbRaw),
+        origin: row.origin,
+        shopName: row.shopName,
+        provinceName: row.provinceName,
+        phone: row.phone,
+      },
+      fitmentMap,
+    );
   });
+
+  const q = String(opts.q || "").trim();
+  if (q) {
+    data.sort((a, b) => {
+      const sa = scoreKeywordRelevance({
+        title: a.partName || a.displayTitle || "",
+        partNumber: a.partNumber || "",
+        shortDescription: a.shortDescription || "",
+        description: "",
+        query: q,
+      });
+      const sb = scoreKeywordRelevance({
+        title: b.partName || b.displayTitle || "",
+        partNumber: b.partNumber || "",
+        shortDescription: b.shortDescription || "",
+        description: "",
+        query: q,
+      });
+      if (sa !== sb) return sa - sb;
+      return 0;
+    });
+  }
 
   const total = Math.max(0, Number(found) || 0);
   const totalPages = Math.max(1, Math.ceil(total / perPage));

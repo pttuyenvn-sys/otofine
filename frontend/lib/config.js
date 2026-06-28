@@ -2,8 +2,8 @@ const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 const publicBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
 
 /**
- * Origin của backend (ảnh /uploads, URL tuyệt đối). Chỉ cần khi dùng proxy /api.
- * Mặc định trùng cổng Express local.
+ * Origin của backend (ảnh /uploads, URL tuyệt đối). Luôn public-facing —
+ * browser dùng ghép /uploads, không dùng loopback.
  */
 const publicOrigin = (process.env.NEXT_PUBLIC_API_ORIGIN || "").trim().replace(/\/$/, "");
 
@@ -21,7 +21,23 @@ function apiBaseFromOrigin(value) {
   return /\/api$/i.test(raw) ? raw : `${raw}/api`;
 }
 
+/**
+ * SHOP-INTERNAL-API-01 — SSR / RSC / route handlers.
+ * Ưu tiên loopback để tránh SSR đi qua public edge (429).
+ */
 function serverApiBase() {
+  const fromInternal = apiBaseFromOrigin(internalOrigin);
+  if (fromInternal) return fromInternal;
+
+  const fromPublicUrl = apiBaseFromOrigin(publicApiUrl);
+  if (fromPublicUrl) return fromPublicUrl;
+  if (publicBase) return publicBase;
+
+  return "http://127.0.0.1:5000/api";
+}
+
+/** Browser / client components — giữ public API URL. */
+function clientApiBase() {
   const fromPublicUrl = apiBaseFromOrigin(publicApiUrl);
   if (fromPublicUrl) return fromPublicUrl;
   if (publicBase) return publicBase;
@@ -29,10 +45,12 @@ function serverApiBase() {
 }
 
 /**
- * Base URL gọi REST. Ưu tiên NEXT_PUBLIC_API_URL để browser gọi thẳng
- * backend Express thay vì đi qua Next route/proxy.
+ * Base URL gọi REST.
+ * - Server: internal origin (127.0.0.1:5000 mặc định)
+ * - Client: NEXT_PUBLIC_API_URL
  */
-export const API_BASE = serverApiBase();
+export const API_BASE =
+  typeof window === "undefined" ? serverApiBase() : clientApiBase();
 
 /** Origin không có suffix /api — dùng ghép path tĩnh (/uploads/...). */
 export const API_ORIGIN = (() => {

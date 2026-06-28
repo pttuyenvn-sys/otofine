@@ -1,5 +1,10 @@
 import * as cardRepo from "../repositories/productCard.repository.js";
 import * as plvRepo from "../repositories/productListView.repository.js";
+import { pool } from "../config/db.js";
+import {
+  attachCanonicalFieldsFromMap,
+  loadPrimaryFitmentCarsByProductIds,
+} from "../modules/products/services/canonicalPath.server.js";
 import { normalizeText } from "../repositories/productList.repository.js";
 import {
   cleanHttpQueryValue,
@@ -191,7 +196,15 @@ async function loadCardRows({
   const slice = hasMore ? rows.slice(0, limit) : rows;
 
   const mapper = embedHome ? mapRowToHomeListItem : mapRowToCard;
-  const data = slice.map(mapper);
+  let data = slice.map(mapper);
+
+  if (embedHome && data.length) {
+    const fitmentMap = await loadPrimaryFitmentCarsByProductIds(
+      pool,
+      data.map((item) => item.id),
+    );
+    data = data.map((item) => attachCanonicalFieldsFromMap(item, fitmentMap));
+  }
 
   let nextCursor = null;
   if (hasMore && slice.length) {

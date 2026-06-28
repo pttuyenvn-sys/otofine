@@ -36,12 +36,23 @@ import { useShopFilterParams } from "@/lib/shopsite/useShopFilterParams";
 export default function ShopMobileCategories({
   categories = [],
   basePath = "",
+  shopBasePath = "",
+  shopSlug = "",
+  fitments = null,
+  entity = null,
   className = "",
 }) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef(null);
-  const { params, setParam, clearAll } = useShopFilterParams({ basePath });
-  const activeSlug = params.category || "";
+  const { readFilters, navigateSeoFilters, clearAll } = useShopFilterParams({
+    basePath,
+    shopBasePath,
+    shopSlug,
+    categories,
+    fitments,
+    entity,
+  });
+  const activeSlug = readFilters.category || "";
   const activeCat = categories.find((c) => c.slug === activeSlug);
 
   useEffect(() => {
@@ -59,7 +70,7 @@ export default function ShopMobileCategories({
   }, [open]);
 
   const handlePick = (slug) => {
-    setParam("category", slug || null);
+    void navigateSeoFilters({ category: slug || null });
     setOpen(false);
   };
 

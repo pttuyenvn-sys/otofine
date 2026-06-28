@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-06-26T08:45:56.073Z",
+  "qualityGateThreshold": 85,
+  "strictParity": {
+    "byCase": {
+      "bugi toyota": {
+        "latencyMs": {
+          "p50": 2759,
+          "p95": 2883,
+          "avg": 2748
+        },
+        "lastProvider": "like-fallback"
+      },
+      "bugi": {
+        "latencyMs": {
+          "p50": 2710,
+          "p95": 3004,
+          "avg": 2767
+        },
+        "lastProvider": "like-fallback"
+      },
+      "má phanh vios": {
+        "latencyMs": {
+          "p50": 1431,
+          "p95": 1537,
+          "avg": 1442
+        },
+        "lastProvider": "structured+fulltext"
+      },
+      "lọc dầu mazda": {
+        "latencyMs": {
+          "p50": 2823,
+          "p95": 3016,
+          "avg": 2870
+        },
+        "lastProvider": "like-fallback"
+      },
+      "đèn hậu kia": {
+        "latencyMs": {
+          "p50": 4148,
+          "p95": 4700,
+          "avg": 4208
+        },
+        "lastProvider": "like-fallback"
+      },
+      "04465-0D140": {
+        "latencyMs": {
+          "p50": 959,
+          "p95": 998,
+          "avg": 966
+        },
+        "lastProvider": "like-fallback"
+      }
+    },
+    "usage": {
+      "fulltextPct": 17,
+      "likePct": 83,
+      "exactPct": 0
+    }
+  },
+  "qualityGate": {
+    "byCase": {
+      "bugi toyota": {
+        "latencyMs": {
+          "p50": 204,
+          "p95": 221,
+          "avg": 207
+        },
+        "lastProvider": "structured+fulltext"
+      },
+      "bugi": {
+        "latencyMs": {
+          "p50": 2651,
+          "p95": 2880,
+          "avg": 2692
+        },
+        "lastProvider": "like-fallback"
+      },
+      "má phanh vios": {
+        "latencyMs": {
+          "p50": 262,
+          "p95": 335,
+          "avg": 273
+        },
+        "lastProvider": "structured+fulltext"
+      },
+      "lọc dầu mazda": {
+        "latencyMs": {
+          "p50": 1904,
+          "p95": 2193,
+          "avg": 1951
+        },
+        "lastProvider": "like-fallback"
+      },
+      "đèn hậu kia": {
+        "latencyMs": {
+          "p50": 3996,
+          "p95": 4113,
+          "avg": 3996
+        },
+        "lastProvider": "like-fallback"
+      },
+      "04465-0D140": {
+        "latencyMs": {
+          "p50": 900,
+          "p95": 949,
+          "avg": 912
+        },
+        "lastProvider": "like-fallback"
+      }
+    },
+    "usage": {
+      "fulltextPct": 33,
+      "likePct": 67,
+      "exactPct": 0
+    }
+  }
+}

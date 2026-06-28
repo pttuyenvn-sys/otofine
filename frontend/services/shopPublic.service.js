@@ -10,6 +10,7 @@
 import { headers } from "next/headers";
 import { API_BASE } from "@/lib/config";
 import { isShopSubdomainHost } from "@/lib/shopHost";
+import { buildShopStorefrontUrl } from "@/lib/shopsite/buildShopStorefrontUrl";
 
 const REVALIDATE_SECONDS = 60;
 
@@ -114,7 +115,7 @@ export async function fetchPublicShopFitmentsSafe(slug) {
     return await fetchPublicShopFitments(slug);
   } catch (err) {
     console.warn("[shopPublic.service] fitments fallback", { slug, err: err?.message });
-    return { brands: [], modelsByBrand: {}, years: [] };
+    return { brands: [], modelsByBrand: {}, years: [], vehicleYearRanges: [] };
   }
 }
 
@@ -219,30 +220,57 @@ export async function getShopBasePath(slug) {
 }
 
 /**
- * Compute the self-canonical URL for a shop subpage.
- *
- * Rules (Phase 4 SEO contract):
- *   - On a real shop subdomain (`cuahangoto355.otofine.com`) the
- *     canonical points to the subdomain version of the page.
- *     `cuahangoto355.otofine.com/san-pham`.
- *   - When the page is reached via apex `/shops/<slug>/<sub>` the
- *     canonical points back to the apex URL — we treat that as the
- *     authoritative version for cross-linked discovery.
- *   - We still keep robots = noindex,nofollow until Phase 5 flips it
- *     on. The canonical is harmless under noindex but ensures we have
- *     ZERO duplicate canonical surface ready for go-live.
+ * True when the active request arrived on a shop subdomain for `slug`.
+ * Server-only — calls `next/headers`.
+ */
+export async function isShopSubdomainRequest(slug) {
+  const hostHeader = (await headers()).get("host") || "";
+  return isShopSubdomainHost(hostHeader, slug);
+}
+
+/**
+ * Canonical URL + robots mirror flag for a shop subpage.
  *
  * `subPath` is the path BELOW the slug, e.g. "" / "san-pham" / "gioi-thieu" / "lien-he".
  */
-export async function getShopCanonicalUrl(slug, subPath = "") {
+export async function getShopSeoContext(slug, subPath = "") {
   const h = await headers();
   const hostHeader = h.get("host") || "";
   const proto = h.get("x-forwarded-proto") || "https";
   const onSubdomain = isShopSubdomainHost(hostHeader, slug);
-  const cleanedHostHeader = hostHeader.replace(/:\d+$/, "");
-  const sub = subPath ? `/${subPath.replace(/^\//, "").replace(/\/$/, "")}` : "";
+  const cleanedSubPath = String(subPath || "")
+    .replace(/^\//, "")
+    .replace(/\/$/, "");
+
+  let canonical;
   if (onSubdomain) {
-    return `${proto}://${cleanedHostHeader}${sub || "/"}`;
+    const sub = cleanedSubPath ? `/${cleanedSubPath}` : "";
+    const cleanedHostHeader = hostHeader.replace(/:\d+$/, "");
+    canonical = `${proto}://${cleanedHostHeader}${sub || "/"}`;
+  } else {
+    const storefrontUrl = buildShopStorefrontUrl(slug, { subPath: cleanedSubPath });
+    const sub = cleanedSubPath ? `/${cleanedSubPath}` : "";
+    canonical =
+      storefrontUrl || `https://otofine.com/shops/${slug}${sub}`;
   }
-  return `https://otofine.com/shops/${slug}${sub}`;
+
+  return {
+    canonical,
+    apexDiscoveryMirror: !onSubdomain,
+  };
+}
+
+/**
+ * Compute the canonical URL for a shop subpage.
+ *
+ * Rules (ARCH-06.2B):
+ *   - Subdomain request → self canonical on `{slug}.otofine.com`.
+ *   - Apex `/shops/<slug>` mirror → canonical on subdomain via
+ *     `buildShopStorefrontUrl()` (single storefront owner).
+ *
+ * `subPath` is the path BELOW the slug, e.g. "" / "san-pham" / "gioi-thieu" / "lien-he".
+ */
+export async function getShopCanonicalUrl(slug, subPath = "") {
+  const { canonical } = await getShopSeoContext(slug, subPath);
+  return canonical;
 }

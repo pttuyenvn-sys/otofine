@@ -21,6 +21,7 @@ import filterRoutes from "./routes/filter.routes.js";
 import locationRoutes from "./routes/location.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import productCategoryRoutes from "./routes/productCategory.routes.js";
+import searchRoutes from "./routes/search.routes.js";
 import { getPopularCategories } from "./controllers/category.controller.js";
 import productListRoutes from "./routes/productList.routes.js";
 import { getProductList as getPublicProducts } from "./services/productList.service.js";
@@ -53,6 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 
 import pushRoutes from "./routes/push.routes.js";
 import { platformRouter, rbacRouter, enforcementRouter } from "./modules/admin/index.js";
+import seoAdminRouter from "./modules/admin/seo/routes/seo.admin.routes.js";
 app.use("/api/push", pushRoutes);
 
 // Legacy: a static list of developer origins. Kept for local dev convenience.
@@ -204,6 +206,7 @@ app.use("/api/filter", filterRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/filter/categories", categoryRoutes);
 app.use("/api/product-categories", productCategoryRoutes);
+app.use("/api/search", searchRoutes);
 /** Cùng handler với GET /api/filter/categories/popular (slug ngắn theo yêu cầu tích hợp). */
 app.get("/api/categories/popular", getPopularCategories);
 
@@ -241,6 +244,7 @@ app.use("/api/admin/rfq", requireAuth, requireAdmin, rfqAdminRoutes);
 
 mountRfqRoutes(app);
 app.use("/api/admin/platform", platformRouter);
+app.use("/api/admin/seo", seoAdminRouter);
 app.use("/api/admin/rbac", rbacRouter);
 app.use("/api/admin/enforcement", enforcementRouter);
 

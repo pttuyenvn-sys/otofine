@@ -6,6 +6,7 @@ import {
   handleGetShopCategories,
   handleGetShopContact,
   handleGetShopFitments,
+  handleGetShopLifecycle,
   handleGetCacheDebug,
   handleListShops,
   handleListProvinces,
@@ -80,6 +81,12 @@ router.get(
   publicApiRateLimit("read"),
   responseCache(TTL_MS.shopInfo),
   handleGetShop,
+);
+router.get(
+  "/:slug/lifecycle",
+  publicApiRateLimit("read"),
+  responseCache(TTL_MS.shopInfo),
+  handleGetShopLifecycle,
 );
 router.get(
   "/:slug/products",

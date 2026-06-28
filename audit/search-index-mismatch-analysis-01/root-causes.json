@@ -1,0 +1,19 @@
+{
+  "rootCauseReport": [
+    {
+      "cause": "PARTNUMBER_NORMALIZATION",
+      "count": 3,
+      "percentage": 75,
+      "productsAffected": 4,
+      "avgLatencyMs": 1026
+    },
+    {
+      "cause": "RANKING_ONLY",
+      "count": 1,
+      "percentage": 25,
+      "productsAffected": 0,
+      "avgLatencyMs": 991
+    }
+  ],
+  "totalMismatches": 4
+}

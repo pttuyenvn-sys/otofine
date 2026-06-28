@@ -1,0 +1,284 @@
+{
+  "generatedAt": "2026-06-26T08:28:06.541Z",
+  "searchEngineMode": "hybrid",
+  "indexes": [
+    {
+      "TABLE_NAME": "product_meta",
+      "INDEX_NAME": "ft_product_meta_keywords",
+      "INDEX_TYPE": "FULLTEXT",
+      "cols": "search_keywords"
+    },
+    {
+      "TABLE_NAME": "product_meta",
+      "INDEX_NAME": "idx_product_meta_slug",
+      "INDEX_TYPE": "BTREE",
+      "cols": "slug"
+    },
+    {
+      "TABLE_NAME": "products",
+      "INDEX_NAME": "ft_products_search_text",
+      "INDEX_TYPE": "FULLTEXT",
+      "cols": "partName,shortDescription,description"
+    },
+    {
+      "TABLE_NAME": "products",
+      "INDEX_NAME": "idx_products_part_number",
+      "INDEX_TYPE": "BTREE",
+      "cols": "partNumber"
+    }
+  ],
+  "serviceBenchmark": {
+    "legacy": {
+      "bugi toyota": {
+        "latencyMs": {
+          "n": 12,
+          "min": 1648,
+          "p50": 1751,
+          "p95": 2004,
+          "max": 2004,
+          "avg": 1802
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 1881,
+        "warmRestMs": {
+          "n": 11,
+          "min": 1648,
+          "p50": 1751,
+          "p95": 2004,
+          "max": 2004,
+          "avg": 1795
+        }
+      },
+      "bugi camry": {
+        "latencyMs": {
+          "n": 12,
+          "min": 1642,
+          "p50": 1747,
+          "p95": 2009,
+          "max": 2009,
+          "avg": 1782
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 1709,
+        "warmRestMs": {
+          "n": 11,
+          "min": 1642,
+          "p50": 1765,
+          "p95": 2009,
+          "max": 2009,
+          "avg": 1788
+        }
+      },
+      "má phanh vios": {
+        "latencyMs": {
+          "n": 12,
+          "min": 2178,
+          "p50": 2228,
+          "p95": 2330,
+          "max": 2330,
+          "avg": 2241
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 2296,
+        "warmRestMs": {
+          "n": 11,
+          "min": 2178,
+          "p50": 2228,
+          "p95": 2330,
+          "max": 2330,
+          "avg": 2236
+        }
+      },
+      "lọc dầu mazda": {
+        "latencyMs": {
+          "n": 12,
+          "min": 1629,
+          "p50": 1742,
+          "p95": 1853,
+          "max": 1853,
+          "avg": 1753
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 1833,
+        "warmRestMs": {
+          "n": 11,
+          "min": 1629,
+          "p50": 1742,
+          "p95": 1853,
+          "max": 1853,
+          "avg": 1746
+        }
+      },
+      "04465-0D140": {
+        "latencyMs": {
+          "n": 12,
+          "min": 804,
+          "p50": 928,
+          "p95": 1025,
+          "max": 1025,
+          "avg": 932
+        },
+        "sqlPerRequest": 1,
+        "coldFirstMs": 804,
+        "warmRestMs": {
+          "n": 11,
+          "min": 890,
+          "p50": 929,
+          "p95": 1025,
+          "max": 1025,
+          "avg": 943
+        }
+      },
+      "đèn hậu kia": {
+        "latencyMs": {
+          "n": 12,
+          "min": 3645,
+          "p50": 3973,
+          "p95": 4146,
+          "max": 4146,
+          "avg": 3942
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 4146,
+        "warmRestMs": {
+          "n": 11,
+          "min": 3645,
+          "p50": 3973,
+          "p95": 4113,
+          "max": 4113,
+          "avg": 3923
+        }
+      }
+    },
+    "hybrid": {
+      "bugi toyota": {
+        "latencyMs": {
+          "n": 12,
+          "min": 1749,
+          "p50": 1963,
+          "p95": 2681,
+          "max": 2681,
+          "avg": 2005
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 2681,
+        "warmRestMs": {
+          "n": 11,
+          "min": 1749,
+          "p50": 1963,
+          "p95": 2106,
+          "max": 2106,
+          "avg": 1943
+        }
+      },
+      "bugi camry": {
+        "latencyMs": {
+          "n": 12,
+          "min": 126,
+          "p50": 143,
+          "p95": 1208,
+          "max": 1208,
+          "avg": 230
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 1208,
+        "warmRestMs": {
+          "n": 11,
+          "min": 126,
+          "p50": 143,
+          "p95": 173,
+          "max": 173,
+          "avg": 141
+        }
+      },
+      "má phanh vios": {
+        "latencyMs": {
+          "n": 12,
+          "min": 156,
+          "p50": 189,
+          "p95": 1413,
+          "max": 1413,
+          "avg": 293
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 1413,
+        "warmRestMs": {
+          "n": 11,
+          "min": 156,
+          "p50": 189,
+          "p95": 217,
+          "max": 217,
+          "avg": 191
+        }
+      },
+      "lọc dầu mazda": {
+        "latencyMs": {
+          "n": 12,
+          "min": 1794,
+          "p50": 1905,
+          "p95": 2742,
+          "max": 2742,
+          "avg": 2000
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 2742,
+        "warmRestMs": {
+          "n": 11,
+          "min": 1794,
+          "p50": 1905,
+          "p95": 2104,
+          "max": 2104,
+          "avg": 1932
+        }
+      },
+      "04465-0D140": {
+        "latencyMs": {
+          "n": 12,
+          "min": 893,
+          "p50": 979,
+          "p95": 1100,
+          "max": 1100,
+          "avg": 993
+        },
+        "sqlPerRequest": 3,
+        "coldFirstMs": 893,
+        "warmRestMs": {
+          "n": 11,
+          "min": 896,
+          "p50": 1003,
+          "p95": 1100,
+          "max": 1100,
+          "avg": 1002
+        }
+      },
+      "đèn hậu kia": {
+        "latencyMs": {
+          "n": 12,
+          "min": 3711,
+          "p50": 3821,
+          "p95": 4424,
+          "max": 4424,
+          "avg": 3940
+        },
+        "sqlPerRequest": 2,
+        "coldFirstMs": 4424,
+        "warmRestMs": {
+          "n": 11,
+          "min": 3711,
+          "p50": 3821,
+          "p95": 4278,
+          "max": 4278,
+          "avg": 3896
+        }
+      }
+    }
+  },
+  "httpSuggestBugiToyota": {
+    "n": 10,
+    "min": 1681,
+    "p50": 1795,
+    "p95": 1839,
+    "max": 1839,
+    "avg": 1786
+  }
+}

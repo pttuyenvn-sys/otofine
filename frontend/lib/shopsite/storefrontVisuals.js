@@ -198,16 +198,3 @@ export function buildStorefrontVisuals(shop = {}, sources = {}) {
 
   return out;
 }
-
-/**
- * Convenience wrapper: resolves a single slot. Kept around to satisfy
- * `resolveStorefrontVisual(type, shop)` callers that only need one
- * URL — internally still calls the same builder so the "no reuse"
- * guarantee inside a single render pass holds (callers are expected
- * to invoke once per render and either destructure or call this
- * once per slot).
- */
-export function resolveStorefrontVisual(type, shop, sources = {}) {
-  const all = buildStorefrontVisuals(shop, sources);
-  return all[type] || null;
-}

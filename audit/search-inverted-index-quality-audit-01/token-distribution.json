@@ -1,0 +1,27 @@
+{
+  "corpus": {
+    "active_products": 7385,
+    "products_with_tokens": 50,
+    "coverage_pct": 0.68,
+    "missing_tokens_products": 7335,
+    "orphan_token_products": 0,
+    "duplicate_rows": 0,
+    "invalid_weights": 0,
+    "unknown_token_types": 0
+  },
+  "distribution": {
+    "count": 50,
+    "total": 31691,
+    "mean": 633.82,
+    "median": 633,
+    "p50": 633,
+    "p90": 648,
+    "p95": 649,
+    "p99": 651,
+    "min": 611,
+    "max": 651,
+    "stddev": 9.92
+  },
+  "total_tokens": 31691,
+  "avg_tokens_per_product": 633.82
+}

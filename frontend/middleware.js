@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import {
   HOST_DECISIONS,
   classifyHost,
-  getShopAllowlist,
+  getWildcardStorefrontProbe,
+  isShopSubdomainAllowed,
   resolveShopRewrite,
 } from "@/lib/shopHost";
+import { buildUnknownStorefrontResponse } from "@/lib/shopsite/buildUnknownStorefrontResponse";
+import { resolveShopLifecycle } from "@/lib/shopsite/resolveShopLifecycle";
+import { resolveShopSunsetRedirectUrl } from "@/lib/shopsite/resolveShopSunsetRedirectUrl";
+import { SHOP_COLLECTION_PATH } from "@/lib/shopseo/namespace.js";
+import {
+  buildShopLegacyCollectionRedirectTarget,
+  buildSubdomainLegacyCollectionRedirectUrl,
+  isShopLegacyCollectionSubdomainPath,
+  locationFromRequestUrl,
+  parseShopLegacyCollectionApexPath,
+} from "@/lib/shopsite/shopLegacyCollectionRedirect";
 
 /**
  * Two responsibilities, both intentionally tiny:
@@ -15,7 +27,9 @@ import {
  *   2. Host-aware rewrite for the public shop site:
  *
  *        https://cuahangoto355.otofine.com/           → /shops/cuahangoto355
- *        https://cuahangoto355.otofine.com/san-pham   → /shops/cuahangoto355/san-pham
+ *        https://cuahangoto355.otofine.com/phu-tung-o-to → /shops/cuahangoto355/seo/phu-tung-o-to
+ *        https://cuahangoto355.otofine.com/phu-tung-kia   → /shops/cuahangoto355/seo/phu-tung-kia
+ *        https://cuahangoto355.otofine.com/sitemap.xml      → /shops/cuahangoto355/sitemap.xml
  *        https://cuahangoto355.otofine.com/gioi-thieu → /shops/cuahangoto355/gioi-thieu
  *        https://cuahangoto355.otofine.com/lien-he    → /shops/cuahangoto355/lien-he
  *
@@ -24,21 +38,17 @@ import {
  *      detail, _next assets, fetch calls, etc. — pass through
  *      untouched so existing apex behaviour keeps working.
  *
- * Phase 4.5 additions (safety / observability, NOT behavioural):
- *   - Host classification is centralized in `lib/shopHost.classifyHost`.
- *   - Edge logs every interesting decision with `[shopsite]` prefix:
- *       event=middleware.rewrite slug=...
- *       event=middleware.reserved-subdomain sub=...
- *       event=middleware.invalid-subdomain ...
- *       event=middleware.unknown-shop slug=...   (later, page-layer)
- *   - Hard caps on host length / charset reject Host-header poisoning
- *     probes before we even look up routes.
+ * ARCH-06.2C — wildcard host protection:
+ *   Unknown / invalid `{slug}.otofine.com` hosts MUST NOT fall through
+ *   to the marketplace homepage. They receive a hard 404 with
+ *   `noindex,nofollow`. Only slugs that exist in the public shop API
+ *   (`shops.slug` + `public_status = 'public'`) and pass the rollout
+ *   allowlist may render storefront content.
  *
  * Both safety nets remain:
- *   - PUBLIC_SHOPSITE_SUBDOMAIN_ENABLED=false → middleware is a no-op
- *     for subdomain logic (the /product redirect still runs).
+ *   - PUBLIC_SHOPSITE_SUBDOMAIN_ENABLED=false → subdomain rewrite is a
+ *     no-op, but wildcard protection still blocks unknown hosts.
  *   - Reserved labels (www, api, admin, rfq, shop, …) → no rewrite.
- *   - Invalid slug shapes / multi-level subdomains → no rewrite.
  *   - apex / localhost / *.vercel.app → no rewrite.
  *
  * Rollback: flip the env flag to false and restart the Next process.
@@ -57,6 +67,18 @@ const SHOPSITE_SUBDOMAIN_FLAG =
   FLAG_RAW === "yes" ||
   FLAG_RAW === "on";
 
+const SUNSET_FLAG_RAW = String(
+  process.env.SHOP_SUNSET_REDIRECT_ENABLED ?? "true",
+)
+  .trim()
+  .toLowerCase();
+
+const SHOP_SUNSET_REDIRECT_ENABLED =
+  SUNSET_FLAG_RAW !== "0" &&
+  SUNSET_FLAG_RAW !== "false" &&
+  SUNSET_FLAG_RAW !== "off" &&
+  SUNSET_FLAG_RAW !== "no";
+
 /**
  * Lightweight structured logger for the edge. `console.info` is the
  * only side-effect API guaranteed to work across both Edge and Node
@@ -72,22 +94,83 @@ function logEdge(event, fields) {
   console.info(`[shopsite] ${parts.join(" ")}`);
 }
 
-export function middleware(request) {
+/**
+ * Block unregistered wildcard storefront hosts before they reach the
+ * marketplace homepage router. Closed shops with redirectEligible receive
+ * taxonomy + product 301s to absolute apex URLs.
+ *
+ * @returns {Promise<NextResponse | null>} 404/301 when handled, null when allowed.
+ */
+async function guardWildcardStorefrontHost(host, request) {
+  const probe = getWildcardStorefrontProbe(host);
+  if (!probe) return null;
+
+  if (probe.invalid) {
+    logEdge("middleware.blocked-wildcard", {
+      slug: probe.slug ?? "-",
+      reason: probe.reason,
+    });
+    return buildUnknownStorefrontResponse();
+  }
+
+  const slug = probe.slug;
+  if (!slug) {
+    logEdge("middleware.blocked-wildcard", { slug: "-", reason: "missing-slug" });
+    return buildUnknownStorefrontResponse();
+  }
+
+  const lifecycle = await resolveShopLifecycle(slug);
+
+  if (!lifecycle.exists) {
+    logEdge("middleware.unknown-shop", { slug, reason: "not-found" });
+    return buildUnknownStorefrontResponse();
+  }
+
+  if (lifecycle.publicStatus === "public") {
+    if (!isShopSubdomainAllowed(slug)) {
+      logEdge("middleware.blocked-wildcard", { slug, reason: "rollout-pending" });
+      return buildUnknownStorefrontResponse();
+    }
+    return null;
+  }
+
+  if (
+    SHOP_SUNSET_REDIRECT_ENABLED &&
+    lifecycle.redirectEligible
+  ) {
+    const target = await resolveShopSunsetRedirectUrl(request.nextUrl);
+    if (target) {
+      logEdge("middleware.sunset-redirect", {
+        slug,
+        from: request.nextUrl.pathname,
+        to: target.toString(),
+      });
+      return NextResponse.redirect(target, 301);
+    }
+    logEdge("middleware.unknown-shop", {
+      slug,
+      reason: "closed-unhandled-path",
+      path: request.nextUrl.pathname,
+    });
+    return buildUnknownStorefrontResponse();
+  }
+
+  logEdge("middleware.unknown-shop", {
+    slug,
+    reason: lifecycle.publicStatus || "not-public",
+  });
+  return buildUnknownStorefrontResponse();
+}
+
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/product" || pathname === "/product/") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!SHOPSITE_SUBDOMAIN_FLAG) {
-    return NextResponse.next();
-  }
-
   const host = request.headers.get("host") || "";
 
-  // Emit a single classification line for every host we see (sampled
-  // by the LOG-only nature of the decision; no behavioural cost). This
-  // gives us a clear picture of unknown-subdomain hit rate in prod.
   const cls = classifyHost(host);
   switch (cls.decision) {
     case HOST_DECISIONS.RESERVED_SUBDOMAIN:
@@ -109,6 +192,66 @@ export function middleware(request) {
       break;
   }
 
+  const blocked = await guardWildcardStorefrontHost(host, request);
+  if (blocked) return blocked;
+
+  // SHOP-SEO-LEGACY-02 — 301 legacy collection before SEO rewrite.
+  const apexLegacySlug = parseShopLegacyCollectionApexPath(pathname);
+  if (apexLegacySlug) {
+    if (process.env.NODE_ENV === "development") {
+      logEdge("middleware.legacy-collection-redirect", {
+        slug: apexLegacySlug,
+        surface: "apex",
+        from: pathname,
+        to: SHOP_COLLECTION_PATH,
+      });
+    }
+    const target = buildShopLegacyCollectionRedirectTarget(apexLegacySlug, {
+      location: locationFromRequestUrl(request.nextUrl),
+      search: request.nextUrl.search,
+    });
+    if (target) {
+      return NextResponse.redirect(target, 301);
+    }
+  }
+
+  const clsLegacy = classifyHost(host);
+  if (
+    clsLegacy.decision === HOST_DECISIONS.REWRITE_OK &&
+    isShopSubdomainAllowed(clsLegacy.slug) &&
+    isShopLegacyCollectionSubdomainPath(pathname)
+  ) {
+    if (process.env.NODE_ENV === "development") {
+      logEdge("middleware.legacy-collection-redirect", {
+        slug: clsLegacy.slug,
+        surface: "subdomain",
+        from: pathname,
+        to: SHOP_COLLECTION_PATH,
+      });
+    }
+    const target = buildSubdomainLegacyCollectionRedirectUrl(request.nextUrl);
+    return NextResponse.redirect(target, 301);
+  }
+
+  if (pathname === "/sitemap.xml" || pathname === "/sitemap.xml/") {
+    const cls = classifyHost(host);
+    if (
+      cls.decision === HOST_DECISIONS.REWRITE_OK &&
+      isShopSubdomainAllowed(cls.slug)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/shops/${cls.slug}/sitemap.xml`;
+      const res = NextResponse.rewrite(url);
+      res.headers.set("x-otofine-shop-slug", cls.slug);
+      return res;
+    }
+    return NextResponse.next();
+  }
+
+  if (!SHOPSITE_SUBDOMAIN_FLAG) {
+    return NextResponse.next();
+  }
+
   const decision = resolveShopRewrite({
     host,
     pathname,
@@ -119,18 +262,13 @@ export function middleware(request) {
     return NextResponse.next();
   }
 
-  // Phase 6A — staged rollout allowlist. A `blocked` sentinel means
-  // the host parsed cleanly into a slug, but the slug is not on the
-  // current allowlist (PUBLIC_SHOPSITE_ALLOWED_SLUGS). Log the event
-  // and fall through to apex routing — the request still resolves
-  // (e.g. via apex `/shops/<slug>` if the visitor knows that URL),
-  // but the subdomain is invisible to them.
   if (decision.blocked === "not-allowlisted") {
-    logEdge("middleware.allowlist-skip", {
+    logEdge("middleware.blocked-wildcard", {
       slug: decision.slug,
+      reason: "not-allowlisted",
       path: pathname,
     });
-    return NextResponse.next();
+    return buildUnknownStorefrontResponse();
   }
 
   logEdge("middleware.rewrite", {
@@ -141,18 +279,13 @@ export function middleware(request) {
   const url = request.nextUrl.clone();
   url.pathname = decision.internalPath;
   const res = NextResponse.rewrite(url);
-  // Pin a header so downstream RSC / server components can recognise
-  // they were entered via a subdomain (used for basePath generation).
   res.headers.set("x-otofine-shop-slug", decision.slug);
   return res;
 }
 
 export const config = {
-  // Run on everything that is NOT an internal asset, API route, or
-  // static file. Keep the negative lookahead narrow so we don't
-  // accidentally start running middleware on `/_next/data`, image
-  // optimization, etc. — that path is performance-sensitive.
   matcher: [
-    "/((?!_next/|api/|favicon\\.ico|robots\\.txt|sitemap\\.xml|images/|uploads/|assets/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|js|css|map|woff|woff2|ttf|json)$).*)",
+    "/sitemap.xml",
+    "/((?!_next/|api/|favicon\\.ico|robots\\.txt|images/|uploads/|assets/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|js|css|map|woff|woff2|ttf|json)$).*)",
   ],
 };

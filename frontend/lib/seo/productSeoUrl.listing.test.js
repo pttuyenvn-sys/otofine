@@ -20,7 +20,15 @@ describe("productSeoUrl listing vs product discriminator", () => {
 
   it("still recognizes product slugs with trailing id", () => {
     expect(looksLikeProductSlug("loc-xang-toyota-vios-2013-2913")).toBe(true);
-    expect(looksLikeProductSlug("some-part-12345")).toBe(true);
+    expect(
+      looksLikeProductSlug(
+        "cong-tac-len-kinh-don-mazda-cx-5-2012-2019-kd3566370-2020",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not treat CBMY year-range listing slugs as product slugs", () => {
+    expect(looksLikeProductSlug("can-truoc-kia-sedona-2014-2020")).toBe(false);
   });
 });
 

@@ -34,9 +34,20 @@ const CATEGORY_ICONS = {
 export default function ShopSidebar({
   categories = [],
   basePath = "/shop-demo",
+  shopBasePath = "",
+  shopSlug = "",
+  fitments = null,
+  entity = null,
 }) {
-  const { params, setParam, clearAll } = useShopFilterParams({ basePath });
-  const activeSlug = params.category || "";
+  const { readFilters, navigateSeoFilters, clearAll } = useShopFilterParams({
+    basePath,
+    shopBasePath,
+    shopSlug,
+    fitments,
+    categories,
+    entity,
+  });
+  const activeSlug = readFilters.category || "";
 
   // Mobile compression: the always-visible sidebar is hidden below
   // `lg:` — phones get the bottom-sheet drawer mounted by
@@ -53,7 +64,7 @@ export default function ShopSidebar({
         <li>
           <button
             type="button"
-            onClick={() => setParam("category", null)}
+            onClick={() => void navigateSeoFilters({})}
             className={`w-full text-left flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors ${
               !activeSlug ? "bg-red-50 text-[#e60012] font-medium" : ""
             }`}
@@ -71,7 +82,7 @@ export default function ShopSidebar({
             <li key={cat.id}>
               <button
                 type="button"
-                onClick={() => setParam("category", cat.slug)}
+                onClick={() => void navigateSeoFilters({ category: cat.slug })}
                 className={`w-full text-left flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors ${
                   active ? "bg-red-50 text-[#e60012] font-medium" : "text-gray-800"
                 }`}

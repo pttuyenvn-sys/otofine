@@ -1,0 +1,90 @@
+--- B_new_unified_cte_sql ---
+
+    WITH 
+    matched AS (
+      SELECT DISTINCT
+        `p`.`id` AS product_id,
+        COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name,
+        COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug,
+        cm.hang_xe AS brand,
+        cm.ten_xe AS model,
+        COALESCE(pc.search_priority, 0) AS search_priority
+      
+    FROM products p
+
+    LEFT JOIN product_category_map pcm
+      ON pcm.product_id = `p`.`id`
+
+    LEFT JOIN product_categories pc
+      ON pc.id = pcm.category_id
+
+    LEFT JOIN product_car_applications pa
+      ON pa.productId = `p`.`id`
+
+    LEFT JOIN car_models cm
+      ON cm.id = pa.carModelId
+
+    JOIN shops s
+      ON `s`.id = `p`.`shopId`
+
+    LEFT JOIN address a
+      ON a.id = s.provinceId
+  
+       WHERE 1=1  AND LOWER(TRIM(cm.hang_xe)) = ? 
+          AND (
+            LOWER(`p`.`partName`) LIKE ?
+            OR LOWER(`p`.`shortDescription`) LIKE ?
+            OR LOWER(`p`.`description`) LIKE ?
+            OR LOWER(`p`.`partNumber`) LIKE ?
+          )
+           AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 
+    )
+  
+    SELECT 'vehicle' AS grain, canonical_name, canonical_slug, brand, model,
+      COUNT(DISTINCT product_id) AS total_count, MAX(search_priority) AS search_priority
+    FROM matched
+    WHERE brand IS NOT NULL AND TRIM(brand) <> '' AND model IS NOT NULL AND TRIM(model) <> ''
+    GROUP BY canonical_name, canonical_slug, brand, model
+    HAVING total_count > 0
+    UNION ALL
+    SELECT 'category' AS grain, canonical_name, canonical_slug, NULL, NULL,
+      COUNT(DISTINCT product_id) AS total_count, MAX(search_priority) AS search_priority
+    FROM matched
+    GROUP BY canonical_name, canonical_slug
+    HAVING total_count > 0
+  
+
+--- EXPLAIN ANALYZE ---
+-> Append  (cost=12065..12350 rows=1120) (actual time=916..916 rows=25 loops=1)
+    -> Stream results  (cost=6104..6246 rows=690) (actual time=916..916 rows=19 loops=1)
+        -> Filter: (total_count > 0)  (cost=6104..6246 rows=690) (actual time=916..916 rows=19 loops=1)
+            -> Group aggregate: count(distinct matched.product_id), max(matched.search_priority)  (cost=6104..6246 rows=690) (actual time=916..916 rows=19 loops=1)
+                -> Sort: matched.canonical_name, matched.canonical_slug, matched.brand, matched.model  (cost=6104..6104 rows=1426) (actual time=916..916 rows=37 loops=1)
+                    -> Filter: ((matched.brand is not null) and (trim(matched.brand) <> '') and (matched.model is not null) and (trim(matched.model) <> ''))  (cost=4304..4467 rows=1426) (actual time=916..916 rows=37 loops=1)
+                        -> Table scan on matched  (cost=4304..4324 rows=1426) (actual time=916..916 rows=37 loops=1)
+                            -> Materialize CTE matched if needed  (cost=4304..4304 rows=1426) (actual time=916..916 rows=37 loops=1)
+                                -> Table scan on <temporary>  (cost=4141..4161 rows=1426) (actual time=916..916 rows=37 loops=1)
+                                    -> Temporary table with deduplication  (cost=4141..4141 rows=1426) (actual time=916..916 rows=37 loops=1)
+                                        -> Nested loop inner join  (cost=3999 rows=1426) (actual time=505..915 rows=37 loops=1)
+                                            -> Nested loop inner join  (cost=3499 rows=1426) (actual time=13.3..915 rows=87 loops=1)
+                                                -> Nested loop left join  (cost=3000 rows=1223) (actual time=13.3..914 rows=54 loops=1)
+                                                    -> Nested loop inner join  (cost=2572 rows=1223) (actual time=13.3..914 rows=54 loops=1)
+                                                        -> Nested loop left join  (cost=2144 rows=1223) (actual time=13.3..914 rows=54 loops=1)
+                                                            -> Nested loop left join  (cost=1716 rows=1223) (actual time=13.3..913 rows=54 loops=1)
+                                                                -> Filter: (((lower(p.partName) like '%bugi%') or (lower(p.shortDescription) like '%bugi%') or (lower(p.`description`) like '%bugi%') or (lower(p.partNumber) like '%bugi%')) and (trim(lower(p.moderation_status)) = 'approved') and (p.stock > 0) and (p.shopId is not null))  (cost=1288 rows=1223) (actual time=13.2..913 rows=54 loops=1)
+                                                                    -> Table scan on p  (cost=1288 rows=3669) (actual time=0.059..35.7 rows=7397 loops=1)
+                                                                -> Covering index lookup on pcm using uk_product_category (product_id=p.id)  (cost=0.25 rows=1) (actual time=0.0137..0.0145 rows=1 loops=54)
+                                                            -> Single-row index lookup on pc using PRIMARY (id=pcm.category_id)  (cost=0.25 rows=1) (actual time=0.00513..0.00516 rows=1 loops=54)
+                                                        -> Filter: (trim(lower(s.public_status)) = 'public')  (cost=0.25 rows=1) (actual time=0.00255..0.00266 rows=1 loops=54)
+                                                            -> Single-row index lookup on s using PRIMARY (id=p.shopId)  (cost=0.25 rows=1) (actual time=0.0011..0.00113 rows=1 loops=54)
+                                                    -> Single-row covering index lookup on a using PRIMARY (id=s.provinceId)  (cost=0.25 rows=1) (actual time=0.00104..0.00108 rows=1 loops=54)
+                                                -> Index lookup on pa using fk_pca_product (productId=p.id)  (cost=0.292 rows=1.17) (actual time=0.012..0.0137 rows=1.61 loops=54)
+                                            -> Filter: (lower(trim(cm.hang_xe)) = 'toyota')  (cost=0.25 rows=1) (actual time=0.00528..0.00533 rows=0.425 loops=87)
+                                                -> Single-row index lookup on cm using PRIMARY (id=pa.carModelId)  (cost=0.25 rows=1) (actual time=0.00423..0.00427 rows=1 loops=87)
+    -> Stream results  (cost=5961..6104 rows=430) (actual time=0.207..0.222 rows=6 loops=1)
+        -> Filter: (total_count > 0)  (cost=5961..6104 rows=430) (actual time=0.202..0.213 rows=6 loops=1)
+            -> Group aggregate: count(distinct matched.product_id), max(matched.search_priority)  (cost=5961..6104 rows=430) (actual time=0.2..0.211 rows=6 loops=1)
+                -> Sort: matched.canonical_name, matched.canonical_slug  (cost=5961..5961 rows=1426) (actual time=0.173..0.177 rows=37 loops=1)
+                    -> Table scan on matched  (cost=4304..4324 rows=1426) (actual time=0.00983..0.0193 rows=37 loops=1)
+                        -> Materialize CTE matched if needed (query plan printed elsewhere)  (cost=4304..4304 rows=1426) (never executed)
+

@@ -9,6 +9,8 @@ import {
   pickProductThumb,
   formatProductCarLine,
 } from "./sellerProductUi";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 
 const ProductTableRow = memo(function ProductTableRow({
   product: p,
@@ -21,7 +23,9 @@ const ProductTableRow = memo(function ProductTableRow({
   resubmittingId,
 }) {
   const thumb = pickProductThumb(p);
+  const thumbDim = productImageDimensionProps({ src: thumb, layout: "thumb100" });
   const fitment = formatProductCarLine(p);
+  const displayTitle = p.displayTitle || p.productIdentity?.h1 || "Sản phẩm";
   const isRejected = p.sellerLifecycle === "rejected";
   const stock = Number(p.stock || 0);
   let stockClass = "seller-dash-stock seller-dash-stock--ok";
@@ -34,7 +38,7 @@ const ProductTableRow = memo(function ProductTableRow({
         <input
           type="checkbox"
           checked={selected}
-          aria-label={`Chọn ${p.partName || p.partNumber}`}
+          aria-label={`Chọn ${displayTitle}`}
           onChange={() =>
             onSelectChange(
               selectedIds.includes(p.id)
@@ -51,8 +55,9 @@ const ProductTableRow = memo(function ProductTableRow({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={thumb || FALLBACK_PRODUCT_IMG}
-              alt=""
+              alt={buildProductImageAlt(p)}
               loading="lazy"
+              {...thumbDim}
               onError={(e) => {
                 if (e.currentTarget.src !== FALLBACK_PRODUCT_IMG) {
                   e.currentTarget.src = FALLBACK_PRODUCT_IMG;
@@ -62,7 +67,7 @@ const ProductTableRow = memo(function ProductTableRow({
           </div>
           <div className="seller-dash-product-meta">
             <div className="seller-dash-product-name-row">
-              <span className="seller-dash-product-name">{p.partName || p.partNumber || "Sản phẩm"}</span>
+              <span className="seller-dash-product-name">{displayTitle}</span>
               <ProductHeatChip productId={p.id} />
             </div>
             {p.partNumber ? <div className="seller-dash-product-sku">{p.partNumber}</div> : null}

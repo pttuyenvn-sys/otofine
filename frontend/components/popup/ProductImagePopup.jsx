@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import axiosClient from "@/api/axiosClient";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 import "./ProductImagePopup.css";
 
 export default function ProductImagePopup({
@@ -49,6 +51,8 @@ export default function ProductImagePopup({
   }, [show, product]);
 
   if (!show) return null;
+
+  const productImageAlt = buildProductImageAlt(product);
 
   // KHÔNG ép reload khi chuyển ảnh → slider mượt
   const getUrl = (img) => img?.url || img?.image || img?.ImageURL || "";
@@ -105,8 +109,12 @@ export default function ProductImagePopup({
                   <img
                     key={index}
                     src={getUrl(images[index])}
-                    alt="Ảnh lớn"
+                    alt={productImageAlt}
                     className={`p-main-img ${fade ? "fade" : ""}`}
+                    {...productImageDimensionProps({
+                      src: getUrl(images[index]),
+                      layout: "pdp-main",
+                    })}
                     onError={(e) => (e.currentTarget.style.opacity = 0.4)}
                   />
                 </div>
@@ -127,7 +135,12 @@ export default function ProductImagePopup({
                       setIndex(i);
                     }}
                   >
-                    <img src={getUrl(img)} alt="thumb" className="p-thumb" />
+                    <img
+                      src={getUrl(img)}
+                      alt={productImageAlt}
+                      className="p-thumb"
+                      {...productImageDimensionProps({ src: getUrl(img), layout: "pdp-thumb" })}
+                    />
                   </button>
                 ))}
               </div>

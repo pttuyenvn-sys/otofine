@@ -36,8 +36,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import axiosClient from "@/api/axiosClient";
-import { API_BASE } from "@/lib/config";
 import { apexUrl } from "@/lib/apexOrigin";
+import { clearOwnerCookie } from "@/lib/auth/sellerOwnerCookie";
 import useStorefrontOwnerState from "@/hooks/useStorefrontOwnerState";
 
 function compact(n) {
@@ -86,8 +86,12 @@ export default function StorefrontOwnerStrip({ shopId, shopName }) {
         if (cancelled) return;
         setMetrics(res.data || null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
+        if (err?.response?.status === 401) {
+          clearOwnerCookie();
+          window.dispatchEvent(new Event("auth-changed"));
+        }
         setMetrics(null);
       })
       .finally(() => {

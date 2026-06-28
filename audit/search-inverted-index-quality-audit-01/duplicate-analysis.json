@@ -1,0 +1,138 @@
+{
+  "exact_row_duplicates": 0,
+  "cross_type_same_token": {
+    "total_groups": 50,
+    "examples": [
+      {
+        "product_id": 156,
+        "token": "2018",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 156,
+        "token": "2021",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 156,
+        "token": "51730m6000",
+        "types": "WORD,OEM,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 156,
+        "token": "cerato",
+        "types": "WORD,MODEL,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 156,
+        "token": "kia",
+        "types": "WORD,BRAND,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 157,
+        "token": "5172038110",
+        "types": "WORD,OEM,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 157,
+        "token": "kia",
+        "types": "WORD,BRAND,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 157,
+        "token": "sportage",
+        "types": "WORD,MODEL,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 158,
+        "token": "2011",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 158,
+        "token": "2017",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 158,
+        "token": "2528604050",
+        "types": "WORD,OEM,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 158,
+        "token": "kia",
+        "types": "WORD,BRAND,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 158,
+        "token": "morning",
+        "types": "WORD,MODEL,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "2013",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "2018",
+        "types": "WORD,SYNONYM,YEAR",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "252812f001",
+        "types": "WORD,OEM,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "kia",
+        "types": "WORD,BRAND,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "sedona",
+        "types": "WORD,MODEL,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 159,
+        "token": "sportage",
+        "types": "WORD,MODEL,SYNONYM",
+        "row_cnt": 3
+      },
+      {
+        "product_id": 160,
+        "token": "2528104600",
+        "types": "WORD,OEM,SYNONYM",
+        "row_cnt": 3
+      }
+    ]
+  },
+  "by_type_exact_duplicates": {
+    "PHRASE": 0,
+    "SYNONYM": 0,
+    "OEM": 0,
+    "CATEGORY": 0,
+    "BRAND": 0,
+    "MODEL": 0,
+    "WORD": 0
+  },
+  "duplicate_word_across_sources": 0
+}

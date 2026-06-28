@@ -3,6 +3,10 @@
  * Plain functions — usable from client SEO article components only.
  */
 
+import { toThumb100 } from "@/lib/imageVariants";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
+
 const SEO_FALLBACK_IMAGE_PATH = "/images/default-brake-pad.svg";
 
 /**
@@ -57,7 +61,7 @@ function imageValue(raw) {
   return null;
 }
 
-function productImage(p, productThumbnails, resolveImg) {
+function productImage(p, productThumbnails, resolveImg, useThumb100 = false) {
   const id = p?.id != null ? String(p.id) : "";
   const rawImages = Array.isArray(p?.images) ? p.images : [];
   const mappedThumbnail = productThumbnails?.[id];
@@ -71,7 +75,6 @@ function productImage(p, productThumbnails, resolveImg) {
     p?.thumbRaw ||
     imageValue(rawImages[0]) ||
     mappedThumbnail;
-  const safePrimary = safeImage(resolveImg(imageValue(p?.image)));
   const finalImage = [
     p?.image,
     p?.image_url,
@@ -88,24 +91,9 @@ function productImage(p, productThumbnails, resolveImg) {
     .map((value) => safeImage(resolveImg(value)))
     .find(Boolean) || null;
 
-  console.log("PRODUCT IMAGE RAW:", p);
-  console.log("TRY IMAGE FIELD:", p?.image, p?.image_url, p?.images);
-  console.log("SEO IMAGE DEBUG:", {
-    id: p?.id,
-    image: p?.image,
-    image_url: p?.image_url,
-    thumbnail: p?.thumbnail,
-    thumb: p?.thumb,
-    images: p?.images,
-    mappedThumbnail,
-  });
-  console.log("AFTER SAFE:", safePrimary);
-  console.log("SEO FINAL IMAGE:", finalImage);
-  if (!finalImage) {
-    console.log("IMAGE SKIPPED:", p);
-  }
-
-  return finalImage;
+  if (!finalImage) return null;
+  if (!useThumb100) return finalImage;
+  return toThumb100(finalImage) || finalImage;
 }
 
 /**
@@ -129,29 +117,12 @@ function collectInlineImages(products, productThumbnails, resolveImg) {
   const lastIndex = list.length ? list.length - 1 : -1;
   const sourceIndexes = [0, middleIndex, lastIndex];
 
-  console.log("SEO IMAGE SOURCE LIST:", list.map((p) => ({
-    id: p?.id,
-    name: p?.name || p?.partName || p?.part_name || p?.shortDescription || p?.short_description,
-  })));
-  console.log("SEO IMAGE INDEXES:", {
-    first: 0,
-    middle: middleIndex,
-    last: lastIndex,
-  });
-
   for (const index of sourceIndexes) {
     if (index < 0) continue;
     const product = list[index];
     const image = productImage(product, productThumbnails, resolveImg);
-    console.log("SEO IMAGE CHECK:", {
-      image,
-      isValid: !!image,
-    });
-    pushImage(image, productTitle(product));
+    pushImage(image, buildProductImageAlt(product));
   }
-
-  console.log("FINAL IMAGES:", images);
-  console.log("SEO FINAL IMAGES:", images.map((img) => img?.src));
 
   return images.slice(0, 3);
 }
@@ -168,13 +139,20 @@ function findH2OpenIndices(html) {
   return out;
 }
 
+function dimensionAttrHtml(src, layout) {
+  const dim = productImageDimensionProps({ src, layout });
+  if (!dim.width || !dim.height) return "";
+  return ` width="${dim.width}" height="${dim.height}"`;
+}
+
 /**
  * @param {{ src: string, alt?: string }} image
  */
 function figureHtml(image) {
   const esc = escapeHtml(image.src);
   const alt = escapeHtml(image.alt || "Phụ tùng ô tô");
-  return `<figure class="seo-article-inline-fig"><div class="seo-article-inline-fig__inner"><img class="seo-article-inline-img" src="${esc}" alt="${alt}" loading="lazy" decoding="async" /></div></figure>\n`;
+  const dim = dimensionAttrHtml(image.src, "square");
+  return `<figure class="seo-article-inline-fig"><div class="seo-article-inline-fig__inner"><img class="seo-article-inline-img" src="${esc}" alt="${alt}" loading="lazy" decoding="async"${dim} /></div></figure>\n`;
 }
 
 /**
@@ -194,20 +172,20 @@ function buildTopProductsBlockHtml(
   vehicleLabel,
 ) {
   const topProducts = (Array.isArray(products) ? products : []).slice(0, 6);
-  console.log("SEO TOP PRODUCTS:", topProducts.map((p) => p?.id));
   if (topProducts.length === 0) return null;
 
   /** @type {string[]} */
   const items = [];
   for (const p of topProducts) {
     const title = escapeHtml(productTitle(p));
+    const alt = escapeHtml(buildProductImageAlt(p));
     const price = escapeHtml(formatMoney(p?.price));
     const partNumber = String(p?.partNumber ?? p?.part_number ?? "").trim();
     const rawHref = getProductDetailHref(p);
     const safeHref = escapeHtml(String(rawHref || "/"));
-    const image = productImage(p, productThumbnails, resolveImg);
+    const image = productImage(p, productThumbnails, resolveImg, true);
     const imageHtml = image
-      ? `<span class="seo-top-products__thumb"><img src="${escapeHtml(image)}" alt="${title}" loading="lazy" decoding="async" /></span>`
+      ? `<span class="seo-top-products__thumb"><img src="${escapeHtml(image)}" alt="${alt}" loading="lazy" decoding="async"${dimensionAttrHtml(image, "thumb100")} /></span>`
       : "";
     const compat = vehicleLabel
       ? `<span class="seo-top-products__compat">Compatible with ${escapeHtml(vehicleLabel)}</span>`
@@ -282,7 +260,6 @@ function buildTopShopsBlockHtml(products, label) {
   const groupedShops = [...map.values()]
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "vi"))
     .slice(0, 5);
-  console.log("SEO SHOP GROUP:", groupedShops);
   if (groupedShops.length === 0) return null;
 
   const safeLabel = escapeHtml(label.trim() || "phụ tùng");
@@ -318,14 +295,10 @@ function buildTopShopsBlockHtml(products, label) {
  * }} opts
  */
 function doEnhanceSeoArticleHtml(html, opts) {
-  const products = Array.isArray(opts.products) ? opts.products : [];
   const renderedProducts = Array.isArray(opts.imageProducts) ? opts.imageProducts : [];
   const thumbs = opts.productThumbnails ?? {};
   const partLabel = String(opts.partDisplayName ?? "Phụ tùng").trim() || "Phụ tùng";
   const shopLabel = String(opts.shopDisplayName ?? partLabel).trim() || partLabel;
-
-  console.log("SEO PRODUCT SAMPLE:", products[0]);
-  console.log("IMAGE LIST:", products.map((p) => p?.image));
 
   const topBlock = buildTopProductsBlockHtml(
     renderedProducts,
@@ -339,7 +312,6 @@ function doEnhanceSeoArticleHtml(html, opts) {
   const shopBlock = buildTopShopsBlockHtml(renderedProducts, shopLabel);
 
   const inlineImages = collectInlineImages(renderedProducts, thumbs, opts.resolveImg);
-  console.log("INLINE IMAGE LIST:", inlineImages.map((img) => img?.src));
 
   const h2Idx = findH2OpenIndices(html);
 

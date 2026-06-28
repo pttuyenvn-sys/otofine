@@ -2,12 +2,14 @@
 
 import { formatPrice } from "@/data/shop-demo";
 import { apexProductUrl } from "@/lib/apexOrigin";
+import { toThumb400 } from "@/lib/imageVariants";
 import { deriveProductTrustBadge } from "@/lib/shopsite/productTrust";
 import {
   deriveProductInventorySignals,
   INVENTORY_SIGNAL_TONES,
 } from "@/lib/shopsite/productInventorySignals";
 import { ShopsiteEvents, trackShopsiteEvent } from "@/lib/shopsite/shopsiteAnalytics";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
 import ShopImage from "./ShopImage";
 
 /**
@@ -62,6 +64,7 @@ export default function ShopProductCard({
   shopPhone = null,
 }) {
   if (!product) return null;
+  const displayTitle = product.displayTitle || product.productIdentity?.h1 || "Sản phẩm";
   // Pass the full product shape (name + brand + model + year + part
   // number) so the apex URL the visitor crosses to is already the
   // root canonical `/<slug>-<id>` — no redirect hop on click. Falls
@@ -104,11 +107,12 @@ export default function ShopProductCard({
     >
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         <ShopImage
-          src={product.image || ""}
-          alt={product.name || "Sản phẩm"}
+          src={toThumb400(product.image) || ""}
+          alt={buildProductImageAlt(product)}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           fallbackClassName="h-full w-full"
           priority={priority}
+          dimensionLayout="thumb400"
         />
         {trustBadge && (
           <span
@@ -153,7 +157,7 @@ export default function ShopProductCard({
         </span>
         <button
           type="button"
-          aria-label={`Lưu sản phẩm ${product.name || ""}`.trim()}
+          aria-label={`Lưu sản phẩm ${displayTitle}`.trim()}
           className="absolute top-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/90 text-gray-500 hover:text-[#e60012] shadow-sm"
           onClick={(e) => e.preventDefault()}
         >
@@ -186,7 +190,7 @@ export default function ShopProductCard({
       */}
       <div className="p-2 sm:p-3 flex-1 flex flex-col">
         <h3 className="text-[13px] sm:text-sm text-gray-900 leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
-          {product.name}
+          {displayTitle}
         </h3>
 
         {/* Fitment line — single truncated line on every breakpoint.
@@ -241,7 +245,8 @@ export default function ShopProductCard({
                 source: "product_card",
                 shopSlug,
                 productId: product.productId || product.id || null,
-                part: product.name || "",
+                part: displayTitle,
+                displayTitle,
                 vehicle: fitmentLine || "",
               });
             }}

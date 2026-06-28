@@ -6,6 +6,14 @@ import {
   collectSynonymPhrasesForProduct,
   tokenizePartName,
 } from "../utils/partSynonyms.js";
+import {
+  attachCanonicalFieldsFromMap,
+  loadPrimaryFitmentCarsByProductIds,
+} from "../modules/products/services/canonicalPath.server.js";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../../frontend/lib/identity/buildProductIdentity.js";
 
 function stripHtml(html = "") {
   return String(html)
@@ -287,7 +295,27 @@ export async function getRelatedProductsForDetail(productId, opts = {}) {
     return b.t - a.t;
   });
 
-  return sorted
-    .slice(0, limit)
-    .map(({ r }) => mapRow(r));
+  const relatedRows = sorted.slice(0, limit).map(({ r }) => mapRow(r));
+  const fitmentMap = await loadPrimaryFitmentCarsByProductIds(
+    pool,
+    relatedRows.map((r) => r.id),
+  );
+  return relatedRows.map((r) => {
+    const primaryFitment = pickPrimaryFitment(fitmentMap.get(Number(r.id)) || []);
+    const identity = buildProductIdentity(
+      {
+        id: r.id,
+        partName: r.partName,
+        partNumber: r.partNumber,
+      },
+      primaryFitment,
+    );
+    return attachCanonicalFieldsFromMap(
+      {
+        ...r,
+        displayTitle: identity.h1,
+      },
+      fitmentMap,
+    );
+  });
 }

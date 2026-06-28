@@ -29,17 +29,23 @@
 
 import ShopImage from "./ShopImage";
 import { extractIntroImages } from "@/lib/shopsite/extractIntroImages";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
+
+/**
+ * @typedef {{ src: string, alt: string, decorative?: boolean }} GalleryTile
+ */
 
 function collectGallerySources(shop, products, visuals) {
   const seen = new Set();
+  /** @type {GalleryTile[]} */
   const out = [];
-  function pushUnique(url) {
+  function pushUnique(url, tile = { alt: "", decorative: true }) {
     if (typeof url !== "string") return;
     const trimmed = url.trim();
     if (!trimmed) return;
     if (seen.has(trimmed)) return;
     seen.add(trimmed);
-    out.push(trimmed);
+    out.push({ src: trimmed, alt: tile.alt || "", decorative: tile.decorative !== false });
   }
 
   if (shop?.cover) pushUnique(shop.cover);
@@ -50,7 +56,12 @@ function collectGallerySources(shop, products, visuals) {
 
   if (Array.isArray(products)) {
     for (const p of products) {
-      pushUnique(p?.image);
+      const image = p?.image;
+      if (!image) continue;
+      pushUnique(image, {
+        alt: buildProductImageAlt(p),
+        decorative: false,
+      });
       if (out.length >= 12) break;
     }
   }
@@ -101,17 +112,18 @@ export default function ShopGallery({ shop, products = [], visuals = {}, classNa
       {/* Mobile: 1-row horizontal scroller (swipeable). The whole
           row uses `snap-x` so each tile snaps into view. */}
       <div className="sm:hidden -mx-1 px-1 flex gap-2 overflow-x-auto snap-x snap-mandatory no-scrollbar">
-        {images.map((src, i) => (
+        {images.map((tile, i) => (
           <div
             key={`m-${i}`}
             className="relative snap-start shrink-0 w-[42%] aspect-square rounded-xl overflow-hidden bg-gray-100"
           >
             <ShopImage
-              src={src}
-              alt=""
-              aria-hidden
+              src={tile.src}
+              alt={tile.decorative ? "" : tile.alt}
+              aria-hidden={tile.decorative || undefined}
               className="absolute inset-0 w-full h-full object-cover"
               fallbackClassName="absolute inset-0 w-full h-full"
+              dimensionLayout={tile.decorative ? null : "thumb400"}
             />
           </div>
         ))}
@@ -121,7 +133,7 @@ export default function ShopGallery({ shop, products = [], visuals = {}, classNa
           driven; row-span only on the first tile so the rest reflow
           naturally below it. */}
       <div className="hidden sm:grid grid-cols-6 lg:grid-cols-12 gap-2 sm:gap-3 grid-flow-row-dense">
-        {images.map((src, i) => {
+        {images.map((tile, i) => {
           const pattern = DESKTOP_PATTERN[i] || "lg:col-span-3";
           const aspect = i === 0 ? "aspect-[3/2] lg:aspect-auto" : "aspect-square";
           return (
@@ -130,11 +142,12 @@ export default function ShopGallery({ shop, products = [], visuals = {}, classNa
               className={`relative ${aspect} rounded-xl overflow-hidden bg-gray-100 col-span-3 sm:col-span-2 ${pattern}`}
             >
               <ShopImage
-                src={src}
-                alt=""
-                aria-hidden
+                src={tile.src}
+                alt={tile.decorative ? "" : tile.alt}
+                aria-hidden={tile.decorative || undefined}
                 className="absolute inset-0 w-full h-full object-cover"
                 fallbackClassName="absolute inset-0 w-full h-full"
+                dimensionLayout={tile.decorative ? null : "thumb400"}
               />
             </div>
           );

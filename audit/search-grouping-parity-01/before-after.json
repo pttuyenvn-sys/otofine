@@ -1,0 +1,323 @@
+[
+  {
+    "query": "bugi toyota",
+    "before": {
+      "label": "bugi toyota",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 23,
+      "inverted_vehicle_groups": 23,
+      "legacy_category_groups": 9,
+      "inverted_category_groups": 9,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [],
+      "legacy_ms": 561.69,
+      "inverted_ms": 159.3
+    },
+    "after": {
+      "label": "bugi toyota",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 23,
+      "inverted_vehicle_groups": 19,
+      "legacy_category_groups": 9,
+      "inverted_category_groups": 6,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 260.88,
+      "inverted_ms": 72.47
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": false
+  },
+  {
+    "query": "đèn hậu kia",
+    "before": {
+      "label": "đèn hậu kia",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 1556,
+      "inverted_vehicle_groups": 410,
+      "legacy_category_groups": 863,
+      "inverted_category_groups": 222,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 8523.23,
+      "inverted_ms": 1201.98
+    },
+    "after": {
+      "label": "đèn hậu kia",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 1556,
+      "inverted_vehicle_groups": 25,
+      "legacy_category_groups": 863,
+      "inverted_category_groups": 17,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 7980.51,
+      "inverted_ms": 615.02
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": false
+  },
+  {
+    "query": "lọc dầu mazda",
+    "before": {
+      "label": "lọc dầu mazda",
+      "top1_pct": 100,
+      "top3_pct": 66.67,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 11,
+      "inverted_vehicle_groups": 421,
+      "legacy_category_groups": 2,
+      "inverted_category_groups": 243,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "extra_product",
+        "wrong_category"
+      ],
+      "legacy_ms": 3901.42,
+      "inverted_ms": 1062.06
+    },
+    "after": {
+      "label": "lọc dầu mazda",
+      "top1_pct": 100,
+      "top3_pct": 66.67,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 11,
+      "inverted_vehicle_groups": 27,
+      "legacy_category_groups": 2,
+      "inverted_category_groups": 13,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "extra_product",
+        "wrong_category"
+      ],
+      "legacy_ms": 3634.41,
+      "inverted_ms": 660.81
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": false
+  },
+  {
+    "query": "má phanh vios",
+    "before": {
+      "label": "má phanh vios",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 90,
+      "top20_pct": 70,
+      "popup_parity": false,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 14,
+      "inverted_vehicle_groups": 135,
+      "legacy_category_groups": 14,
+      "inverted_category_groups": 135,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "missing_product",
+        "extra_product",
+        "different_order",
+        "wrong_url",
+        "wrong_canonical",
+        "wrong_popup",
+        "wrong_category"
+      ],
+      "legacy_ms": 476.75,
+      "inverted_ms": 592.33
+    },
+    "after": {
+      "label": "má phanh vios",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 90,
+      "top20_pct": 70,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 14,
+      "inverted_vehicle_groups": 14,
+      "legacy_category_groups": 14,
+      "inverted_category_groups": 14,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "missing_product",
+        "extra_product",
+        "different_order"
+      ],
+      "legacy_ms": 373.9,
+      "inverted_ms": 419.58
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": true
+  },
+  {
+    "query": "bố thắng",
+    "before": {
+      "label": "bố thắng",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 95,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 26,
+      "inverted_vehicle_groups": 237,
+      "legacy_category_groups": 20,
+      "inverted_category_groups": 68,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 6232.67,
+      "inverted_ms": 369.69
+    },
+    "after": {
+      "label": "bố thắng",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 95,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 26,
+      "inverted_vehicle_groups": 27,
+      "legacy_category_groups": 20,
+      "inverted_category_groups": 21,
+      "legacy_popup_groups": 3,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "wrong_category"
+      ],
+      "legacy_ms": 5134.79,
+      "inverted_ms": 366.82
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": false
+  },
+  {
+    "query": "04465-0D140",
+    "before": {
+      "label": "04465-0D140",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 0,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 0,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 0,
+      "mismatch_types": [],
+      "legacy_ms": 2723.47,
+      "inverted_ms": 17.84
+    },
+    "after": {
+      "label": "04465-0D140",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 0,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 0,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 0,
+      "mismatch_types": [],
+      "legacy_ms": 2889.02,
+      "inverted_ms": 26.1
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": false
+  },
+  {
+    "query": "brake pad",
+    "before": {
+      "label": "brake pad",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": false,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 62,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 33,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 3,
+      "mismatch_types": [
+        "extra_product",
+        "wrong_vehicle",
+        "wrong_category"
+      ],
+      "legacy_ms": 3497.2,
+      "inverted_ms": 115.72
+    },
+    "after": {
+      "label": "brake pad",
+      "top1_pct": 100,
+      "top3_pct": 100,
+      "top10_pct": 100,
+      "top20_pct": 100,
+      "popup_parity": true,
+      "view_all_parity": true,
+      "legacy_vehicle_groups": 0,
+      "inverted_vehicle_groups": 0,
+      "legacy_category_groups": 0,
+      "inverted_category_groups": 0,
+      "legacy_popup_groups": 0,
+      "inverted_popup_groups": 0,
+      "mismatch_types": [
+        "extra_product"
+      ],
+      "legacy_ms": 2661.15,
+      "inverted_ms": 86.7
+    },
+    "top10_delta_pct": 0,
+    "popup_improved": true
+  }
+]

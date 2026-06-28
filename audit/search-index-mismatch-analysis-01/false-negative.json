@@ -1,0 +1,124 @@
+[
+  {
+    "query": {
+      "query": "2222772000"
+    },
+    "queryType": "oem",
+    "legacyProvider": "like-fallback",
+    "indexProvider": "exact-index",
+    "legacyTop20": [
+      4819,
+      4820,
+      7531
+    ],
+    "indexTop20": [
+      7531
+    ],
+    "overlapTop20": 0.3333333333333333,
+    "missing": [
+      4819,
+      4820
+    ],
+    "extra": [],
+    "moved": [
+      {
+        "productId": 7531,
+        "legacyRank": 3,
+        "indexRank": 1
+      }
+    ],
+    "rootCause": "PARTNUMBER_NORMALIZATION",
+    "latencyMs": {
+      "legacy": 921,
+      "index": 154
+    },
+    "category": null,
+    "brand": null,
+    "model": null,
+    "year": null,
+    "reason": "index_missing"
+  },
+  {
+    "query": {
+      "query": "K12351150H"
+    },
+    "queryType": "oem",
+    "legacyProvider": "like-fallback",
+    "indexProvider": "exact-index",
+    "legacyTop20": [
+      7527,
+      2118,
+      2119
+    ],
+    "indexTop20": [
+      2119,
+      7527
+    ],
+    "overlapTop20": 0.6666666666666666,
+    "missing": [
+      2118
+    ],
+    "extra": [],
+    "moved": [
+      {
+        "productId": 7527,
+        "legacyRank": 1,
+        "indexRank": 2
+      },
+      {
+        "productId": 2119,
+        "legacyRank": 3,
+        "indexRank": 1
+      }
+    ],
+    "rootCause": "PARTNUMBER_NORMALIZATION",
+    "latencyMs": {
+      "legacy": 821,
+      "index": 134
+    },
+    "category": null,
+    "brand": null,
+    "model": null,
+    "year": null,
+    "reason": "index_missing"
+  },
+  {
+    "query": {
+      "query": "123050T120"
+    },
+    "queryType": "oem",
+    "legacyProvider": "like-fallback",
+    "indexProvider": "exact-index",
+    "legacyTop20": [
+      5648,
+      7510,
+      5649
+    ],
+    "indexTop20": [
+      5649,
+      7510
+    ],
+    "overlapTop20": 0.6666666666666666,
+    "missing": [
+      5648
+    ],
+    "extra": [],
+    "moved": [
+      {
+        "productId": 5649,
+        "legacyRank": 3,
+        "indexRank": 1
+      }
+    ],
+    "rootCause": "PARTNUMBER_NORMALIZATION",
+    "latencyMs": {
+      "legacy": 899,
+      "index": 148
+    },
+    "category": null,
+    "brand": null,
+    "model": null,
+    "year": null,
+    "reason": "index_missing"
+  }
+]

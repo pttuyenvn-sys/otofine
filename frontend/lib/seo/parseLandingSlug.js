@@ -4,6 +4,24 @@ import {
   SEO_BASE_SLUG,
   categoryLandingSlugFromName,
 } from "./slugify.js";
+import {
+  buildListingIdentity,
+  buildPageTitle,
+} from "@/components/pages/home/services/listingSeoState";
+import listingUrlHelpers from "@/components/pages/home/services/listingUrlState";
+import { parseVehicleYearSuffix } from "@/lib/seo/parseVehicleYearSuffix";
+import { fetchProductCategoryRows } from "@/lib/seo/fetchProductCategoryCatalog.server";
+
+const { buildListingUrlFromIdentity } = listingUrlHelpers;
+
+const CATEGORY_NAME_OVERRIDES = {
+  "giam-xoc-truoc-phai": "Giảm Xóc Trước Phải",
+};
+
+function normalizeCategoryDisplayName(name) {
+  const key = slugifyVi(name);
+  return CATEGORY_NAME_OVERRIDES[key] || name;
+}
 
 /** Tránh trùng với route hệ thống (segment đơn). */
 export const RESERVED_SLUGS = new Set([
@@ -27,6 +45,66 @@ async function fetchJson(path) {
   return res.json();
 }
 
+async function fetchCategoryRows() {
+  return fetchProductCategoryRows();
+}
+
+function categorySlugCandidates(raw) {
+  const canonicalSlug = String(raw?.canonical_slug || "")
+    .trim()
+    .toLowerCase();
+  const categorySlug = String(raw?.category_slug || "")
+    .trim()
+    .toLowerCase();
+  const name = normalizeCategoryDisplayName(
+    String(raw?.canonical_name || raw?.category_name || raw || "").trim(),
+  );
+  const nameSlug = categoryLandingSlugFromName(name);
+  return [canonicalSlug, categorySlug, nameSlug].filter(Boolean);
+}
+
+function resolveCategoryName(raw) {
+  return normalizeCategoryDisplayName(
+    String(raw?.canonical_name || raw?.category_name || raw || "").trim(),
+  );
+}
+
+async function resolveLocationNameFromSlug(locationSlug) {
+  const rows = await fetchJson("/address/provinces");
+  const list = Array.isArray(rows) ? rows : [];
+  const target = String(locationSlug || "").trim().toLowerCase();
+  if (!target) return "";
+  const fallback = {
+    "ha-noi": "Hà Nội",
+    "tp-ho-chi-minh": "TP Hồ Chí Minh",
+  };
+  const hit = list.find((row) => {
+    const db = String(row?.tinh_tp || "").trim();
+    if (!db) return false;
+    const plain = db.replace(/^TP\\s+/i, "").trim();
+    const candidates = [slugifyVi(db), slugifyVi(plain)].filter(Boolean);
+    return candidates.includes(target);
+  });
+  if (!hit) return fallback[target] || "";
+  const raw = String(hit.tinh_tp || "").trim();
+  if (!raw) return fallback[target] || "";
+  if (target.startsWith("tp-")) return raw;
+  if (/^TP\\s+/i.test(raw)) return raw.replace(/^TP\\s+/i, "").trim();
+  return raw;
+}
+
+function listingOwnerPathFromState({ categoryName = "", brand = "", model = "", year = "", location = "" } = {}) {
+  const identity = buildListingIdentity({
+    categoryName,
+    hasCategory: Boolean(String(categoryName || "").trim()),
+    brand,
+    model,
+    year,
+    location,
+  });
+  return buildListingUrlFromIdentity(identity);
+}
+
 /**
  * @param {string} slug
  * @returns {Promise<{
@@ -48,63 +126,169 @@ export async function parseLandingSlug(slug) {
     return { kind: "invalid", filters: {}, h1: "", breadcrumb: [base] };
   }
 
+  const taiIndex = s.lastIndexOf("-tai-");
+  if (taiIndex > 0 && !s.startsWith(SEO_BASE_SLUG)) {
+    const categorySlug = s.slice(0, taiIndex).trim();
+    const locationSlug = s.slice(taiIndex + "-tai-".length).trim();
+    if (categorySlug && locationSlug) {
+      const locationName = await resolveLocationNameFromSlug(locationSlug);
+      if (locationName) {
+        const categories = await fetchCategoryRows();
+        for (const raw of categories) {
+          const name = resolveCategoryName(raw);
+          if (!name) continue;
+          const candidates = categorySlugCandidates(raw);
+          const normalizedCandidates = new Set(
+            candidates.flatMap((value) => [
+              value,
+              value.replace(/-o-to$/, ""),
+            ]),
+          );
+          if (!normalizedCandidates.has(categorySlug)) continue;
+          const h1 = buildPageTitle({
+            categoryName: name,
+            hasCategory: true,
+            brand: "",
+            model: "",
+            year: "",
+            location: locationName,
+          });
+          return {
+            kind: "category",
+            filters: { category: name, location: locationName },
+            h1,
+            breadcrumb: [
+              base,
+              { name: "Phụ tùng ô tô", href: "/" },
+              {
+                name: h1,
+                href: listingOwnerPathFromState({
+                  categoryName: name,
+                  location: locationName,
+                }),
+              },
+            ],
+          };
+        }
+      }
+    }
+  }
+
   /* --- Category: {name}-o-to (không dùng prefix phu-tung) --- */
   if (s.endsWith("-o-to") && !s.startsWith(SEO_BASE_SLUG)) {
-    // Try new API first, fallback to old API
-    let categories = await fetchJson("/product-categories").catch(() => null);
-    
-    // Fallback to old API if new API fails or returns empty
-    if (!categories || !Array.isArray(categories) || categories.length === 0) {
-      categories = await fetchJson("/filter/categories").catch(() => null);
-    }
-    
-    const list = Array.isArray(categories) ? categories : [];
+    const list = await fetchCategoryRows();
     for (const raw of list) {
-      const name = String(raw?.category_name || raw || "").trim();
+      const name = resolveCategoryName(raw);
       if (!name) continue;
-      if (categoryLandingSlugFromName(name) === s) {
-        const h1 = `${name} ô tô`;
-        return {
-          kind: "category",
-          filters: { category: name },
-          h1,
-          breadcrumb: [
-            base,
-            { name: "Phụ tùng ô tô", href: `/${SEO_BASE_SLUG}` },
-            { name: h1, href: `/${s}` },
-          ],
-        };
-      }
+      const candidates = categorySlugCandidates(raw);
+      if (!candidates.includes(s)) continue;
+      const h1 = buildPageTitle({
+        categoryName: name,
+        hasCategory: true,
+        brand: "",
+        model: "",
+        year: "",
+        location: "",
+      });
+      return {
+        kind: "category",
+        filters: { category: name },
+        h1,
+        breadcrumb: [
+          base,
+          { name: "Phụ tùng ô tô", href: "/" },
+          {
+            name: h1,
+            href: listingOwnerPathFromState({
+              categoryName: name,
+            }),
+          },
+        ],
+      };
     }
     return { kind: "invalid", filters: {}, h1: "", breadcrumb: [base] };
   }
 
   /* --- Vehicle / base: phu-tung-o-to ... --- */
   if (s === SEO_BASE_SLUG) {
-    const h1 = "Phụ tùng ô tô";
+    const h1 = buildPageTitle({
+      categoryName: "",
+      hasCategory: false,
+      brand: "",
+      model: "",
+      year: "",
+      location: "",
+    });
     return {
       kind: "vehicle",
       filters: {},
       h1,
-      breadcrumb: [base, { name: h1, href: `/${SEO_BASE_SLUG}` }],
+      breadcrumb: [base, { name: h1, href: "/" }],
     };
   }
 
-  if (!s.startsWith(`${SEO_BASE_SLUG}-`)) {
+  const PART_VEHICLE_SLUG_PREFIX = "phu-tung-";
+  let rest = "";
+  if (s.startsWith(`${SEO_BASE_SLUG}-`)) {
+    rest = s.slice(SEO_BASE_SLUG.length + 1);
+  } else if (
+    s.startsWith(PART_VEHICLE_SLUG_PREFIX) &&
+    s !== SEO_BASE_SLUG
+  ) {
+    rest = s.slice(PART_VEHICLE_SLUG_PREFIX.length);
+  } else {
     return { kind: "invalid", filters: {}, h1: "", breadcrumb: [base] };
   }
 
-  let rest = s.slice(SEO_BASE_SLUG.length + 1);
   if (!rest) {
     return { kind: "invalid", filters: {}, h1: "", breadcrumb: [base] };
   }
 
-  let tokens = rest.split("-").filter(Boolean);
-
-  let year = null;
-  if (tokens.length && /^(19|20)\d{2}$/.test(tokens[tokens.length - 1])) {
-    year = tokens.pop();
+  // Strip `-tai-{location}` before brand/model/year parsing so year ranges
+  // like `2014-2020` are not broken by `tai-ha-noi` tail tokens.
+  let locationName = "";
+  const vehicleTaiIdx = rest.lastIndexOf("-tai-");
+  if (vehicleTaiIdx > 0) {
+    const locationSlug = rest.slice(vehicleTaiIdx + "-tai-".length).trim();
+    const resolvedLocation = await resolveLocationNameFromSlug(locationSlug);
+    if (resolvedLocation) {
+      locationName = resolvedLocation;
+      rest = rest.slice(0, vehicleTaiIdx);
+    }
   }
+
+  if (rest.startsWith("tai-")) {
+    const locationSlug = rest.slice("tai-".length).trim();
+    const locationName = await resolveLocationNameFromSlug(locationSlug);
+    if (!locationName) {
+      return { kind: "invalid", filters: {}, h1: "", breadcrumb: [base] };
+    }
+    const h1 = buildPageTitle({
+      categoryName: "",
+      hasCategory: false,
+      brand: "",
+      model: "",
+      year: "",
+      location: locationName,
+    });
+    return {
+      kind: "vehicle",
+      filters: { location: locationName },
+      h1,
+      breadcrumb: [
+        base,
+        { name: "Phụ tùng ô tô", href: "/" },
+        {
+          name: `Tại ${locationName}`,
+          href: listingOwnerPathFromState({
+            location: locationName,
+          }),
+        },
+      ],
+    };
+  }
+
+  let tokens = rest.split("-").filter(Boolean);
 
   const brands = await fetchJson("/filter/brands");
   const brandRows = Array.isArray(brands) ? brands : [];
@@ -134,6 +318,9 @@ export async function parseLandingSlug(slug) {
   }
 
   const filters = { brand: matchedBrand };
+
+  const { year, tokens: modelTokens } = parseVehicleYearSuffix(tokens);
+  tokens = modelTokens;
 
   let matchedModel = null;
   if (tokens.length) {
@@ -169,28 +356,45 @@ export async function parseLandingSlug(slug) {
   }
 
   if (year) filters.year = year;
+  if (locationName) filters.location = locationName;
 
-  let h1 = "Phụ tùng ô tô";
-  h1 += ` ${matchedBrand}`;
-  if (matchedModel) h1 += ` ${matchedModel}`;
-  if (year) h1 += ` ${year}`;
+  const h1 = buildPageTitle({
+    categoryName: "",
+    hasCategory: false,
+    brand: matchedBrand,
+    model: matchedModel || "",
+    year: year || "",
+    location: locationName,
+  });
 
   const bc = [
     base,
-    { name: "Phụ tùng ô tô", href: `/${SEO_BASE_SLUG}` },
+    { name: "Phụ tùng ô tô", href: "/" },
     {
       name: matchedBrand,
-      href: `/${SEO_BASE_SLUG}-${slugifyVi(matchedBrand)}`,
+      href: listingOwnerPathFromState({
+        brand: matchedBrand,
+      }),
     },
   ];
   if (matchedModel) {
     bc.push({
       name: matchedModel,
-      href: `/${SEO_BASE_SLUG}-${slugifyVi(matchedBrand)}-${slugifyVi(matchedModel)}`,
+      href: listingOwnerPathFromState({
+        brand: matchedBrand,
+        model: matchedModel,
+      }),
     });
   }
   if (year) {
-    bc.push({ name: String(year), href: `/${s}` });
+    bc.push({
+      name: String(year),
+      href: listingOwnerPathFromState({
+        brand: matchedBrand,
+        model: matchedModel || "",
+        year: String(year),
+      }),
+    });
   }
 
   return {

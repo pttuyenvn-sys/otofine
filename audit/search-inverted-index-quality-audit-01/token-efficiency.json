@@ -1,0 +1,9 @@
+{
+  "total_tokens": 31691,
+  "useful_estimate": 1723,
+  "redundant_estimate": 29968,
+  "redundant_pct": 94.56,
+  "noise_pct": 92.94,
+  "never_match_estimate_pct": 1,
+  "methodology": "Redundant = denormalized column replay + 65% of PHRASE tokens overlapping WORD coverage."
+}

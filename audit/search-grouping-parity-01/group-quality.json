@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-06-27T08:13:09.120Z",
+  "mode": "quality_gate_v2",
+  "weights": {
+    "phrase_tier_factor": 12,
+    "keyword_coverage_factor": 25,
+    "category_match_factor": 20,
+    "brand_match": 15,
+    "model_match": 15,
+    "oem_match": 30,
+    "count_factor": 2,
+    "count_max": 20,
+    "ranking_best_factor": 0.15,
+    "ranking_best_max": 30,
+    "ranking_avg_factor": 0.08,
+    "ranking_avg_max": 15,
+    "coverage_min": 0.34,
+    "quality_threshold": 18
+  },
+  "per_query": [
+    {
+      "query": "bugi toyota",
+      "vehicle_groups": {
+        "legacy": 23,
+        "inverted": 19
+      },
+      "category_groups": {
+        "legacy": 9,
+        "inverted": 6
+      },
+      "popup_groups": {
+        "legacy": 3,
+        "inverted": 3
+      }
+    },
+    {
+      "query": "đèn hậu kia",
+      "vehicle_groups": {
+        "legacy": 1556,
+        "inverted": 25
+      },
+      "category_groups": {
+        "legacy": 863,
+        "inverted": 17
+      },
+      "popup_groups": {
+        "legacy": 3,
+        "inverted": 3
+      }
+    },
+    {
+      "query": "lọc dầu mazda",
+      "vehicle_groups": {
+        "legacy": 11,
+        "inverted": 27
+      },
+      "category_groups": {
+        "legacy": 2,
+        "inverted": 13
+      },
+      "popup_groups": {
+        "legacy": 3,
+        "inverted": 3
+      }
+    },
+    {
+      "query": "má phanh vios",
+      "vehicle_groups": {
+        "legacy": 14,
+        "inverted": 14
+      },
+      "category_groups": {
+        "legacy": 14,
+        "inverted": 14
+      },
+      "popup_groups": {
+        "legacy": 3,
+        "inverted": 3
+      }
+    },
+    {
+      "query": "bố thắng",
+      "vehicle_groups": {
+        "legacy": 26,
+        "inverted": 27
+      },
+      "category_groups": {
+        "legacy": 20,
+        "inverted": 21
+      },
+      "popup_groups": {
+        "legacy": 3,
+        "inverted": 3
+      }
+    },
+    {
+      "query": "04465-0D140",
+      "vehicle_groups": {
+        "legacy": 0,
+        "inverted": 0
+      },
+      "category_groups": {
+        "legacy": 0,
+        "inverted": 0
+      },
+      "popup_groups": {
+        "legacy": 0,
+        "inverted": 0
+      }
+    },
+    {
+      "query": "brake pad",
+      "vehicle_groups": {
+        "legacy": 0,
+        "inverted": 0
+      },
+      "category_groups": {
+        "legacy": 0,
+        "inverted": 0
+      },
+      "popup_groups": {
+        "legacy": 0,
+        "inverted": 0
+      }
+    }
+  ]
+}

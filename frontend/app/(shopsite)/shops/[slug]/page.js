@@ -7,6 +7,8 @@ import ShopMobileCategories from "@/components/shopsite/ShopMobileCategories";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopProductCard from "@/components/shopsite/ShopProductCard";
 import ShopSidebar from "@/components/shopsite/ShopSidebar";
+import ShopSeoCrawlLinks from "@/components/shopsite/ShopSeoCrawlLinks";
+import ShopTenantJsonLd from "@/components/shopsite/ShopTenantJsonLd";
 import ShopContactCard from "@/components/shopsite/ShopContactCard";
 // Bug-fix Phase A.1: Zalo contact resolution. Mirrors the backend
 // helper to guarantee the storefront contact card never renders a
@@ -20,7 +22,7 @@ import {
   fetchPublicShopCategoriesSafe,
   fetchPublicShopFitmentsSafe,
   getShopBasePath,
-  getShopCanonicalUrl,
+  getShopSeoContext,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 import { buildStorefrontVisuals } from "@/lib/shopsite/storefrontVisuals";
@@ -42,11 +44,16 @@ const SIDEBAR_FALLBACK = (
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
+  const [shop, seo] = await Promise.all([
     fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, ""),
+    getShopSeoContext(slug, ""),
   ]);
-  return buildShopMetadata({ shop, page: { subtitle: "Phụ tùng ô tô" }, canonical });
+  return buildShopMetadata({
+    shop,
+    page: { subtitle: "Phụ tùng ô tô" },
+    canonical: seo.canonical,
+    apexDiscoveryMirror: seo.apexDiscoveryMirror,
+  });
 }
 
 export default async function ShopTenantHomePage({ params }) {
@@ -71,7 +78,7 @@ export default async function ShopTenantHomePage({ params }) {
   // funnel back to competitors. Apex `/shops/<slug>` keeps them.
   const isBrandedSubdomain = await isWildcardStorefrontHost();
   const featured = (productsPage?.items || []).slice(0, 5);
-  const categories = (categoriesPayload?.items || []).slice(0, 7).map((c, i) => ({
+  const categories = (categoriesPayload?.items || []).slice(0, 8).map((c, i) => ({
     id: c.id ?? i,
     name: c.name,
     slug: c.slug || String(c.id),
@@ -89,7 +96,10 @@ export default async function ShopTenantHomePage({ params }) {
   });
 
   return (
-    <div className="space-y-3">
+    <>
+      <ShopTenantJsonLd slug={slug} subPath="" shop={shop} />
+      <div className="space-y-3">
+      <h1 className="sr-only">{shop.name}</h1>
       {/* Live activity strip — sits between hero and filters so the
           status signals (đang mở cửa / phản hồi ~15 phút / X+ SP /
           chuyên hãng X) are the first thing the buyer reads after
@@ -117,10 +127,20 @@ export default async function ShopTenantHomePage({ params }) {
           desktop filter row in the DOM, but only one is visible at
           a time thanks to `lg:hidden` / `hidden lg:block`. */}
       <Suspense fallback={FILTERS_FALLBACK}>
-        <ShopMobileFilters fitments={fitments} basePath={basePath} />
+        <ShopMobileFilters
+          fitments={fitments}
+          categories={categories}
+          basePath={basePath}
+          shopSlug={shop.slug}
+        />
       </Suspense>
       <Suspense fallback={FILTERS_FALLBACK}>
-        <ShopFilters fitments={fitments} basePath={basePath} />
+        <ShopFilters
+          fitments={fitments}
+          categories={categories}
+          basePath={basePath}
+          shopSlug={shop.slug}
+        />
       </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -154,13 +174,13 @@ export default async function ShopTenantHomePage({ params }) {
       {/* Mobile categories trigger (drawer) — surfaced ABOVE the
           product grid so phone users can scope their browsing
           without first scrolling through the entire catalogue. */}
-      <ShopMobileCategories categories={categories} basePath={basePath} />
+      <ShopMobileCategories categories={categories} basePath={basePath} shopSlug={shop.slug} fitments={fitments} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3">
         <div className="lg:col-span-9">
           <ShopSection
             title="Sản phẩm nổi bật"
-            rightHref={`${basePath}/san-pham`}
+            rightHref={`${basePath}/phu-tung-o-to`}
             bodyClassName="!p-2 sm:!p-3"
           >
             {featured.length === 0 ? (
@@ -182,10 +202,18 @@ export default async function ShopTenantHomePage({ params }) {
               </div>
             )}
           </ShopSection>
+          <ShopSeoCrawlLinks
+            variant="full"
+            shopBasePath={basePath}
+            categories={categories}
+            fitments={fitments}
+            vehicleYearRanges={fitments?.vehicleYearRanges}
+            className="px-1"
+          />
         </div>
         <div className="lg:col-span-3">
           <Suspense fallback={SIDEBAR_FALLBACK}>
-            <ShopSidebar categories={categories} basePath={basePath} />
+            <ShopSidebar categories={categories} basePath={basePath} shopSlug={shop.slug} fitments={fitments} />
           </Suspense>
         </div>
       </div>
@@ -242,6 +270,7 @@ export default async function ShopTenantHomePage({ params }) {
         </Suspense>
       )}
     </div>
+    </>
   );
 }
 
@@ -294,7 +323,7 @@ function PromoBanner({ basePath, promoImage, promoFallback }) {
           TẠO NIỀM TIN
         </div>
         <a
-          href={`${basePath}/san-pham`}
+          href={`${basePath}/phu-tung-o-to`}
           className="mt-3 inline-flex w-fit items-center gap-1 bg-[#e60012] hover:bg-[#c1000f] text-white text-sm font-semibold px-4 py-2 rounded-xl"
         >
           Xem ngay ›

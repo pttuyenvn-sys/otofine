@@ -4,6 +4,7 @@ import {
   getCanonicalCategories,
   searchCategories,
   searchSidebarCategories,
+  searchPreviewBatch,
   getProductCategoryBySlug,
 } from "../controllers/productCategory.controller.js";
 
@@ -18,8 +19,11 @@ router.get("/canonical", getCanonicalCategories);
 // Search categories for autocomplete
 router.get("/search", searchCategories);
 
-// Search categories for sidebar suggestions
+// Legacy — prefer GET /api/search/suggest (SEARCH-SINGLE-ENDPOINT-01)
 router.get("/search-sidebar", searchSidebarCategories);
+
+// Legacy — prefer GET /api/search/suggest
+router.get("/search-preview-batch", searchPreviewBatch);
 
 // Get single category by slug
 router.get("/slug/:slug", getProductCategoryBySlug);

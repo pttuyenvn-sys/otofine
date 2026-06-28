@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 
 /**
  * Storefront image with graceful broken-src fallback.
@@ -37,6 +38,7 @@ export default function ShopImage({
   fallback = null,
   fallbackSrc = null,
   priority = false,
+  dimensionLayout = null,
   ...rest
 }) {
   const [errored, setErrored] = useState(false);
@@ -91,6 +93,10 @@ export default function ShopImage({
 
   const activeSrc = errored && fallbackSrc ? fallbackSrc : src || fallbackSrc;
   const onFallbackTier = errored && fallbackSrc;
+  const dim = productImageDimensionProps({
+    src: activeSrc,
+    layout: dimensionLayout,
+  });
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -102,6 +108,7 @@ export default function ShopImage({
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       {...(priority ? { fetchPriority: "high" } : {})}
+      {...dim}
       onError={(e) => {
         // Detach the error handler so an attacker can't intentionally
         // re-trigger a render loop by feeding a broken src that

@@ -1,0 +1,87 @@
+{
+  "searchIndexVersion": 4,
+  "tableExists": true,
+  "syncedSample": 50,
+  "productsWithoutTokens": 7335,
+  "duplicateGroups": 0,
+  "stats": {
+    "total_tokens": 31691,
+    "products_with_tokens": 50,
+    "avg_tokens_per_product": 633.82
+  },
+  "typeStats": [
+    {
+      "token_type": "SYNONYM",
+      "cnt": 16614,
+      "avg_weight": "20.0000"
+    },
+    {
+      "token_type": "WORD",
+      "cnt": 13908,
+      "avg_weight": "31.2043"
+    },
+    {
+      "token_type": "PHRASE",
+      "cnt": 790,
+      "avg_weight": "75.0000"
+    },
+    {
+      "token_type": "CATEGORY",
+      "cnt": 100,
+      "avg_weight": "60.0000"
+    },
+    {
+      "token_type": "MODEL",
+      "cnt": 67,
+      "avg_weight": "40.0000"
+    },
+    {
+      "token_type": "YEAR",
+      "cnt": 62,
+      "avg_weight": "10.0000"
+    },
+    {
+      "token_type": "OEM",
+      "cnt": 50,
+      "avg_weight": "100.0000"
+    },
+    {
+      "token_type": "BRAND",
+      "cnt": 50,
+      "avg_weight": "40.0000"
+    },
+    {
+      "token_type": "LOCATION",
+      "cnt": 50,
+      "avg_weight": "10.0000"
+    }
+  ],
+  "storageMb": 0.08,
+  "benchmark": {
+    "perProductSyncAvgMs": 166.89,
+    "perProductSyncMaxMs": 363.28
+  },
+  "weightChecks": [
+    {
+      "type": "OEM",
+      "expected": 100,
+      "ok": true
+    },
+    {
+      "type": "CATEGORY",
+      "expected": 60,
+      "ok": true
+    },
+    {
+      "type": "SYNONYM",
+      "expected": 20,
+      "ok": true
+    }
+  ],
+  "repositorySmoke": {
+    "findByToken": 5,
+    "intersect": 0,
+    "union": 5,
+    "topCandidates": 5
+  }
+}

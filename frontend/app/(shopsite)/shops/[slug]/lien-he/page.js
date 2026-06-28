@@ -1,20 +1,26 @@
 import { notFound } from "next/navigation";
 import ShopSection from "@/components/shopsite/ShopSection";
 import ShopMapVisualBlock from "@/components/shopsite/ShopMapVisualBlock";
+import ShopTenantJsonLd from "@/components/shopsite/ShopTenantJsonLd";
 import {
   fetchPublicShopContactSafe,
   fetchPublicShopSafe,
-  getShopCanonicalUrl,
+  getShopSeoContext,
 } from "@/services/shopPublic.service";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const [shop, canonical] = await Promise.all([
+  const [shop, seo] = await Promise.all([
     fetchPublicShopSafe(slug),
-    getShopCanonicalUrl(slug, "lien-he"),
+    getShopSeoContext(slug, "lien-he"),
   ]);
-  return buildShopMetadata({ shop, page: { subtitle: "Liên hệ" }, canonical });
+  return buildShopMetadata({
+    shop,
+    page: { subtitle: "Liên hệ" },
+    canonical: seo.canonical,
+    apexDiscoveryMirror: seo.apexDiscoveryMirror,
+  });
 }
 
 export default async function ShopTenantContactPage({ params }) {
@@ -25,7 +31,10 @@ export default async function ShopTenantContactPage({ params }) {
   if (!contact) notFound();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <>
+      <ShopTenantJsonLd slug={slug} subPath="lien-he" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      <h1 className="sr-only">{`Liên hệ ${contact.name || "shop"}`}</h1>
       <div className="lg:col-span-7 space-y-3">
         <ShopSection title="Liên hệ với chúng tôi">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -143,6 +152,7 @@ export default async function ShopTenantContactPage({ params }) {
         </div>
       </aside>
     </div>
+    </>
   );
 }
 

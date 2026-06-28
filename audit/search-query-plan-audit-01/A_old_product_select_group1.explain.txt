@@ -1,0 +1,90 @@
+--- A_old_product_select_group1 ---
+
+      SELECT `p`.`id`, `p`.`partNumber` AS partNumber
+      
+    FROM products p
+
+    LEFT JOIN product_category_map pcm
+      ON pcm.product_id = `p`.`id`
+
+    LEFT JOIN product_categories pc
+      ON pc.id = pcm.category_id
+
+    LEFT JOIN product_car_applications pa
+      ON pa.productId = `p`.`id`
+
+    LEFT JOIN car_models cm
+      ON cm.id = pa.carModelId
+
+    JOIN shops s
+      ON `s`.id = `p`.`shopId`
+
+    LEFT JOIN address a
+      ON a.id = s.provinceId
+    WHERE 1=1  AND LOWER(TRIM(cm.hang_xe)) = ?  AND LOWER(TRIM(cm.ten_xe)) = ?  AND (
+      REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(pc.category_name)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE ?
+      OR (
+        NULLIF(TRIM(pc.canonical_name), '') IS NOT NULL
+        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(pc.canonical_name)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE ?
+      )
+    ) 
+          AND (
+            LOWER(`p`.`partName`) LIKE ?
+            OR LOWER(`p`.`shortDescription`) LIKE ?
+            OR LOWER(`p`.`description`) LIKE ?
+            OR LOWER(`p`.`partNumber`) LIKE ?
+          )
+           AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 
+      GROUP BY `p`.`id`, `p`.`shopId`, `p`.`partNumber`, `p`.`partName`, `p`.`price`,
+        `p`.`shortDescription`, `p`.`description`, `p`.`origin`, `p`.`stock`, `p`.`updatedAt`
+      
+        ORDER BY
+          
+          
+    CASE
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE 'bugi%' THEN 1
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') = 'bugi' OR LOWER(`p`.`partName`) = 'bugi' THEN 2
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE '%bugi%' THEN 3
+      WHEN LOWER(`p`.`partNumber`) LIKE '%bugi%' THEN 4
+      WHEN LOWER(`p`.`shortDescription`) LIKE '%bugi%' OR LOWER(`p`.`description`) LIKE '%bugi%' THEN 5
+      ELSE 9
+    END,
+        
+          
+          CASE
+            WHEN `p`.`partNumber` IS NOT NULL
+            AND `p`.`partNumber` <> ''
+            THEN 0 ELSE 1
+          END,
+          CASE
+            WHEN `p`.`price` > 0
+            THEN 0 ELSE 1
+          END,
+          MOD(DAY(NOW()) + `p`.`id`, 7),
+          `p`.`updatedAt` DESC,
+          `p`.`id` ASC
+         LIMIT 16 OFFSET 0
+
+--- EXPLAIN ANALYZE ---
+-> Limit: 16 row(s)  (actual time=908..908 rows=6 loops=1)
+    -> Sort row IDs: `(case when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like 'bugi%') then 1 when ((replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') = 'bugi') or (lower(p.partName) = 'bugi')) then 2 when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%') then 3 when (lower(p.partNumber) like '%bugi%') then 4 when ((lower(p.shortDescription) like '%bugi%') or (lower(p.``description``) like '%bugi%')) then 5 else 9 end)`, `(case when ((p.partNumber is not null) and (p.partNumber <> '')) then 0 else 1 end)`, `(case when (p.price > 0) then 0 else 1 end)`, `((dayofmonth(now()) + p.id) % 7)`, p.updatedAt DESC, p.id, limit input to 16 row(s) per chunk  (actual time=908..908 rows=6 loops=1)
+        -> Table scan on <temporary>  (cost=4141..4161 rows=1426) (actual time=908..908 rows=6 loops=1)
+            -> Temporary table with deduplication  (cost=4141..4141 rows=1426) (actual time=908..908 rows=6 loops=1)
+                -> Nested loop inner join  (cost=3999 rows=1426) (actual time=644..907 rows=6 loops=1)
+                    -> Nested loop inner join  (cost=3499 rows=1426) (actual time=14.4..907 rows=87 loops=1)
+                        -> Nested loop left join  (cost=3000 rows=1223) (actual time=14.4..906 rows=54 loops=1)
+                            -> Nested loop inner join  (cost=2572 rows=1223) (actual time=14.4..906 rows=54 loops=1)
+                                -> Nested loop inner join  (cost=2144 rows=1223) (actual time=14.4..906 rows=54 loops=1)
+                                    -> Nested loop inner join  (cost=1716 rows=1223) (actual time=14.3..904 rows=54 loops=1)
+                                        -> Filter: (((lower(p.partName) like '%bugi%') or (lower(p.shortDescription) like '%bugi%') or (lower(p.`description`) like '%bugi%') or (lower(p.partNumber) like '%bugi%')) and (trim(lower(p.moderation_status)) = 'approved') and (p.stock > 0) and (p.shopId is not null))  (cost=1288 rows=1223) (actual time=14.3..903 rows=54 loops=1)
+                                            -> Table scan on p  (cost=1288 rows=3669) (actual time=0.129..43.4 rows=7397 loops=1)
+                                        -> Covering index lookup on pcm using uk_product_category (product_id=p.id)  (cost=0.25 rows=1) (actual time=0.0135..0.0144 rows=1 loops=54)
+                                    -> Filter: ((replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(pc.category_name)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%') or ((nullif(trim(pc.canonical_name),'') is not null) and (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(pc.canonical_name)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%')))  (cost=0.25 rows=1) (actual time=0.029..0.0291 rows=1 loops=54)
+                                        -> Single-row index lookup on pc using PRIMARY (id=pcm.category_id)  (cost=0.25 rows=1) (actual time=0.00409..0.00412 rows=1 loops=54)
+                                -> Filter: (trim(lower(s.public_status)) = 'public')  (cost=0.25 rows=1) (actual time=0.00309..0.00321 rows=1 loops=54)
+                                    -> Single-row index lookup on s using PRIMARY (id=p.shopId)  (cost=0.25 rows=1) (actual time=0.00164..0.00167 rows=1 loops=54)
+                            -> Single-row covering index lookup on a using PRIMARY (id=s.provinceId)  (cost=0.25 rows=1) (actual time=0.00105..0.00109 rows=1 loops=54)
+                        -> Index lookup on pa using fk_pca_product (productId=p.id)  (cost=0.292 rows=1.17) (actual time=0.0144..0.0163 rows=1.61 loops=54)
+                    -> Filter: ((lower(trim(cm.hang_xe)) = 'toyota') and (lower(trim(cm.ten_xe)) = 'altis'))  (cost=0.25 rows=1) (actual time=0.00589..0.00591 rows=0.069 loops=87)
+                        -> Single-row index lookup on cm using PRIMARY (id=pa.carModelId)  (cost=0.25 rows=1) (actual time=0.00421..0.00425 rows=1 loops=87)
+

@@ -1,0 +1,257 @@
+{
+  "started_at": "2026-06-27T04:45:54.656Z",
+  "batches": [
+    {
+      "batch": 1,
+      "last_product_id": 607,
+      "products": 500,
+      "skipped": 380,
+      "rebuilt": 120,
+      "errors": 0,
+      "duration_ms": 19149,
+      "products_per_sec": 26.11,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 25298,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 2,
+      "last_product_id": 1107,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 18265,
+      "products_per_sec": 27.37,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 24442,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 3,
+      "last_product_id": 1607,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 16679,
+      "products_per_sec": 29.98,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 23701,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 4,
+      "last_product_id": 2107,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 16312,
+      "products_per_sec": 30.65,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 23951,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 5,
+      "last_product_id": 2607,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 14095,
+      "products_per_sec": 35.47,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 24484,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 6,
+      "last_product_id": 3130,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 10409,
+      "products_per_sec": 48.04,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 22739,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 7,
+      "last_product_id": 3630,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 9507,
+      "products_per_sec": 52.59,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 22598,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 8,
+      "last_product_id": 4130,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 10770,
+      "products_per_sec": 46.43,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 23283,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 9,
+      "last_product_id": 4632,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 12134,
+      "products_per_sec": 41.21,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 23029,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 10,
+      "last_product_id": 5132,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 14403,
+      "products_per_sec": 34.72,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 22778,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 11,
+      "last_product_id": 5632,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 12353,
+      "products_per_sec": 40.47,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 24675,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 12,
+      "last_product_id": 6132,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 12329,
+      "products_per_sec": 40.56,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 25532,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 13,
+      "last_product_id": 6632,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 12686,
+      "products_per_sec": 39.41,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 23808,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 14,
+      "last_product_id": 7132,
+      "products": 500,
+      "skipped": 0,
+      "rebuilt": 500,
+      "errors": 0,
+      "duration_ms": 12974,
+      "products_per_sec": 38.54,
+      "verify": {
+        "productsProcessed": 500,
+        "tokensInserted": 25608,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    },
+    {
+      "batch": 15,
+      "last_product_id": 7531,
+      "products": 385,
+      "skipped": 0,
+      "rebuilt": 385,
+      "errors": 0,
+      "duration_ms": 9052,
+      "products_per_sec": 42.53,
+      "verify": {
+        "productsProcessed": 385,
+        "tokensInserted": 16705,
+        "duplicates": 0,
+        "missingInBatch": 0
+      }
+    }
+  ],
+  "totals": {
+    "finished_at": "2026-06-27T04:49:37.305Z",
+    "duration_ms": 16,
+    "products_processed": 7385,
+    "products_skipped": 380,
+    "tokens_written_estimate": 333546,
+    "errors": 0,
+    "products_per_sec": 450473.17,
+    "peak_memory_mb": 55,
+    "workers": 2,
+    "batch_size": 500
+  }
+}

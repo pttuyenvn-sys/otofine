@@ -1,0 +1,11 @@
+{
+  "phase": "after",
+  "captured_at": "2026-06-27T09:25:00Z",
+  "runtime": "inverted",
+  "samples": [
+    {"label": "bugi_toyota", "url": "https://otofine.com/api/search/suggest?query=bugi&brand=Toyota", "ttfb_s": 0.155681, "body_bytes": 7467, "group_count": 3, "category_count": 6},
+    {"label": "den_hau_kia", "url": "https://otofine.com/api/search/suggest?query=den+hau&brand=Kia", "ttfb_s": 0.506867, "body_bytes": 17736, "group_count": 3, "category_count": 84},
+    {"label": "ma_phanh_vios", "url": "https://otofine.com/api/search/suggest?query=m%C3%A1+phanh&brand=Toyota&model=Vios", "ttfb_s": 0.410393, "body_bytes": 9938, "group_count": 3, "category_count": 14},
+    {"label": "loc_dau_mazda", "url": "https://otofine.com/api/search/suggest?query=l%E1%BB%8Dc+d%E1%BA%A7u&brand=Mazda", "ttfb_s": 0.494275, "body_bytes": 4057, "group_count": 3, "category_count": 13}
+  ]
+}

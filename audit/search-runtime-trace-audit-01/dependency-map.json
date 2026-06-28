@@ -1,0 +1,117 @@
+{
+  "config": {
+    "SEARCH_RUNTIME": "(unset → legacy)",
+    "SEARCH_ENGINE_MODE": "(unset → hybrid)",
+    "SEARCH_ENGINE_DEBUG": "(unset)",
+    "SEARCH_INDEX_SYNC_ENABLED": "(unset → enabled)",
+    "SEARCH_INDEX_VERSION": 1,
+    "SEARCH_DECISION_MODE": "(unset → quality_gate)",
+    "NODE_ENV": "(unset)",
+    "effectiveRuntimeMode": "legacy",
+    "effectiveRuntimeClass": "LegacySearchRuntime",
+    "effectiveSearchEngineMode": "hybrid",
+    "searchIndexSyncEnabled": true,
+    "searchEngineDebug": false
+  },
+  "endpoints": {
+    "GET /api/search/suggest": {
+      "controller": "search.controller.getSearchSuggest",
+      "service": "searchSuggest.service.buildSearchSuggestResponse",
+      "runtime": "LegacySearchRuntime"
+    },
+    "GET /api/product-categories/search-sidebar": {
+      "controller": "productCategory.controller.searchSidebarCategories",
+      "service": "getSearchRuntime().searchSidebar",
+      "runtime": "LegacySearchRuntime"
+    },
+    "GET /api/product-categories/search-preview-batch": {
+      "controller": "productCategory.controller.searchPreviewBatch",
+      "service": "searchSuggest.service.buildSearchPreviewBatchLegacy → searchPreview",
+      "runtime": "LegacySearchRuntime"
+    },
+    "GET /api/products/search": {
+      "controller": "productList.controller.getProductSearch",
+      "service": "productSearch.service.searchProductsPublic",
+      "runtime": "LegacySearchRuntime",
+      "note": "Typesense or searchProductIds on products"
+    }
+  },
+  "functionIndexUsage": {
+    "searchSuggest": {
+      "indexUsage": "NO",
+      "sqlCount": 2,
+      "indexSqlCount": 0,
+      "productsSqlCount": 2,
+      "wallMs": 136.69,
+      "classifications": [
+        "PRODUCTS_ONLY"
+      ]
+    },
+    "searchSidebar": {
+      "indexUsage": "NO",
+      "sqlCount": 1,
+      "indexSqlCount": 0,
+      "productsSqlCount": 1,
+      "wallMs": 63,
+      "classifications": [
+        "PRODUCTS_ONLY"
+      ]
+    },
+    "searchPreview": {
+      "indexUsage": "NO",
+      "sqlCount": 2,
+      "indexSqlCount": 0,
+      "productsSqlCount": 2,
+      "wallMs": 136.89,
+      "classifications": [
+        "PRODUCTS_ONLY"
+      ]
+    },
+    "searchInventory": {
+      "indexUsage": "NO",
+      "sqlCount": 1,
+      "indexSqlCount": 0,
+      "productsSqlCount": 1,
+      "wallMs": 76.78,
+      "classifications": [
+        "PRODUCTS_ONLY"
+      ]
+    },
+    "searchProducts": {
+      "indexUsage": "NO",
+      "sqlCount": 5,
+      "indexSqlCount": 0,
+      "productsSqlCount": 4,
+      "wallMs": 143.56,
+      "classifications": [
+        "PRODUCTS_ONLY",
+        "OTHER"
+      ]
+    }
+  },
+  "hydrationFlow": {
+    "beginsFromProducts": true,
+    "beginsFromIndex": false,
+    "hydratesAfterIdMatch": false,
+    "hydrationQueries": [
+      "fetchGroupedInventoryFromMatchedCte — products + category_map + fitment JOINs",
+      "fetchBatchPreviewProductRows — products + LATERAL product_car_applications",
+      "getModels — car_models (when brand-only scope)"
+    ]
+  },
+  "productsDependencies": [
+    "Keyword matching via products.partName / partNumber / description LIKE or FULLTEXT",
+    "Vehicle scoping via product_car_applications + car_models JOIN",
+    "Category grouping via product_category_map + product_categories JOIN",
+    "Preview cards: full product row SELECT from products",
+    "Primary fitment LATERAL subquery on product_car_applications",
+    "Shop visibility via shops JOIN",
+    "product_images thumbnail subquery",
+    "searchProducts: Typesense or products searchProductIds (legacy path)"
+  ],
+  "indexUsagePercent": 0,
+  "sqlClassificationCounts": {
+    "OTHER": 4,
+    "PRODUCTS_ONLY": 24
+  }
+}

@@ -8,6 +8,9 @@ import {
   listingQueryNeedsVehicleFitmentJoin,
   normalizeListingQuery,
 } from "../utils/listingQueryNormalize.js";
+import { rankCategorySidebarSuggestions } from "../utils/categorySuggestRanking.js";
+import { getModels } from "../services/productList.service.js";
+import { buildSearchPreviewBatchLegacy } from "../services/searchSuggest.service.js";
 
 /**
  * Normalize Vietnamese text for search
@@ -51,6 +54,8 @@ export async function getProductCategories(req, res) {
           pc.category_key,
           pc.category_name,
           pc.category_slug,
+          pc.canonical_name,
+          COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug,
           pc.h1,
           pc.seo_title,
           pc.seo_desc,
@@ -67,6 +72,8 @@ export async function getProductCategories(req, res) {
           pc.category_key,
           pc.category_name,
           pc.category_slug,
+          pc.canonical_name,
+          pc.canonical_slug,
           pc.h1,
           pc.seo_title,
           pc.seo_desc,
@@ -87,6 +94,8 @@ export async function getProductCategories(req, res) {
         category_key,
         category_name,
         category_slug,
+        canonical_name,
+        COALESCE(NULLIF(canonical_slug, ''), category_slug) AS canonical_slug,
         h1,
         seo_title,
         seo_desc,
@@ -221,47 +230,42 @@ export async function searchCategories(req, res) {
  * Match priority: canonical_name prefix, canonical_name contains, category_name contains
  * Filters: is_active=1 AND approved=1
  * Returns: canonical_name, canonical_slug, total_count (grouped)
- * Order: total_count DESC
+ * Order: category phrase relevance, then vehicle label, popularity, product count
  * Limit: none (returns all matching categories)
  */
 export async function searchSidebarCategories(req, res) {
   try {
     const keyword = req.query.keyword || req.query.q;
 
-    if (!keyword || keyword.trim().length < 1) {
+    if (!keyword || String(keyword).trim().length < 1) {
       return res.json([]);
     }
 
-    const productColumns = await getProductsColumnsResolved();
+    const { getSearchRuntime } = await import("../services/search/runtime/searchRuntime.js");
+    const ranked = await getSearchRuntime().searchSidebar(req.query);
 
-    // 🔥 luôn join vehicle nếu có filter
-    const joinV = listingQueryNeedsVehicleFitmentJoin(req.query);
-    const fromSql = buildProductListingJoinSql(productColumns, joinV);
-
-    // 🔥 dùng chung filter với product (KEY POINT)
-    const { where, params } = await buildProductListFiltersWithVisibility(productColumns, {
-      ...req.query,
-      keyword, // 🔥 ép keyword vào filter
-    });
-
-    const [rows] = await pool.query(`
-      SELECT
-        COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name,
-        COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug) AS canonical_slug,
-        COUNT(DISTINCT ${productColumns.idExpr("p")}) AS total_count
-      ${fromSql}
-      ${where}
-      GROUP BY
-        COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name),
-        COALESCE(NULLIF(pc.canonical_slug, ''), pc.category_slug)
-      HAVING total_count > 0
-      ORDER BY total_count DESC
-    `, params);
-
-    return res.json(rows);
-
+    return res.json(ranked);
   } catch (error) {
     console.error("[PRODUCT CATEGORIES] Error:", error);
+    res.status(500).json({ error: "Failed" });
+  }
+}
+
+/**
+ * SEARCH-GROUPED-VEHICLE-POPUP-01 — batch preview for grouped vehicle popup.
+ * Returns [{ group, products }] for top ranked category+vehicle groups.
+ */
+export async function searchPreviewBatch(req, res) {
+  try {
+    const keyword = req.query.keyword || req.query.q;
+    if (!keyword || String(keyword).trim().length < 1) {
+      return res.json([]);
+    }
+
+    const blocks = await buildSearchPreviewBatchLegacy(req.query);
+    return res.json(blocks);
+  } catch (error) {
+    console.error("[PRODUCT CATEGORIES] search-preview-batch:", error);
     res.status(500).json({ error: "Failed" });
   }
 }

@@ -16,5 +16,13 @@ export async function invalidateListCache() {
  * @returns {Promise<T>}
  */
 export async function getOrSetCache(key, ttlMs, factory) {
-  return redisCache.getOrSetJson(key, ttlMs, factory);
+  const hit = await redisCache.getJson(key);
+  if (hit != null) {
+    redisCache.recordGetOrSetCacheHit();
+    return hit;
+  }
+  redisCache.recordGetOrSetCacheMiss();
+  const val = await factory();
+  await redisCache.setJson(key, val, ttlMs).catch(() => {});
+  return val;
 }

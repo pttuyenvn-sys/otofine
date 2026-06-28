@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { SHOP_COLLECTION_PATH } from "@/lib/shopseo/namespace.js";
+
 const TAB_SUFFIXES = [
   { suffix: "", label: "Trang chủ" },
   { suffix: "/gioi-thieu", label: "Giới thiệu" },
-  { suffix: "/san-pham", label: "Sản phẩm" },
+  { suffix: SHOP_COLLECTION_PATH, label: "Sản phẩm" },
   { suffix: "/lien-he", label: "Liên hệ" },
 ];
 
@@ -15,6 +17,12 @@ function isActive(pathname, href) {
   const norm = pathname.replace(/\/$/, "") || "/";
   const target = href.replace(/\/$/, "") || "/";
   if (norm === target) return true;
+  if (target.endsWith(SHOP_COLLECTION_PATH)) {
+    if (norm === "/" || norm === "/gioi-thieu" || norm === "/lien-he") return false;
+    if (norm.startsWith("/gioi-thieu/") || norm.startsWith("/lien-he/")) return false;
+    if (norm.includes("/seo/")) return false;
+    return true;
+  }
   return norm.startsWith(`${target}/`);
 }
 

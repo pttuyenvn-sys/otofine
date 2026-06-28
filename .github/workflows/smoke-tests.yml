@@ -1,0 +1,108 @@
+name: Frontend Smoke Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  smoke:
+    name: Run lightweight smoke tests
+    runs-on: ubuntu-latest
+    env:
+      # Configurable; overridden by workflow or repo secrets if needed.
+      SMOKE_BASE_URL: http://localhost:3001
+      SHOP_SMOKE_DOMAINS: ""
+      SMOKE_TIMEOUT_MS: 10000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Start frontend (background)
+        working-directory: frontend
+        run: |
+          # Start Next.js on port 3001 in background and save PID.
+          nohup npm run start -- -p 3001 &> /tmp/next.log &
+          echo $! > /tmp/next.pid
+
+      - name: Wait for frontend to be ready
+        run: |
+          set -e
+          URL="${{ env.SMOKE_BASE_URL }}"
+          echo "Waiting for ${URL} ..."
+          for i in $(seq 1 30); do
+            if curl -sSf "${URL}/" >/dev/null 2>&1; then
+              echo "Frontend is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Frontend did not start in time. Dumping last 200 lines of next log:"
+          tail -n 200 /tmp/next.log || true
+          exit 1
+
+      - name: Run smoke tests
+        working-directory: frontend
+        env:
+          SMOKE_BASE_URL: ${{ env.SMOKE_BASE_URL }}
+          SHOP_SMOKE_DOMAINS: ${{ env.SHOP_SMOKE_DOMAINS }}
+          SMOKE_TIMEOUT_MS: ${{ env.SMOKE_TIMEOUT_MS }}
+        run: |
+          echo "Executing: SMOKE_BASE_URL=${SMOKE_BASE_URL} npm run smoke"
+          SMOKE_BASE_URL="${SMOKE_BASE_URL}" SHOP_SMOKE_DOMAINS="${SHOP_SMOKE_DOMAINS}" SMOKE_TIMEOUT_MS="${SMOKE_TIMEOUT_MS}" npm run smoke
+
+      - name: Routing invariant tests
+        working-directory: frontend
+        env:
+          SMOKE_BASE_URL: ${{ env.SMOKE_BASE_URL }}
+          SHOP_SMOKE_DOMAINS: ${{ env.SHOP_SMOKE_DOMAINS }}
+        run: |
+          echo "Running routing invariant tests..."
+          SMOKE_BASE_URL="${SMOKE_BASE_URL}" SHOP_SMOKE_DOMAINS="${SHOP_SMOKE_DOMAINS}" node tests/routing-invariants/http-invariants.js
+          node tests/routing-invariants/parseUrlState.test.js
+          node tests/routing-invariants/productSlug.test.js
+
+      - name: Install Playwright browsers (Chromium only)
+        working-directory: frontend
+        run: |
+          echo "Installing Playwright Chromium browser binaries..."
+          npx playwright install chromium
+
+      - name: Run Playwright focused smoke suite
+        working-directory: frontend
+        env:
+          SMOKE_BASE_URL: ${{ env.SMOKE_BASE_URL }}
+        run: |
+          echo "Executing Playwright smoke tests: npm run playwright:smoke"
+          SMOKE_BASE_URL="${SMOKE_BASE_URL}" npm run playwright:smoke
+
+      - name: Collect frontend logs (for visibility)
+        if: failure()
+        run: |
+          echo "==== last 400 lines of next log ===="
+          tail -n 400 /tmp/next.log || true
+
+      - name: Stop frontend
+        if: always()
+        run: |
+          if [ -f /tmp/next.pid ]; then
+            kill "$(cat /tmp/next.pid)" || true
+            rm -f /tmp/next.pid
+          else
+            pkill -f "next start" || true
+          fi
+

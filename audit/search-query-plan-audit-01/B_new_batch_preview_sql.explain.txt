@@ -1,0 +1,124 @@
+--- B_new_batch_preview_sql ---
+
+    SELECT *
+    FROM (
+      SELECT
+        `p`.`id` AS id,
+        `p`.`partNumber` AS partNumber,
+        COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) AS canonical_name,
+        cm.hang_xe AS brand,
+        cm.ten_xe AS model,
+        (
+          SELECT pi.url FROM product_images pi WHERE pi.productId = `p`.`id`
+          ORDER BY pi.isPrimary DESC, pi.id ASC LIMIT 1
+        ) AS imageUrl,
+        ROW_NUMBER() OVER (
+          PARTITION BY COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name), cm.hang_xe, cm.ten_xe
+          ORDER BY CASE
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE 'bugi%' THEN 1
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') = 'bugi' OR LOWER(`p`.`partName`) = 'bugi' THEN 2
+      WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(`p`.`partName`)), 'đ', 'd'), 'à', 'a'), 'á', 'a'), 'ạ', 'a'), 'ả', 'a'), 'ã', 'a'), 'â', 'a'), 'ầ', 'a'), 'ấ', 'a'), 'ậ', 'a'), 'ẩ', 'a'), 'ẫ', 'a'), 'ă', 'a'), 'ằ', 'a'), 'ắ', 'a'), 'ặ', 'a'), 'ẳ', 'a'), 'ẵ', 'a'), 'è', 'e'), 'é', 'e'), 'ẹ', 'e'), 'ẻ', 'e'), 'ẽ', 'e'), 'ê', 'e'), 'ề', 'e'), 'ế', 'e'), 'ệ', 'e'), 'ể', 'e'), 'ễ', 'e'), 'ì', 'i'), 'í', 'i'), 'ị', 'i'), 'ỉ', 'i'), 'ĩ', 'i'), 'ò', 'o'), 'ó', 'o'), 'ọ', 'o'), 'ỏ', 'o'), 'õ', 'o'), 'ô', 'o'), 'ồ', 'o'), 'ố', 'o'), 'ộ', 'o'), 'ổ', 'o'), 'ỗ', 'o'), 'ơ', 'o'), 'ờ', 'o'), 'ớ', 'o'), 'ợ', 'o'), 'ở', 'o'), 'ỡ', 'o'), 'ù', 'u'), 'ú', 'u'), 'ụ', 'u'), 'ủ', 'u'), 'ũ', 'u'), 'ư', 'u'), 'ừ', 'u'), 'ứ', 'u'), 'ự', 'u'), 'ử', 'u'), 'ữ', 'u'), 'ỳ', 'y'), 'ý', 'y'), 'ỵ', 'y'), 'ỷ', 'y'), 'ỹ', 'y') LIKE '%bugi%' THEN 3
+      WHEN LOWER(`p`.`partNumber`) LIKE '%bugi%' THEN 4
+      WHEN LOWER(`p`.`shortDescription`) LIKE '%bugi%' OR LOWER(`p`.`description`) LIKE '%bugi%' THEN 5
+      ELSE 9
+    END,
+        
+          
+          CASE
+            WHEN `p`.`partNumber` IS NOT NULL
+            AND `p`.`partNumber` <> ''
+            THEN 0 ELSE 1
+          END,
+          CASE
+            WHEN `p`.`price` > 0
+            THEN 0 ELSE 1
+          END,
+          MOD(DAY(NOW()) + `p`.`id`, 7),
+          `p`.`updatedAt` DESC,
+          `p`.`id` ASC
+        ) AS rn
+      
+    FROM products p
+
+    LEFT JOIN product_category_map pcm
+      ON pcm.product_id = `p`.`id`
+
+    LEFT JOIN product_categories pc
+      ON pc.id = pcm.category_id
+
+    LEFT JOIN product_car_applications pa
+      ON pa.productId = `p`.`id`
+
+    LEFT JOIN car_models cm
+      ON cm.id = pa.carModelId
+
+    JOIN shops s
+      ON `s`.id = `p`.`shopId`
+
+    LEFT JOIN address a
+      ON a.id = s.provinceId
+  
+      LEFT JOIN LATERAL (
+        SELECT cmf.hang_xe, cmf.ten_xe, paf.year_from, paf.year_to, paf.is_primary
+        FROM product_car_applications paf
+        INNER JOIN car_models cmf ON cmf.id = paf.carModelId
+        WHERE paf.productId = `p`.`id`
+        ORDER BY paf.is_primary DESC, paf.id ASC LIMIT 1
+      ) pf ON TRUE
+       WHERE 1=1  AND LOWER(TRIM(cm.hang_xe)) = ? 
+          AND (
+            LOWER(`p`.`partName`) LIKE ?
+            OR LOWER(`p`.`shortDescription`) LIKE ?
+            OR LOWER(`p`.`description`) LIKE ?
+            OR LOWER(`p`.`partNumber`) LIKE ?
+          )
+           AND TRIM(LOWER(`s`.`public_status`)) = 'public' AND TRIM(LOWER(`p`.`moderation_status`)) = 'approved' AND `p`.`stock` > 0 
+       AND ((COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) = ?
+        AND LOWER(TRIM(cm.hang_xe)) = LOWER(TRIM(?))
+        AND LOWER(TRIM(cm.ten_xe)) = LOWER(TRIM(?))) OR (COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) = ?
+        AND LOWER(TRIM(cm.hang_xe)) = LOWER(TRIM(?))
+        AND LOWER(TRIM(cm.ten_xe)) = LOWER(TRIM(?))) OR (COALESCE(NULLIF(pc.canonical_name, ''), pc.category_name) = ?
+        AND LOWER(TRIM(cm.hang_xe)) = LOWER(TRIM(?))
+        AND LOWER(TRIM(cm.ten_xe)) = LOWER(TRIM(?)))) 
+    ) ranked
+    WHERE rn <= ?
+  
+
+--- EXPLAIN ANALYZE ---
+-> Filter: (ranked.rn <= 12)  (cost=0.34..323 rows=950) (actual time=874..874 rows=13 loops=1)
+    -> Table scan on ranked  (cost=2.5..2.5 rows=0) (actual time=874..874 rows=13 loops=1)
+        -> Materialize  (cost=0..0 rows=0) (actual time=874..874 rows=13 loops=1)
+            -> Window aggregate: row_number() OVER (PARTITION BY canonical_name,cm.hang_xe,cm.ten_xe ORDER BY `(case when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like 'bugi%') then 1 when ((replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') = 'bugi') or (lower(p.partName) = 'bugi')) then 2 when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%') then 3 when (lower(p.partNumber) like '%bugi%') then 4 when ((lower(p.shortDescription) like '%bugi%') or (lower(p.``description``) like '%bugi%')) then 5 else 9 end)`,`(case when ((p.partNumber is not null) and (p.partNumber <> '')) then 0 else 1 end)`,`(case when (p.price > 0) then 0 else 1 end)`,`((dayofmonth(now()) + p.id) % 7)`,p.updatedAt desc,p.id )   (actual time=874..874 rows=13 loops=1)
+                -> Sort: canonical_name, cm.hang_xe, cm.ten_xe, `(case when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like 'bugi%') then 1 when ((replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') = 'bugi') or (lower(p.partName) = 'bugi')) then 2 when (replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(trim(p.partName)),'đ','d'),'à','a'),'á','a'),'ạ','a'),'ả','a'),'ã','a'),'â','a'),'ầ','a'),'ấ','a'),'ậ','a'),'ẩ','a'),'ẫ','a'),'ă','a'),'ằ','a'),'ắ','a'),'ặ','a'),'ẳ','a'),'ẵ','a'),'è','e'),'é','e'),'ẹ','e'),'ẻ','e'),'ẽ','e'),'ê','e'),'ề','e'),'ế','e'),'ệ','e'),'ể','e'),'ễ','e'),'ì','i'),'í','i'),'ị','i'),'ỉ','i'),'ĩ','i'),'ò','o'),'ó','o'),'ọ','o'),'ỏ','o'),'õ','o'),'ô','o'),'ồ','o'),'ố','o'),'ộ','o'),'ổ','o'),'ỗ','o'),'ơ','o'),'ờ','o'),'ớ','o'),'ợ','o'),'ở','o'),'ỡ','o'),'ù','u'),'ú','u'),'ụ','u'),'ủ','u'),'ũ','u'),'ư','u'),'ừ','u'),'ứ','u'),'ự','u'),'ử','u'),'ữ','u'),'ỳ','y'),'ý','y'),'ỵ','y'),'ỷ','y'),'ỹ','y') like '%bugi%') then 3 when (lower(p.partNumber) like '%bugi%') then 4 when ((lower(p.shortDescription) like '%bugi%') or (lower(p.``description``) like '%bugi%')) then 5 else 9 end)`, `(case when ((p.partNumber is not null) and (p.partNumber <> '')) then 0 else 1 end)`, `(case when (p.price > 0) then 0 else 1 end)`, `((dayofmonth(now()) + p.id) % 7)`, p.updatedAt DESC, p.id  (actual time=874..874 rows=13 loops=1)
+                    -> Stream results  (cost=7885 rows=2852) (actual time=512..874 rows=13 loops=1)
+                        -> Nested loop left join  (cost=7885 rows=2852) (actual time=512..873 rows=13 loops=1)
+                            -> Nested loop inner join  (cost=3999 rows=1426) (actual time=512..873 rows=13 loops=1)
+                                -> Nested loop inner join  (cost=3499 rows=1426) (actual time=16.8..872 rows=65 loops=1)
+                                    -> Nested loop left join  (cost=3000 rows=1223) (actual time=16.8..872 rows=40 loops=1)
+                                        -> Nested loop inner join  (cost=2572 rows=1223) (actual time=16.8..871 rows=40 loops=1)
+                                            -> Filter: ((coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi') or (coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi') or (coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi'))  (cost=2144 rows=1223) (actual time=16.7..871 rows=40 loops=1)
+                                                -> Nested loop left join  (cost=2144 rows=1223) (actual time=16.7..871 rows=54 loops=1)
+                                                    -> Nested loop left join  (cost=1716 rows=1223) (actual time=16.7..871 rows=54 loops=1)
+                                                        -> Invalidate materialized tables (row from p)  (cost=1288 rows=1223) (actual time=16.6..870 rows=54 loops=1)
+                                                            -> Filter: (((lower(p.partName) like '%bugi%') or (lower(p.shortDescription) like '%bugi%') or (lower(p.`description`) like '%bugi%') or (lower(p.partNumber) like '%bugi%')) and (trim(lower(p.moderation_status)) = 'approved') and (p.stock > 0) and (p.shopId is not null))  (cost=1288 rows=1223) (actual time=16.6..870 rows=54 loops=1)
+                                                                -> Table scan on p  (cost=1288 rows=3669) (actual time=0.561..40.4 rows=7397 loops=1)
+                                                        -> Covering index lookup on pcm using uk_product_category (product_id=p.id)  (cost=0.25 rows=1) (actual time=0.0131..0.0143 rows=1 loops=54)
+                                                    -> Single-row index lookup on pc using PRIMARY (id=pcm.category_id)  (cost=0.25 rows=1) (actual time=0.00415..0.00418 rows=1 loops=54)
+                                            -> Filter: (trim(lower(s.public_status)) = 'public')  (cost=0.25 rows=1) (actual time=0.00232..0.00244 rows=1 loops=40)
+                                                -> Single-row index lookup on s using PRIMARY (id=p.shopId)  (cost=0.25 rows=1) (actual time=0.00118..0.00122 rows=1 loops=40)
+                                        -> Single-row covering index lookup on a using PRIMARY (id=s.provinceId)  (cost=0.25 rows=1) (actual time=919e-6..953e-6 rows=1 loops=40)
+                                    -> Index lookup on pa using fk_pca_product (productId=p.id)  (cost=0.292 rows=1.17) (actual time=0.012..0.0139 rows=1.62 loops=40)
+                                -> Filter: ((lower(trim(cm.hang_xe)) = 'toyota') and (((coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi') and (lower(trim(cm.ten_xe)) = 'altis')) or ((coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi') and (lower(trim(cm.ten_xe)) = 'camry')) or ((coalesce(nullif(pc.canonical_name,''),pc.category_name) = 'Bugi') and (lower(trim(cm.ten_xe)) = 'prado'))))  (cost=0.25 rows=1) (actual time=0.00733..0.00736 rows=0.2 loops=65)
+                                    -> Single-row index lookup on cm using PRIMARY (id=pa.carModelId)  (cost=0.25 rows=1) (actual time=0.00361..0.00366 rows=1 loops=65)
+                            -> Table scan on pf  (cost=2.53..2.53 rows=1) (actual time=0.0321..0.0325 rows=1 loops=13)
+                                -> Materialize (invalidate on row from p)  (cost=1.02..1.02 rows=2) (actual time=0.031..0.031 rows=1 loops=13)
+                                    -> Limit: 1 row(s)  (cost=0.816 rows=1) (actual time=0.0227..0.0228 rows=1 loops=13)
+                                        -> Nested loop inner join  (cost=0.816 rows=1.17) (actual time=0.0223..0.0223 rows=1 loops=13)
+                                            -> Sort: paf.is_primary DESC, paf.id  (cost=0.408 rows=1.17) (actual time=0.0194..0.0194 rows=1 loops=13)
+                                                -> Index lookup on paf using fk_pca_product (productId=p.id)  (cost=0.408 rows=1.17) (actual time=0.0123..0.0134 rows=1.54 loops=13)
+                                            -> Single-row index lookup on cmf using PRIMARY (id=paf.carModelId)  (cost=0.336 rows=1) (actual time=0.00226..0.00226 rows=1 loops=13)
+            -> Select #3 (subquery in projection; dependent)
+                -> Limit: 1 row(s)  (cost=0.853 rows=1) (actual time=0.0189..0.0189 rows=1 loops=13)
+                    -> Sort: pi.isPrimary DESC, pi.id, limit input to 1 row(s) per chunk  (cost=0.853 rows=1.48) (actual time=0.0185..0.0185 rows=1 loops=13)
+                        -> Index lookup on pi using fk_product_images_product (productId=p.id)  (cost=0.853 rows=1.48) (actual time=0.00859..0.00928 rows=1 loops=13)
+

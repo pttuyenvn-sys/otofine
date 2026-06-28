@@ -1,0 +1,240 @@
+[
+  {
+    "query": "bugi toyota",
+    "strict": {
+      "label": "bugi toyota",
+      "candidate_count": 29,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 30,
+      "top20_overlap_pct": 75,
+      "candidate_retrieval_ms": 24.76,
+      "latency_ms": 48.1,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 2,
+        "count": 29
+      }
+    },
+    "adaptive": {
+      "label": "bugi toyota",
+      "candidate_count": 29,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 30,
+      "top20_overlap_pct": 75,
+      "candidate_retrieval_ms": 15.8,
+      "latency_ms": 30.04,
+      "meta": {
+        "policy": "adaptive",
+        "minMatched": 2,
+        "count": 29,
+        "stage": "strict_equivalent"
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "đèn hậu kia",
+    "strict": {
+      "label": "đèn hậu kia",
+      "candidate_count": 299,
+      "candidate_recall_pct": 28,
+      "top10_overlap_pct": 30,
+      "top20_overlap_pct": 80,
+      "candidate_retrieval_ms": 16.73,
+      "latency_ms": 196.47,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 2,
+        "count": 299
+      }
+    },
+    "adaptive": {
+      "label": "đèn hậu kia",
+      "candidate_count": 500,
+      "candidate_recall_pct": 83,
+      "top10_overlap_pct": 30,
+      "top20_overlap_pct": 80,
+      "candidate_retrieval_ms": 28.13,
+      "latency_ms": 262.97,
+      "meta": {
+        "policy": "adaptive",
+        "stage": "brand_parity",
+        "minMatched": 2,
+        "count": 500
+      }
+    },
+    "recall_delta_pct": 55,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "lọc dầu mazda",
+    "strict": {
+      "label": "lọc dầu mazda",
+      "candidate_count": 205,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 22.14,
+      "latency_ms": 127.75,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 2,
+        "count": 205
+      }
+    },
+    "adaptive": {
+      "label": "lọc dầu mazda",
+      "candidate_count": 500,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 21.87,
+      "latency_ms": 294.75,
+      "meta": {
+        "policy": "adaptive",
+        "stage": "brand_parity",
+        "minMatched": 2,
+        "count": 500
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "má phanh vios",
+    "strict": {
+      "label": "má phanh vios",
+      "candidate_count": 500,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 70,
+      "top20_overlap_pct": 55,
+      "candidate_retrieval_ms": 23.16,
+      "latency_ms": 297.64,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 2,
+        "count": 500
+      }
+    },
+    "adaptive": {
+      "label": "má phanh vios",
+      "candidate_count": 500,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 70,
+      "top20_overlap_pct": 55,
+      "candidate_retrieval_ms": 22.98,
+      "latency_ms": 259.25,
+      "meta": {
+        "policy": "adaptive",
+        "minMatched": 2,
+        "count": 500,
+        "stage": "strict_equivalent"
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "bố thắng",
+    "strict": {
+      "label": "bố thắng",
+      "candidate_count": 322,
+      "candidate_recall_pct": 97.3,
+      "top10_overlap_pct": 60,
+      "top20_overlap_pct": 45,
+      "candidate_retrieval_ms": 4.25,
+      "latency_ms": 163.37,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 1,
+        "count": 322
+      }
+    },
+    "adaptive": {
+      "label": "bố thắng",
+      "candidate_count": 322,
+      "candidate_recall_pct": 97.3,
+      "top10_overlap_pct": 60,
+      "top20_overlap_pct": 45,
+      "candidate_retrieval_ms": 7.17,
+      "latency_ms": 177.67,
+      "meta": {
+        "policy": "adaptive",
+        "minMatched": 1,
+        "count": 322,
+        "stage": "strict_equivalent"
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "04465-0D140",
+    "strict": {
+      "label": "04465-0D140",
+      "candidate_count": 0,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 3.24,
+      "latency_ms": 4.92,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 1,
+        "count": 0
+      }
+    },
+    "adaptive": {
+      "label": "04465-0D140",
+      "candidate_count": 0,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 6.35,
+      "latency_ms": 10.11,
+      "meta": {
+        "policy": "adaptive",
+        "minMatched": 1,
+        "count": 0,
+        "stage": "strict_equivalent"
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  },
+  {
+    "query": "brake pad",
+    "strict": {
+      "label": "brake pad",
+      "candidate_count": 63,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 4.38,
+      "latency_ms": 40.78,
+      "meta": {
+        "policy": "strict",
+        "minMatched": 2,
+        "count": 63
+      }
+    },
+    "adaptive": {
+      "label": "brake pad",
+      "candidate_count": 63,
+      "candidate_recall_pct": 100,
+      "top10_overlap_pct": 100,
+      "top20_overlap_pct": 100,
+      "candidate_retrieval_ms": 5.98,
+      "latency_ms": 49.39,
+      "meta": {
+        "policy": "adaptive",
+        "minMatched": 2,
+        "count": 63,
+        "stage": "strict_equivalent"
+      }
+    },
+    "recall_delta_pct": 0,
+    "top10_delta_pct": 0
+  }
+]

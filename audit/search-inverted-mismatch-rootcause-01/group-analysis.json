@@ -1,0 +1,175 @@
+[
+  {
+    "query": "bugi toyota",
+    "legacy_vehicle_groups": 23,
+    "inverted_vehicle_groups": 23,
+    "legacy_category_groups": 9,
+    "inverted_category_groups": 9,
+    "legacy_top3_vehicle": [
+      {
+        "count": 5
+      },
+      {
+        "count": 5
+      },
+      {
+        "count": 3
+      }
+    ],
+    "inverted_top3_vehicle": [
+      {
+        "count": 5
+      },
+      {
+        "count": 5
+      },
+      {
+        "count": 3
+      }
+    ]
+  },
+  {
+    "query": "má phanh vios",
+    "legacy_vehicle_groups": 14,
+    "inverted_vehicle_groups": 135,
+    "legacy_category_groups": 14,
+    "inverted_category_groups": 135,
+    "legacy_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 3
+      },
+      {
+        "count": 2
+      }
+    ],
+    "inverted_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 3
+      },
+      {
+        "count": 1
+      }
+    ]
+  },
+  {
+    "query": "lọc dầu mazda",
+    "legacy_vehicle_groups": 11,
+    "inverted_vehicle_groups": 56,
+    "legacy_category_groups": 2,
+    "inverted_category_groups": 28,
+    "legacy_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 1
+      },
+      {
+        "count": 1
+      }
+    ],
+    "inverted_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 1
+      },
+      {
+        "count": 1
+      }
+    ]
+  },
+  {
+    "query": "đèn hậu kia",
+    "legacy_vehicle_groups": 1556,
+    "inverted_vehicle_groups": 156,
+    "legacy_category_groups": 863,
+    "inverted_category_groups": 107,
+    "legacy_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      }
+    ],
+    "inverted_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      }
+    ]
+  },
+  {
+    "query": "04465-0D140",
+    "legacy_vehicle_groups": 0,
+    "inverted_vehicle_groups": 0,
+    "legacy_category_groups": 0,
+    "inverted_category_groups": 0,
+    "legacy_top3_vehicle": [],
+    "inverted_top3_vehicle": []
+  },
+  {
+    "query": "bố thắng",
+    "legacy_vehicle_groups": 26,
+    "inverted_vehicle_groups": 237,
+    "legacy_category_groups": 20,
+    "inverted_category_groups": 68,
+    "legacy_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      }
+    ],
+    "inverted_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      }
+    ]
+  },
+  {
+    "query": "brake pad",
+    "legacy_vehicle_groups": 0,
+    "inverted_vehicle_groups": 62,
+    "legacy_category_groups": 0,
+    "inverted_category_groups": 33,
+    "legacy_top3_vehicle": [],
+    "inverted_top3_vehicle": [
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      },
+      {
+        "count": 2
+      }
+    ]
+  }
+]

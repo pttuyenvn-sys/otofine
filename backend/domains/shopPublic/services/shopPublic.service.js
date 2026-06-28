@@ -7,8 +7,13 @@ import {
 import {
   listShopProducts,
   listShopFitmentOptions,
+  listShopVehicleYearRanges,
 } from "../repositories/shopPublicProducts.repository.js";
 import { resolveShopZalo } from "../../../utils/resolveShopZalo.js";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../../../../frontend/lib/identity/buildProductIdentity.js";
 
 /**
  * Project a raw `shops` row into the public-API DTO. Backwards-
@@ -271,6 +276,18 @@ export async function getPublicShopProducts(slug, query = {}) {
     shop: { id: row.id, slug: row.slug, name: row.name },
     ...data,
     items: data.items.map((p) => ({
+      displayTitle: buildProductIdentity(
+        { id: p.id, partName: p.partName, partNumber: p.partNumber },
+        pickPrimaryFitment([
+          {
+            hang_xe: p.brandLabel || "",
+            ten_xe: p.modelLabel || "",
+            year_from: p.yearFromFirst ?? null,
+            year_to: p.yearToFirst ?? null,
+            is_primary: 1,
+          },
+        ]),
+      ).h1,
       id: p.id,
       productId: p.id,
       name: p.partName,
@@ -313,7 +330,16 @@ function numOrNull(v) {
 export async function getPublicShopFitments(slug) {
   const row = await findPublicShopBySlug(slug);
   if (!row) return null;
-  return listShopFitmentOptions(row.id);
+
+  const [fitments, vehicleYearRanges] = await Promise.all([
+    listShopFitmentOptions(row.id),
+    listShopVehicleYearRanges(row.id),
+  ]);
+
+  return {
+    ...fitments,
+    vehicleYearRanges,
+  };
 }
 
 /**

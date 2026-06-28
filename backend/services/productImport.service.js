@@ -1,6 +1,9 @@
 import xlsx from "xlsx";
 import { pool } from "../config/db.js";
 import { syncProductImages } from "./productImage.service.js";
+import {
+  assertExactlyOnePrimaryFitment,
+} from "../modules/products/services/productFitmentPrimary.server.js";
 
 function normalizeText(str = "") {
   return String(str)
@@ -106,6 +109,7 @@ export async function importProductsFromExcel(shopId, filePath) {
     await conn.beginTransaction();
 
     const processedProducts = new Set();
+    const primaryAssigned = new Set();
 
     for (i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -277,11 +281,22 @@ export async function importProductsFromExcel(shopId, filePath) {
 
         await conn.query(
           `INSERT INTO product_car_applications
-          (productId, carModelId, year_from, year_to)
-          VALUES (?, ?, ?, ?)`,
-          [productId, carId, yearFrom, yearTo],
+          (productId, carModelId, year_from, year_to, is_primary)
+          VALUES (?, ?, ?, ?, ?)`,
+          [
+            productId,
+            carId,
+            yearFrom,
+            yearTo,
+            primaryAssigned.has(productId) ? 0 : 1,
+          ],
         );
+        primaryAssigned.add(productId);
       }
+    }
+
+    for (const pid of processedProducts) {
+      await assertExactlyOnePrimaryFitment(conn, pid);
     }
 
     await conn.commit();

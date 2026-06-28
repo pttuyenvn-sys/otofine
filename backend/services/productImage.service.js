@@ -4,6 +4,10 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.js";
 import { pool } from "../config/db.js";
+import {
+  deleteProductImageSidecars,
+  uploadProductImageSet,
+} from "../utils/productImageThumbnails.js";
 
 const BUCKET = process.env.R2_BUCKET;
 
@@ -133,16 +137,11 @@ export async function clearProductImagesForProduct({
     const origKey = resolveOriginalKeyFromUrl(row.url);
     if (!origKey) continue;
 
-    try {
-      await r2.send(
-        new DeleteObjectCommand({
-          Bucket: BUCKET,
-          Key: origKey,
-        }),
-      );
-    } catch (err) {
-      console.error("[clearProductImages] R2 delete error:", origKey, err.message);
-    }
+    await deleteProductImageSidecars({
+      r2,
+      bucket: BUCKET,
+      originalKey: origKey,
+    });
   }
 
   if (!rows.length) return 0;
@@ -760,14 +759,12 @@ export const processSingleImage = async ({
       bucket,
     });
 
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: finalBuffer,
-        ContentType: "image/webp",
-      }),
-    );
+    await uploadProductImageSet({
+      r2,
+      bucket,
+      originalKey: key,
+      originalBuffer: finalBuffer,
+    });
 
     console.log("[import-images] AFTER_R2_UPLOAD", {
       file: file.originalname,

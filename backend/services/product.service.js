@@ -6,6 +6,10 @@ import {
   queueDeleteProductFromTypesense,
   queueUpsertProductInTypesense,
 } from "./typesenseRealtimeSync.service.js";
+import {
+  queueSearchIndexDelete,
+  queueSearchIndexSync,
+} from "./search/searchIndexDispatcher.js";
 import { buildSeoProductSlug } from "../utils/productSlug.js";
 import {
   buildLifecycleFilterSql,
@@ -14,8 +18,20 @@ import {
   getSellerGovernanceSchema,
   sqlSellerDeletedAtSelect,
 } from "../modules/products/services/sellerProductGovernance.service.js";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.js";
+import { deleteProductImageSidecars } from "../utils/productImageThumbnails.js";
+import {
+  invalidateDetailCache,
+  invalidateListingCaches,
+} from "./redisCache.service.js";
+import {
+  insertProductCarApplications,
+  replaceProductCarApplications,
+} from "../modules/products/services/productFitmentPrimary.server.js";
+import {
+  buildProductIdentity,
+  pickPrimaryFitment,
+} from "../../frontend/lib/identity/buildProductIdentity.js";
 
 /* ======================================================
    GET ALL PRODUCTS + CARS (OTO FINE VERSION)
@@ -307,20 +323,12 @@ export async function createProduct(shopId, data) {
       if (e.code !== "ER_BAD_FIELD_ERROR") throw e;
     }
 
+    await insertProductCarApplications(conn, productId, cars);
+
     for (const c of cars) {
-      const { carModelId, year_from, year_to } = c;
+      const { carModelId } = c;
 
-      // ===== 1. mapping product ↔ car =====
-      await conn.query(
-        `
-    INSERT INTO product_car_applications
-    (productId, carModelId, year_from, year_to)
-    VALUES (?, ?, ?, ?)
-    `,
-        [productId, carModelId, year_from, year_to],
-      );
-
-      // ===== 2. ATTRIBUTE =====
+      // ===== ATTRIBUTE (fitment rows inserted above with is_primary) =====
       const attributeMap = {
         dong_co: 1,
         hop_so: 2,
@@ -366,6 +374,7 @@ export async function createProduct(shopId, data) {
 
     await conn.commit();
     queueUpsertProductInTypesense(productId);
+    queueSearchIndexSync(productId, { source: "product.create", reason: "create" });
     return productId;
   } catch (e) {
     await conn.rollback();
@@ -440,18 +449,18 @@ export async function updateProduct(data) {
     for (const row of rows) {
       if (!row.url) continue;
 
-      const key = row.url.replace(process.env.R2_PUBLIC_URL + "/", "");
+      const base = String(process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
+      const raw = String(row.url).trim();
+      const key =
+        base && raw.startsWith(base)
+          ? raw.slice(base.length).replace(/^\/+/, "")
+          : raw.replace(/^\/+/, "");
 
-      try {
-        await r2.send(
-          new DeleteObjectCommand({
-            Bucket: process.env.R2_BUCKET,
-            Key: key,
-          }),
-        );
-      } catch (err) {
-        console.error("R2 delete error:", key, err.message);
-      }
+      await deleteProductImageSidecars({
+        r2,
+        bucket: process.env.R2_BUCKET,
+        originalKey: key,
+      });
     }
 
     await pool.query(`DELETE FROM product_images WHERE id IN (?)`, [
@@ -459,23 +468,10 @@ export async function updateProduct(data) {
     ]);
   }
 
-  // ===== XÓA cars cũ =====
-  await pool.query(`DELETE FROM product_car_applications WHERE productId = ?`, [
-    id,
-  ]);
+  await replaceProductCarApplications(pool, id, cars);
 
-  // ===== INSERT cars mới =====
   for (const c of cars) {
-    const { carModelId, year_from, year_to } = c;
-
-    await pool.query(
-      `
-    INSERT INTO product_car_applications
-    (productId, carModelId, year_from, year_to)
-    VALUES (?, ?, ?, ?)
-    `,
-      [id, carModelId, year_from, year_to],
-    );
+    const { carModelId } = c;
 
     // ===== ATTRIBUTE =====
     const attributeMap = {
@@ -538,6 +534,7 @@ export async function updateProduct(data) {
 
   await syncProductListViewByProductId(id).catch(() => {});
   queueUpsertProductInTypesense(id);
+  queueSearchIndexSync(id, { source: "product.update", reason: "update" });
 }
 
 /* ===============================
@@ -571,6 +568,9 @@ export async function deleteProduct({ id, shopId }) {
   if (rs.affectedRows > 0) {
     await plvRepo.deleteProductListViewRow(id);
     queueDeleteProductFromTypesense(id);
+    queueSearchIndexDelete(id, { source: "product.delete", reason: "delete" });
+    await invalidateListingCaches();
+    await invalidateDetailCache(id);
   }
   return rs.affectedRows > 0;
 }
@@ -604,6 +604,11 @@ export async function deleteProducts({ shopId, ids }) {
     await plvRepo.deleteProductListViewRows(ids);
     for (const pid of ids) {
       queueDeleteProductFromTypesense(pid);
+      queueSearchIndexDelete(pid, { source: "product.delete", reason: "bulk-delete" });
+    }
+    await invalidateListingCaches();
+    for (const pid of ids) {
+      await invalidateDetailCache(pid);
     }
   }
   return rs.affectedRows;
@@ -622,7 +627,7 @@ export async function getProductCars(productId) {
     FROM product_car_applications a
     JOIN car_models c ON c.id = a.carModelId
     WHERE a.productId = ?
-    ORDER BY c.hang_xe, c.ten_xe, a.year_from
+    ORDER BY a.is_primary DESC, a.id ASC
     `,
     [productId],
   );
@@ -861,9 +866,11 @@ export async function getProductsByShop(shopId, opts = {}) {
     SELECT
       a.productId,
       a.carModelId,
+      MAX(a.is_primary) AS is_primary,
       MAX(a.year_from) AS year_from,
       MAX(a.year_to) AS year_to,
       m.hang_xe AS brand,
+      m.ten_xe AS model,
 
       MAX(CASE WHEN at.code = 'dong_co' THEN attr.name END) AS dong_co,
       MAX(CASE WHEN at.code = 'hop_so' THEN attr.name END) AS hop_so,
@@ -890,9 +897,11 @@ export async function getProductsByShop(shopId, opts = {}) {
     if (!carsMap[c.productId]) carsMap[c.productId] = [];
     carsMap[c.productId].push({
       carModelId: c.carModelId,
+      is_primary: c.is_primary,
       year_from: c.year_from,
       year_to: c.year_to,
       brand: c.brand,
+      model: c.model,
 
       dong_co: c.dong_co,
       hop_so: c.hop_so,
@@ -904,15 +913,25 @@ export async function getProductsByShop(shopId, opts = {}) {
 
   // ===== GỘP DATA =====
   const items = rows.map((p) => {
+    const itemCars = carsMap[p.id] || [];
+    const identity = buildProductIdentity(
+      {
+        id: p.id,
+        partName: p.partName,
+        partNumber: p.partNumber,
+      },
+      pickPrimaryFitment(itemCars),
+    );
     const base = {
       ...p,
+      displayTitle: identity.h1,
       dong_co: p.dong_co,
       hop_so: p.hop_so,
       so_cau: p.so_cau,
       kieu_dang: p.kieu_dang,
       cc: p.cc,
       images: imagesMap[p.id] || [],
-      cars: carsMap[p.id] || [],
+      cars: itemCars,
     };
     const gov = enrichProductGovernance(base, shopPublicStatus);
     return { ...base, ...gov };

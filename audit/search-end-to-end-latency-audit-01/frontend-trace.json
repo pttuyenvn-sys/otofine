@@ -1,0 +1,95 @@
+{
+  "audit_id": "SEARCH-END-TO-END-LATENCY-AUDIT-01",
+  "generated_at": "2026-06-22T00:00:00.000Z",
+  "entry_points": [
+    "frontend/components/pages/Home.jsx",
+    "frontend/components/pages/home/HomeSearch.jsx",
+    "frontend/lib/search/searchSuggestFetch.js",
+    "frontend/lib/search/searchSuggestCache.js",
+    "frontend/lib/search/searchSuggestPerformance.js",
+    "frontend/lib/search/parseSearchIntent.js"
+  ],
+  "api_base": {
+    "production": "https://otofine.com/api",
+    "source": "frontend/lib/config.js NEXT_PUBLIC_API_URL"
+  },
+  "debounce": {
+    "ms": 300,
+    "locations": [
+      "Home.jsx SUGGEST_FETCH_DEBOUNCE_MS = 300",
+      "searchSuggestPerformance.js SEARCH_SUGGEST_DEBOUNCE_MS = 300"
+    ],
+    "behavior": "setTimeout reset on every searchInputValue or searchListingState change; prior timer cleared on cleanup"
+  },
+  "min_query_length": {
+    "rule": "shouldFetchSearchSuggest: length >= 2 OR part-number token",
+    "file": "frontend/lib/search/parseSearchIntent.js"
+  },
+  "abort_controller": {
+    "enabled": true,
+    "pattern": "suggestAbortRef.current.abort() before new fetch; signal passed to fetchSearchSuggest",
+    "stale_guard": "requestId = ++suggestRequestIdRef; isStaleRequest checks cancelled || aborted || requestId !== current",
+    "ignored_responses": "Aborted fetches return null; stale requestId skips setState in .then/.finally"
+  },
+  "cache": {
+    "type": "in-memory Map (not SWR, not localStorage)",
+    "ttl_ms": 120000,
+    "key": "foldVi(keyword)|brand|model|year",
+    "stale_threshold_ms": 60000,
+    "on_hit": "setSearchSuggestResponse(cached) + setSuggestLoading(false) immediately, then background refetch",
+    "on_miss": "setSuggestLoading(true); panel may render empty until response",
+    "inflight_dedup": "dedupeSearchSuggestInflight — same cacheKey shares one Promise"
+  },
+  "fetch": {
+    "endpoint": "GET {apiBase}/search/suggest?query=&brand=&model=&year=&location=",
+    "requests_per_debounced_query": 1,
+    "architecture": "SEARCH-SINGLE-ENDPOINT-01 — monolithic suggest; no progressive sidebar/preview split",
+    "parallel_with_product_list": false,
+    "product_list_note": "GET /products runs on committed keyword (URL state), not on searchInputValue keystrokes"
+  },
+  "react_state": {
+    "suggest_state": ["searchSuggestResponse", "suggestLoading", "suggestPanelOpen", "searchInputValue"],
+    "updates_on_response": "setSearchSuggestResponse(response); setSuggestLoading(false) in finally",
+    "startTransition": "used for product list and navigation; suggest setState is synchronous (not wrapped in startTransition)"
+  },
+  "render_path": {
+    "dropdown_visible_when": "suggestPanelOpen && hasSearchKeyword",
+    "popup_content_when": "hasQuickSuggest = panel open && keyword && groups.length > 0",
+    "skeleton_when": "suggestLoading && group exists but products empty (per-group only)",
+    "empty_loading_gap": "Cold cache + no groups: dropdown open but no skeleton or categories for entire backend wait",
+    "category_sidebar": "Home.jsx renderCategoryPanel shows categorySuggestions from same response when groups empty"
+  },
+  "focus_blur": {
+    "onFocus": "setSuggestPanelOpen(true)",
+    "onChange": "setSearchInputValue + setSuggestPanelOpen(true)",
+    "escape": "setSuggestPanelOpen(false)",
+    "blur": "no explicit onBlur on search input in HomeSearch.jsx",
+    "mobile_overlay": "body scroll lock when isMobile && suggestPanelOpen"
+  },
+  "race_conditions": {
+    "fast_typing": "Only last debounced query fires; intermediate requests aborted",
+    "slow_typing": "Each pause >=300ms after min length triggers separate request (e.g. 'đè' then 'đèn hậu')",
+    "duplicate_same_key": "inflight dedup prevents parallel identical cacheKey requests",
+    "late_response": "requestId guard drops stale responses"
+  },
+  "react_profiler": {
+    "captured": false,
+    "reason": "Read-only audit; no browser instrumentation run",
+    "estimate_json_to_paint_ms": "3–15",
+    "estimate_basis": "Small setState + HomeSearch map over ≤3 groups; not on critical path vs 4000ms backend"
+  },
+  "mobile_vs_desktop": {
+    "shared_logic": true,
+    "differences": [
+      "isMobile overlay scroll lock",
+      "onMouseDown preventDefault on suggest items (mobile)",
+      "dismissMobileSearchKeyboard on interactions",
+      "separate DOM refs (ofSearchInputMobileRef vs Desktop)"
+    ],
+    "latency_impact": "Same debounce, same endpoint, same cache; mobile may add keyboard dismiss + larger touch target render cost (<5ms estimated)"
+  },
+  "dev_timing_log": {
+    "enabled": "NODE_ENV === development only",
+    "format": "Search\\nquery\\n{q}\\nSuggest\\n{ms}\\nTotal\\n{ms}"
+  }
+}

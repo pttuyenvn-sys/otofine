@@ -40,15 +40,7 @@ export default function PartKnowledgeSeoPage({ data, slug, imageProducts = [] })
     .replace(/\\u003c/g, "<")
     .replace(/\\u003e/g, ">");
 
-  console.log("SEO RENDER", {
-    hasSEO: !!data,
-    hasArticle: !!articleHtml,
-    slug,
-  });
-
   if (!articleHtml) {
-    console.log("SEO FAIL", data);
-
     return null;
   }
 

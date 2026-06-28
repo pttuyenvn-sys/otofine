@@ -59,6 +59,39 @@ button.detail-back-link {
   text-decoration: underline;
 }
 
+.detail-archive-banner {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--of-radius, 5px);
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.detail-archive-seller-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--of-radius, 5px);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.detail-archive-seller-note--mobile {
+  flex: 1;
+  text-align: center;
+}
+
+.trust-pill--archive {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
 /* Skeleton */
 .detail-skeleton-wrap {
   padding-top: 8px;
@@ -583,7 +616,7 @@ button.detail-back-link {
   gap: 8px;
 }
 
-.car-chip {
+.car-chip-link {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -593,16 +626,20 @@ button.detail-back-link {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   font-size: 14px;
-}
-
-.car-chip-brand {
-  font-weight: 800;
-  color: var(--of-primary, #1a5fb4);
-}
-
-.car-chip-model {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--of-primary, #1a5fb4);
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.car-chip-link:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.car-chip-link:focus-visible {
+  outline: 2px solid var(--of-primary, #1a5fb4);
+  outline-offset: 2px;
 }
 
 .car-chip-year {

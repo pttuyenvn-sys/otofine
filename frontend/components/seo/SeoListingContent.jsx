@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FiPhoneCall } from "react-icons/fi";
 import SeoPublicHeader from "./SeoPublicHeader";
+import { buildProductImageAlt } from "@/lib/seo/buildProductImageAlt";
 import SeoListingProductImage from "./SeoListingProductImage";
 import "@/components/pages/Home.css";
 import "./seo-landing.css";
@@ -31,6 +32,10 @@ function JsonLd({ data }) {
   );
 }
 
+function getDisplayTitle(item) {
+  return item.displayTitle || item.productIdentity?.h1 || "Sản phẩm";
+}
+
 export default function SeoListingContent({
   slug,
   parsed,
@@ -46,7 +51,7 @@ export default function SeoListingContent({
     "@type": "ListItem",
     position: (currentPage - 1) * 16 + i + 1,
     url: absoluteUrl(productHref(p)),
-    name: p.shortDescription || p.partName || "Sản phẩm",
+    name: getDisplayTitle(p),
   }));
 
   const breadcrumbLd = {
@@ -143,7 +148,7 @@ export default function SeoListingContent({
                           href={productHref(item)}
                           className="seo-product-card__overlay"
                           aria-label={
-                            item.shortDescription || "Xem chi tiết sản phẩm"
+                            getDisplayTitle(item)
                           } prefetch={false}>
                           <span className="seo-product-card__sr-only">
                             Xem chi tiết
@@ -152,7 +157,7 @@ export default function SeoListingContent({
                         <div className="seo-product-card__inner">
                           <div className="product-top">
                             <h2 className="seo-card-title">
-                              {item.shortDescription}
+                              {getDisplayTitle(item)}
                             </h2>
                             <div className="product-price">{item.priceText}</div>
                           </div>
@@ -165,7 +170,7 @@ export default function SeoListingContent({
                               </div>
                               <SeoListingProductImage
                                 src={item.image}
-                                alt=""
+                                alt={buildProductImageAlt(item)}
                                 sizes="(max-width: 768px) 45vw, 180px"
                               />
                             </div>
@@ -198,7 +203,7 @@ export default function SeoListingContent({
 
                             <div
                               className="product-right"
-                              data-title={item.shortDescription}
+                              data-title={getDisplayTitle(item)}
                             >
                               <div className="mobile-price">
                                 {item.priceText}

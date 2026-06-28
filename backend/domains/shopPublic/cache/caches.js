@@ -14,7 +14,13 @@ import { createLruTtlCache } from "./lruTtlCache.js";
  *        Vietnam-only marketplace; the LRU absorbs accidental scan
  *        attempts.
  *
- *   2. publicApiResponseCache
+ *   2. shopLifecycleCache
+ *      - keyed by slug
+ *      - stores `{ slug, public_status }` OR MISS_SENTINEL (unknown slug)
+ *      - used by GET /api/public/shops/:slug/lifecycle for sunset routing
+ *      - TTL mirrors shopExistenceCache (5 min hit / 1 min miss)
+ *
+ *   3. publicApiResponseCache
  *      - keyed by the full request URL (path+query)
  *      - stores `{ status, body }` for 2xx GET responses
  *      - per-route TTLs (see TTL_MS below)
@@ -48,6 +54,12 @@ export const shopExistenceCache = createLruTtlCache({
   defaultTtlMs: TTL_MS.existence,
 });
 
+export const shopLifecycleCache = createLruTtlCache({
+  name: "shopLifecycle",
+  max: 5_000,
+  defaultTtlMs: TTL_MS.existence,
+});
+
 export const publicApiResponseCache = createLruTtlCache({
   name: "publicApiResponse",
   max: 2_000,
@@ -61,15 +73,21 @@ export const publicApiResponseCache = createLruTtlCache({
  * Cheap: one tagIndex lookup + at most N small deletes.
  */
 export function invalidateShop(slug) {
-  if (!slug) return { existence: false, apiEntries: 0 };
+  if (!slug) return { existence: false, lifecycle: false, apiEntries: 0 };
   const existenceDeleted = shopExistenceCache.delete(slug);
+  const lifecycleDeleted = shopLifecycleCache.delete(slug);
   const apiEntries = publicApiResponseCache.invalidateTag(`shop:${slug}`);
-  return { existence: existenceDeleted, apiEntries };
+  return {
+    existence: existenceDeleted,
+    lifecycle: lifecycleDeleted,
+    apiEntries,
+  };
 }
 
 export function allCacheStats() {
   return {
     shopExistence: shopExistenceCache.stats(),
+    shopLifecycle: shopLifecycleCache.stats(),
     publicApiResponse: publicApiResponseCache.stats(),
   };
 }

@@ -1,0 +1,78 @@
+{
+  "audit_id": "SEARCH-END-TO-END-LATENCY-AUDIT-01",
+  "generated_at": "2026-06-22T00:00:00.000Z",
+  "methodology": "Read-only synthesis of frontend code paths, existing canary/runtime traces, inverted stage benchmarks, and live production curl TTFB (2026-06-22). Timestamps are relative to T0 = last keystroke that completes the debounced query.",
+  "benchmark_clarification": {
+    "source": "audit/search-inverted-index-runtime-01/latency-breakdown.json",
+    "what_it_measures": "In-process inverted runtime stages only (normalize → retrieval → ranking → grouping → popup), warm localhost, no HTTP, no debounce, no React",
+    "typical_total_ms": "38–144",
+    "why_not_user_latency": "Production serves LegacySearchRuntime over HTTP; ~77–89 ms is not keypress-to-popup time"
+  },
+  "scenarios": [
+    {
+      "id": "fast_bugi_toyota",
+      "query": { "query": "bugi", "brand": "Toyota" },
+      "user_perceived_ms": 830,
+      "stages": [
+        { "stage": "keypress", "offset_ms": 0, "duration_ms": 0, "source": "synthetic" },
+        { "stage": "react_onChange_setState", "offset_ms": 0, "duration_ms": 1, "source": "code_review" },
+        { "stage": "debounce_wait", "offset_ms": 1, "duration_ms": 300, "source": "Home.jsx SUGGEST_FETCH_DEBOUNCE_MS=300" },
+        { "stage": "parse_intent_cache_key", "offset_ms": 301, "duration_ms": 1, "source": "code_review" },
+        { "stage": "frontend_request_start", "offset_ms": 302, "duration_ms": 0, "source": "fetchSearchSuggest startedAt" },
+        { "stage": "http_tls_connect", "offset_ms": 302, "duration_ms": 120, "source": "curl production 2026-06-22" },
+        { "stage": "http_backend_processing", "offset_ms": 422, "duration_ms": 408, "source": "curl ttfb 528ms − connect ~120ms; canary legacy_ms ~161–186" },
+        { "stage": "json_download_parse", "offset_ms": 830, "duration_ms": 2, "source": "small payload ~6KB" },
+        { "stage": "browser_receive_json", "offset_ms": 832, "duration_ms": 0, "source": "fetch resolve" },
+        { "stage": "react_setState", "offset_ms": 832, "duration_ms": 2, "source": "setSearchSuggestResponse + setSuggestLoading(false)" },
+        { "stage": "react_render_commit", "offset_ms": 834, "duration_ms": 8, "source": "estimated; no Profiler capture" },
+        { "stage": "popup_visible", "offset_ms": 842, "duration_ms": 0, "source": "hasQuickSuggest when groups.length > 0" }
+      ]
+    },
+    {
+      "id": "slow_den_hau_kia",
+      "query": { "query": "đèn hậu", "brand": "Kia" },
+      "user_perceived_ms": 5240,
+      "stages": [
+        { "stage": "keypress", "offset_ms": 0, "duration_ms": 0, "source": "synthetic" },
+        { "stage": "react_onChange_setState", "offset_ms": 0, "duration_ms": 1, "source": "code_review" },
+        { "stage": "debounce_wait", "offset_ms": 1, "duration_ms": 300, "source": "Home.jsx" },
+        { "stage": "cache_miss_setSuggestLoading", "offset_ms": 301, "duration_ms": 1, "source": "no cached groups → loading true, empty panel" },
+        { "stage": "frontend_request_start", "offset_ms": 302, "duration_ms": 0, "source": "GET /api/search/suggest" },
+        { "stage": "http_tls_connect", "offset_ms": 302, "duration_ms": 120, "source": "curl" },
+        { "stage": "backend_controller", "offset_ms": 422, "duration_ms": 5, "source": "negligible vs service" },
+        { "stage": "backend_runtime_legacy", "offset_ms": 427, "duration_ms": 4537, "source": "curl ttfb 4537ms production 2026-06-22" },
+        { "stage": "backend_candidate_retrieval", "offset_ms": 427, "duration_ms": null, "note": "legacy path: embedded in grouping SQL chain; canary retrieval_ms null", "source": "canary-metrics" },
+        { "stage": "backend_ranking", "offset_ms": null, "duration_ms": 1586, "source": "canary legacy ranking_ms avg 1578–1615 for đèn hậu Kia" },
+        { "stage": "backend_grouping", "offset_ms": null, "duration_ms": 2651, "source": "canary legacy grouping_ms p95 2651 for đèn hậu Kia" },
+        { "stage": "backend_popup_hydration", "offset_ms": null, "duration_ms": 666, "source": "canary legacy popup_ms up to 1290" },
+        { "stage": "json_serialize_network", "offset_ms": 4964, "duration_ms": 15, "source": "101KB response body" },
+        { "stage": "browser_receive_json", "offset_ms": 4979, "duration_ms": 0, "source": "fetch resolve" },
+        { "stage": "react_setState", "offset_ms": 4979, "duration_ms": 3, "source": "promise.then setSearchSuggestResponse" },
+        { "stage": "react_render_commit", "offset_ms": 4982, "duration_ms": 12, "source": "estimated; large group list" },
+        { "stage": "popup_visible", "offset_ms": 4994, "duration_ms": 0, "source": "first paint with preview groups" }
+      ],
+      "cold_cache_ux_gap_ms": 4678,
+      "cold_cache_ux_note": "From debounce fire (T+301) until JSON arrives, dropdown shell is open but hasQuickSuggest=false — no top-level skeleton; user sees blank panel for ~4.7s"
+    },
+    {
+      "id": "inverted_benchmark_only_bugi",
+      "query": { "query": "bugi", "brand": "Toyota" },
+      "note": "NOT user path — isolated inverted stages on localhost",
+      "user_perceived_ms": 89,
+      "stages": [
+        { "stage": "normalize", "offset_ms": 0, "duration_ms": 1.87, "source": "latency-breakdown.json" },
+        { "stage": "retrieval", "offset_ms": 1.87, "duration_ms": 2.83, "source": "latency-breakdown.json" },
+        { "stage": "ranking", "offset_ms": 4.7, "duration_ms": 38.96, "source": "latency-breakdown.json" },
+        { "stage": "grouping", "offset_ms": 43.66, "duration_ms": 45.41, "source": "latency-breakdown.json" },
+        { "stage": "popup", "offset_ms": 89.07, "duration_ms": 0.02, "source": "latency-breakdown.json; preview skipped/cached" },
+        { "stage": "total_in_process", "offset_ms": 0, "duration_ms": 89.09, "source": "latency-breakdown.json" }
+      ]
+    }
+  ],
+  "waterfall_summary": {
+    "dominant_stages_slow_queries": ["backend_runtime_legacy", "backend_grouping", "backend_ranking"],
+    "fixed_frontend_overhead_ms": 300,
+    "frontend_render_after_json_ms": "3–15",
+    "network_overhead_ms": "120–200"
+  }
+}

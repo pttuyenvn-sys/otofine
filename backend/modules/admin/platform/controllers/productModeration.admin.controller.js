@@ -8,6 +8,10 @@ import {
 import { getProductModerationDetail } from "../../../../modules/governance/services/productModerationDetail.service.js";
 import { createGovernanceActionId } from "../../../../modules/governance/services/governanceActionId.server.js";
 import { logModerationAction } from "../../../../modules/governance/services/governanceLogger.server.js";
+import {
+  invalidateDetailCache,
+  invalidateListingCaches,
+} from "../../../../services/redisCache.service.js";
 
 /**
  * GET /api/admin/platform/products/moderation/shops
@@ -372,6 +376,15 @@ export async function bulkModerateProducts(req, res) {
       } catch (e2) {
         console.error("Failed to trigger product risk flag evaluation:", e2);
       }
+
+      await invalidateListingCaches();
+      for (const pid of changedIds) {
+        await invalidateDetailCache(pid);
+      }
+      const { queueSearchIndexSync } = await import("../../../../services/search/searchIndexDispatcher.js");
+      for (const pid of changedIds) {
+        queueSearchIndexSync(pid, { source: "moderation.bulk", reason: "approval" });
+      }
     }
 
     const actionId = createGovernanceActionId();
@@ -495,6 +508,16 @@ export async function resetModerationStatus(req, res) {
         `INSERT INTO product_moderation_events (product_id, moderator_admin_id, old_status, new_status, reject_reason, notes) VALUES ?`,
         [toInsert],
       );
+
+      const changedIds = toInsert.map((r) => Number(r[0]));
+      await invalidateListingCaches();
+      for (const pid of changedIds) {
+        await invalidateDetailCache(pid);
+      }
+      const { queueSearchIndexSync } = await import("../../../../services/search/searchIndexDispatcher.js");
+      for (const pid of changedIds) {
+        queueSearchIndexSync(pid, { source: "moderation.reset", reason: "approval" });
+      }
     }
 
     return res.json({ ok: true, updated: result.affectedRows || 0, eventsInserted: toInsert.length, status });

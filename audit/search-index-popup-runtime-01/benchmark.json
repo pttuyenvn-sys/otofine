@@ -1,0 +1,152 @@
+{
+  "generatedAt": "2026-06-27T02:24:51.762Z",
+  "defaultFlag": "SEARCH_POPUP_INDEX=0",
+  "benchmarks": [
+    {
+      "label": "bugi toyota",
+      "flagOff": {
+        "coldMs": 390.76,
+        "warmAvgMs": 139.14,
+        "sqlCount": 7,
+        "popupHydrationSql": 4
+      },
+      "flagOn": {
+        "coldMs": 146.48,
+        "warmAvgMs": 136.11,
+        "sqlCount": 3,
+        "indexSqlCount": 1,
+        "popupHydrationSql": 3
+      },
+      "speedupColdPct": 62.5
+    },
+    {
+      "label": "má phanh vios",
+      "flagOff": {
+        "coldMs": 250.05,
+        "warmAvgMs": 169.29,
+        "sqlCount": 3,
+        "popupHydrationSql": 3
+      },
+      "flagOn": {
+        "coldMs": 173.69,
+        "warmAvgMs": 174.46,
+        "sqlCount": 3,
+        "indexSqlCount": 1,
+        "popupHydrationSql": 3
+      },
+      "speedupColdPct": 30.5
+    },
+    {
+      "label": "lọc dầu mazda",
+      "flagOff": {
+        "coldMs": 1714.32,
+        "warmAvgMs": 1699.84,
+        "sqlCount": 4,
+        "popupHydrationSql": 4
+      },
+      "flagOn": {
+        "coldMs": 1679.5,
+        "warmAvgMs": 1694.98,
+        "sqlCount": 3,
+        "indexSqlCount": 1,
+        "popupHydrationSql": 3
+      },
+      "speedupColdPct": 2
+    },
+    {
+      "label": "04465-0D140",
+      "flagOff": {
+        "coldMs": 824.63,
+        "warmAvgMs": 840.31,
+        "sqlCount": 2,
+        "popupHydrationSql": 2
+      },
+      "flagOn": {
+        "coldMs": 846.08,
+        "warmAvgMs": 830.18,
+        "sqlCount": 2,
+        "indexSqlCount": 0,
+        "popupHydrationSql": 2
+      },
+      "speedupColdPct": -2.6
+    }
+  ],
+  "comparisons": [
+    {
+      "label": "bugi toyota",
+      "productIdsOff": [
+        5286,
+        5288,
+        5282,
+        4441,
+        4442,
+        5289
+      ],
+      "productIdsOn": [
+        5286,
+        5288,
+        5282,
+        4441,
+        4442,
+        5289
+      ],
+      "overlap": 6,
+      "fieldParity": true,
+      "fieldDiffs": [],
+      "offPopupUsesProductsJoin": true,
+      "onPopupUsesIndexOnly": true
+    },
+    {
+      "label": "má phanh vios",
+      "productIdsOff": [
+        6628,
+        6629,
+        6660,
+        6651,
+        5788,
+        5789
+      ],
+      "productIdsOn": [
+        6628,
+        6629,
+        6660,
+        6651,
+        5788,
+        5789
+      ],
+      "overlap": 6,
+      "fieldParity": true,
+      "fieldDiffs": [],
+      "offPopupUsesProductsJoin": true,
+      "onPopupUsesIndexOnly": true
+    },
+    {
+      "label": "lọc dầu mazda",
+      "productIdsOff": [
+        2347,
+        2348
+      ],
+      "productIdsOn": [
+        2347,
+        2348
+      ],
+      "overlap": 2,
+      "fieldParity": true,
+      "fieldDiffs": [],
+      "offPopupUsesProductsJoin": true,
+      "onPopupUsesIndexOnly": true
+    },
+    {
+      "label": "04465-0D140",
+      "productIdsOff": [],
+      "productIdsOn": [],
+      "overlap": 0,
+      "fieldParity": true,
+      "fieldDiffs": [],
+      "offPopupUsesProductsJoin": true,
+      "onPopupUsesIndexOnly": false
+    }
+  ],
+  "allFieldParity": true,
+  "allIndexPopup": true
+}

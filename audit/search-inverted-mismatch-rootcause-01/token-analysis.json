@@ -1,0 +1,202 @@
+[
+  {
+    "query": "bugi toyota",
+    "keyword": "bugi",
+    "query_tokens": [
+      "bugi",
+      "toyota"
+    ],
+    "expanded_tokens": [
+      "bugi",
+      "toyota"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "Toyota",
+      "model": "",
+      "category": "",
+      "textQuery": "bugi",
+      "location": "",
+      "hasStructuredFacets": true,
+      "normalizedPartNumber": ""
+    },
+    "folded": "bugi",
+    "part_number_norm": "bugi",
+    "candidate_count": 29
+  },
+  {
+    "query": "má phanh vios",
+    "keyword": "má phanh",
+    "query_tokens": [
+      "ma",
+      "phanh",
+      "ma phanh",
+      "toyota",
+      "vios"
+    ],
+    "expanded_tokens": [
+      "ma",
+      "phanh",
+      "ma phanh",
+      "toyota",
+      "vios"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "Toyota",
+      "model": "Vios",
+      "category": "",
+      "textQuery": "ma phanh",
+      "location": "",
+      "hasStructuredFacets": true,
+      "normalizedPartNumber": ""
+    },
+    "folded": "ma phanh",
+    "part_number_norm": null,
+    "candidate_count": 500
+  },
+  {
+    "query": "lọc dầu mazda",
+    "keyword": "lọc dầu",
+    "query_tokens": [
+      "loc",
+      "dau",
+      "loc dau",
+      "mazda"
+    ],
+    "expanded_tokens": [
+      "loc",
+      "dau",
+      "loc dau",
+      "mazda"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "Mazda",
+      "model": "",
+      "category": "",
+      "textQuery": "loc dau",
+      "location": "",
+      "hasStructuredFacets": true,
+      "normalizedPartNumber": ""
+    },
+    "folded": "loc dau",
+    "part_number_norm": null,
+    "candidate_count": 205
+  },
+  {
+    "query": "đèn hậu kia",
+    "keyword": "đèn hậu",
+    "query_tokens": [
+      "den",
+      "hau",
+      "den hau",
+      "kia"
+    ],
+    "expanded_tokens": [
+      "den",
+      "hau",
+      "den hau",
+      "kia"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "Kia",
+      "model": "",
+      "category": "",
+      "textQuery": "den hau",
+      "location": "",
+      "hasStructuredFacets": true,
+      "normalizedPartNumber": ""
+    },
+    "folded": "den hau",
+    "part_number_norm": null,
+    "candidate_count": 299
+  },
+  {
+    "query": "04465-0D140",
+    "keyword": "04465-0D140",
+    "query_tokens": [
+      "044650d140",
+      "04465 0d140",
+      "0d140"
+    ],
+    "expanded_tokens": [
+      "044650d140",
+      "04465 0d140",
+      "0d140"
+    ],
+    "facets": {
+      "partNumber": "04465-0D140",
+      "slugCandidate": "",
+      "brand": "",
+      "model": "",
+      "category": "",
+      "textQuery": "",
+      "location": "",
+      "hasStructuredFacets": false,
+      "normalizedPartNumber": "044650d140"
+    },
+    "folded": "04465 0d140",
+    "part_number_norm": "044650d140",
+    "candidate_count": 0
+  },
+  {
+    "query": "bố thắng",
+    "keyword": "bố thắng",
+    "query_tokens": [
+      "thang"
+    ],
+    "expanded_tokens": [
+      "thang"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "",
+      "model": "",
+      "category": "",
+      "textQuery": "bo thang",
+      "location": "",
+      "hasStructuredFacets": false,
+      "normalizedPartNumber": ""
+    },
+    "folded": "bo thang",
+    "part_number_norm": null,
+    "candidate_count": 322
+  },
+  {
+    "query": "brake pad",
+    "keyword": "brake pad",
+    "query_tokens": [
+      "brakepad",
+      "brake pad",
+      "brake",
+      "pad"
+    ],
+    "expanded_tokens": [
+      "brakepad",
+      "brake pad",
+      "brake",
+      "pad"
+    ],
+    "facets": {
+      "partNumber": "",
+      "slugCandidate": "",
+      "brand": "",
+      "model": "",
+      "category": "",
+      "textQuery": "brake pad",
+      "location": "",
+      "hasStructuredFacets": false,
+      "normalizedPartNumber": ""
+    },
+    "folded": "brake pad",
+    "part_number_norm": "brakepad",
+    "candidate_count": 63
+  }
+]

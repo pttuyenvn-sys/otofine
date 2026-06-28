@@ -1,0 +1,26 @@
+{
+  "weighted_v2": {
+    "legacy_tier_base": 10000,
+    "oem_exact": 200,
+    "oem_partial": 160,
+    "phrase_exact": 140,
+    "title_starts_with": 180,
+    "title_phrase": 150,
+    "title_contains": 90,
+    "category_exact": 400,
+    "category_phrase": 280,
+    "category_primary_word": 200,
+    "brand": 40,
+    "model": 40,
+    "keyword_coverage_max": 50,
+    "popularity_max": 20,
+    "search_priority_max": 20,
+    "business_boost_max": 10,
+    "retrieval_factor": 0.01,
+    "matched_tokens_factor": 1,
+    "part_number_has": 50,
+    "price_has": 30,
+    "mod_day_factor": 5,
+    "freshness_factor": 100
+  }
+}

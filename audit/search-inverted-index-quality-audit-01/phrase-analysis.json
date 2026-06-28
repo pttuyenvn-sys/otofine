@@ -1,0 +1,18 @@
+{
+  "phrase_tokens": 790,
+  "avg_phrase_word_count": 2.85,
+  "max_phrase_word_count": 4,
+  "avg_phrase_chars": 12.58,
+  "max_phrase_chars": 23,
+  "products_over_100_phrases": 1,
+  "top_phrase_offenders": [
+    {
+      "product_id": 161,
+      "title": "Bi tê Kia Rio 2011-2013",
+      "phrase_count": 108,
+      "max_phrase_len": 20,
+      "fitment_rows": 4
+    }
+  ],
+  "combinatorial_explanation": "tokenizeMatcherQuery generates n-grams for n=2..min(4,word_count) on title, vehicle_label, and seo_alias sources. Each fitment row in product_search_index re-processes shared product fields."
+}

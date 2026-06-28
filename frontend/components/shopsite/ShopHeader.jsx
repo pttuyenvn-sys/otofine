@@ -164,9 +164,9 @@ export default function ShopHeader({ shop, badges }) {
                   text. Desktop renders everything as before. */}
               <div className="flex-1 min-w-0 text-white">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-base sm:text-2xl lg:text-3xl font-bold drop-shadow-md leading-tight line-clamp-2">
+                  <div className="text-base sm:text-2xl lg:text-3xl font-bold drop-shadow-md leading-tight line-clamp-2">
                     {shop.name}
-                  </h1>
+                  </div>
                   {shop.verified && (
                     <span
                       aria-label="Đã xác minh"

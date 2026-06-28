@@ -10,6 +10,11 @@
  * (slug regex, reserved list).
  */
 
+import {
+  isShopSeoRewritePath,
+  resolveShopSeoInternalSuffix,
+} from "@/lib/shopseo/isShopSeoRewritePath";
+
 /** Apex hosts that should NEVER be treated as a shop subdomain. */
 export const ROOT_HOSTS = new Set([
   "otofine.com",
@@ -58,15 +63,15 @@ export const RESERVED_SUBDOMAINS = new Set([
 export const SUBDOMAIN_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 
 /**
- * Only the four shop-tenant page paths get rewritten when on a
- * subdomain. Everything else (product detail, _next, api, etc.) is
- * passed through to apex routing untouched.
+ * Only legacy static paths are hardcoded; SEO landings use
+ * `isShopSeoRewritePath()` (ARCH-07.2).
  */
 export const SHOP_REWRITE_PATHS = new Set([
   "/",
-  "/san-pham",
   "/gioi-thieu",
   "/lien-he",
+  "/san-pham",
+  "/phu-tung-o-to",
 ]);
 
 export function stripPort(host) {
@@ -161,11 +166,75 @@ export function getShopAllowlist() {
   return { enabled: ALLOWLIST.enabled, slugs: Array.from(ALLOWLIST.set).sort() };
 }
 
+/** Suffixes that accept `{slug}.<suffix>` storefront hosts. */
+export const STOREFRONT_HOST_SUFFIXES = new Set([
+  ".otofine.com",
+  ".localhost",
+  ".lvh.me",
+  ".nip.io",
+]);
+
 /**
- * True iff this slug is permitted to render via subdomain right now.
+ * Hosts that look like wildcard storefront probes — a single subdomain
+ * label under a storefront suffix, excluding apex / reserved / foreign
+ * suffixes. Used by middleware to block marketplace-homepage pollution.
  *
- * Decoupled from `classifyHost` so the call site keeps a clean
- * decision matrix: classify → know the slug → THEN check allowlist.
+ * Returns `null` when the host is outside wildcard protection scope.
+ *
+ * @returns {{ slug: string | null, invalid: boolean, reason: string, suffix: string } | null}
+ */
+export function getWildcardStorefrontProbe(hostname) {
+  const cls = classifyHost(hostname);
+  if (!cls.suffix || !STOREFRONT_HOST_SUFFIXES.has(cls.suffix)) return null;
+
+  switch (cls.decision) {
+    case HOST_DECISIONS.APEX:
+    case HOST_DECISIONS.UNKNOWN_SUFFIX:
+    case HOST_DECISIONS.RESERVED_SUBDOMAIN:
+      return null;
+    case HOST_DECISIONS.HOST_TOO_LONG:
+      return {
+        slug: null,
+        invalid: true,
+        reason: cls.decision,
+        suffix: cls.suffix,
+      };
+    case HOST_DECISIONS.HOST_INVALID_CHARS:
+      return {
+        slug: null,
+        invalid: true,
+        reason: cls.decision,
+        suffix: cls.suffix,
+      };
+    case HOST_DECISIONS.MULTI_LEVEL:
+      return {
+        slug: null,
+        invalid: true,
+        reason: cls.decision,
+        suffix: cls.suffix,
+      };
+    case HOST_DECISIONS.INVALID_SUBDOMAIN:
+      return {
+        slug: cls.slug ?? null,
+        invalid: true,
+        reason: cls.decision,
+        suffix: cls.suffix,
+      };
+    case HOST_DECISIONS.REWRITE_OK:
+      return {
+        slug: cls.slug,
+        invalid: false,
+        reason: cls.decision,
+        suffix: cls.suffix,
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * True iff this slug is permitted to render via subdomain right now
+ * during the staged rollout window.
  *
  * Pure / edge-safe.
  */
@@ -253,8 +322,10 @@ export function resolveShopRewrite({ host, pathname, flagEnabled }) {
   }
   if (pathname.startsWith(`/shops/${sub}`)) return null;
   const cleanPath = pathname.replace(/\/+$/, "") || "/";
-  if (!SHOP_REWRITE_PATHS.has(cleanPath)) return null;
-  const internalPath = cleanPath === "/" ? `/shops/${sub}` : `/shops/${sub}${cleanPath}`;
+  if (!isShopSeoRewritePath(cleanPath)) return null;
+  const suffix = resolveShopSeoInternalSuffix(cleanPath);
+  if (suffix == null) return null;
+  const internalPath = suffix ? `/shops/${sub}${suffix}` : `/shops/${sub}`;
   return { slug: sub, internalPath, decision: cls.decision };
 }
 

@@ -1,5 +1,4 @@
-import { buildHomePageTitle, classifyListingTier, EMPTY_HOME_FILTERS } from "@/lib/seo/homePageTitle";
-import { buildUrlFromH1 } from "@/lib/seo/parseHomeListingSlug";
+import { classifyListingTier, EMPTY_HOME_FILTERS } from "@/lib/seo/homePageTitle";
 
 /**
  * @param {Record<string, string> | undefined | null} filters
@@ -56,13 +55,7 @@ export function buildListingState({
     location: loc,
   };
 
-  const h1 = buildHomePageTitle(state);
   const { tier, label: tierLabel } = classifyListingTier(state);
-  const url = buildUrlFromH1(h1, { q: kw, page: p });
-
-  const qMark = url.indexOf("?");
-  const slug = (qMark === -1 ? url : url.slice(0, qMark)) || "/";
-  const queryString = qMark === -1 ? "" : `?${url.slice(qMark + 1)}`;
 
   const stateKey = JSON.stringify({
     category: cat,
@@ -76,12 +69,8 @@ export function buildListingState({
   });
 
   return {
-    h1,
     tier,
     tierLabel,
-    url,
-    slug,
-    queryString,
     stateKey,
   };
 }

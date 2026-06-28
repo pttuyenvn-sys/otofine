@@ -12,6 +12,8 @@ import {
   deleteShop,
 } from "../controllers/adminController.js";
 
+import { getCacheStats } from "../controllers/cacheStats.controller.js";
+
 import { requireAuth, requireAdmin } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -23,6 +25,9 @@ router.post("/shop-register", registerShop);
 /* ===== ADMIN AUTH ===== */
 router.post("/admin-login", adminLogin);
 router.post("/admin-forgot-password", adminForgotPassword);
+
+/* ===== CACHE OBSERVABILITY (no new auth) ===== */
+router.get("/cache-stats", getCacheStats);
 
 /* ===== ADMIN SHOP MANAGEMENT ===== */
 router.get("/shops", requireAuth, requireAdmin, getAllShops);

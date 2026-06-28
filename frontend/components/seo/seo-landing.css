@@ -1,4 +1,72 @@
-/* Bổ sung cho landing SEO — không đụng rule Home ngoài phạm vi .seo-landing-* */
+.listing-year-range-links {
+  max-width: min(900px, 100%);
+  margin: 24px auto 20px;
+  padding: 16px 18px;
+  border-radius: var(--of-radius-lg, 10px);
+  background: #fff;
+  border: 1px solid var(--of-border, #d0ddee);
+  box-shadow: var(--of-shadow-sm, 0 4px 20px rgba(10, 35, 64, 0.06));
+}
+
+.listing-year-range-links__title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--of-text, #1a2332);
+  line-height: 1.35;
+}
+
+.listing-year-range-links__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.listing-year-range-links__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #c5d4e8;
+  background: #f0f6ff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--of-primary, #1a5fb4);
+  text-decoration: none;
+  line-height: 1.2;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.listing-year-range-links__chip:hover {
+  background: #e3eefc;
+  border-color: var(--of-primary, #1a5fb4);
+  text-decoration: none;
+}
+
+.listing-year-range-links__chip--active {
+  background: var(--of-primary, #1a5fb4);
+  border-color: var(--of-primary-dark, #154a8c);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(26, 95, 180, 0.28);
+  cursor: default;
+  pointer-events: none;
+}
+
+.listing-year-range-links__chip--active:hover {
+  background: var(--of-primary, #1a5fb4);
+  border-color: var(--of-primary-dark, #154a8c);
+  color: #fff;
+}
+
 
 /*
  * Trang [slug] dùng chung .container với Home (grid 300px | 1fr).

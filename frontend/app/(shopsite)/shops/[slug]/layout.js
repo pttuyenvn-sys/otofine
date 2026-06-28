@@ -6,17 +6,15 @@ import ShopAnalyticsBoot from "@/components/shopsite/ShopAnalyticsBoot";
 import StorefrontAnalyticsForwarder from "@/components/shopsite/StorefrontAnalyticsForwarder";
 import StorefrontSellerShortcut from "@/components/shopsite/StorefrontSellerShortcut";
 import StorefrontOwnerStrip from "@/components/shopsite/StorefrontOwnerStrip";
-import ShopJsonLd from "@/components/shopsite/ShopJsonLd";
 import ShopQuickRfqLauncher from "@/components/shopsite/ShopQuickRfqLauncher";
 import ShopContactMiniDrawer from "@/components/shopsite/ShopContactMiniDrawer";
 import { deriveShopTrustBadges } from "@/lib/shopsite/shopTrustBadges";
 import { buildShopMetadata } from "@/lib/shopsite/buildShopMetadata";
-import { buildShopJsonLd } from "@/lib/shopsite/buildShopJsonLd";
 import {
   fetchPublicShop,
   fetchPublicShopSafe,
   getShopBasePath,
-  getShopCanonicalUrl,
+  getShopSeoContext,
 } from "@/services/shopPublic.service";
 // Bug-fix Phase A.1: shared normalization for the Zalo contact. Even
 // though the backend now COALESCEs zalo over zalo_phone, we run the
@@ -39,10 +37,12 @@ export async function generateMetadata({ params }) {
   // to avoid duplicate canonical surface. We build a complete
   // OG / Twitter / robots payload here so social previews work even
   // for pages that haven't overridden it.
+  const { canonical, apexDiscoveryMirror } = await getShopSeoContext(slug, "");
   return buildShopMetadata({
     shop,
     page: { subtitle: "Phụ tùng ô tô" },
-    canonical: await getShopCanonicalUrl(slug, ""),
+    canonical,
+    apexDiscoveryMirror,
   });
 }
 
@@ -73,14 +73,6 @@ export default async function ShopTenantLayout({ children, params }) {
   // /shops/<slug> prefix so the URL remains routable.
   const basePath = await getShopBasePath(shop.slug);
   const badges = deriveShopTrustBadges(shop);
-  // Phase 5.5 — emit the AutoPartsStore / LocalBusiness / Organization
-  // JSON-LD once at the layout level so all 4 tabs share the same
-  // structured-data block. Safe even under noindex: search engines
-  // simply won't read it until indexing flips on.
-  const jsonLd = buildShopJsonLd({
-    shop,
-    canonicalUrl: await getShopCanonicalUrl(shop.slug, ""),
-  });
 
   return (
     <>
@@ -150,9 +142,6 @@ export default async function ShopTenantLayout({ children, params }) {
           lng: typeof shop.lng === "number" ? shop.lng : null,
         }}
       />
-
-      {/* Phase 5.5 — structured data for search engines. */}
-      <ShopJsonLd payload={jsonLd} />
     </>
   );
 }

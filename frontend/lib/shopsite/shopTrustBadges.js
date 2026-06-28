@@ -90,7 +90,7 @@ export function deriveShopTrustBadges(shop) {
  * canonical wording — no other storefront component renders a
  * competing numeric productCount claim.
  */
-export function bucketProductCount(n) {
+function bucketProductCount(n) {
   const v = Number(n) || 0;
   if (v >= 5000) return "5.000+";
   if (v >= 3000) return "3.000+";

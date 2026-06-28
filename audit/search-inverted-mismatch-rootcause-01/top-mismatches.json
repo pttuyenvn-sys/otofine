@@ -1,0 +1,88 @@
+[
+  {
+    "rank": 1,
+    "query": "đèn hậu kia",
+    "primary_class": "A",
+    "secondary_classes": ["B", "C"],
+    "top10_parity_pct": 30,
+    "candidate_recall_pct": 28,
+    "why": "Legacy top-100 includes 72 Kia products matching brand token only. Inverted min_matched_tokens=2 excludes them. Legacy interleaved model ranking vs inverted product_id sort.",
+    "legacy_top20": [792, 799, 806, 813, 793, 800, 807, 794, 801, 808, 788, 795, 802, 809, 789, 796, 803, 810, 790, 797],
+    "inverted_top20": [788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807],
+    "missing_ids_top20": [813, 808, 809, 810],
+    "extra_ids_top20": [791, 798, 804, 805],
+    "missing_from_candidates_count": 72
+  },
+  {
+    "rank": 2,
+    "query": "bugi toyota",
+    "primary_class": "B",
+    "secondary_classes": ["D"],
+    "top10_parity_pct": 30,
+    "candidate_recall_pct": 100,
+    "why": "Same 29 candidates. Inverted ranks Ron/Gioăng/Phớt bugi above Bugi category due to higher retrieval_score (120 vs 100). Legacy category-intent ranking prefers canonical Bugi.",
+    "legacy_top1": 5279,
+    "inverted_top1": 4552,
+    "legacy_top20": [5279, 5286, 5293, 4440, 5280, 5287, 5294, 4441, 5281, 5288, 5295, 4442, 5282, 5289, 5283, 5290, 5284, 5291, 5278, 5285],
+    "inverted_top20": [4552, 5294, 5295, 6256, 6257, 7025, 7113, 4440, 4441, 4442, 5278, 5279, 5280, 5281, 5282, 5283, 5284, 5285, 5286, 5287]
+  },
+  {
+    "rank": 3,
+    "query": "bố thắng",
+    "primary_class": "D",
+    "secondary_classes": ["B", "C"],
+    "top10_parity_pct": 60,
+    "candidate_recall_pct": 97.3,
+    "why": "Stop word drops 'bo'; only token 'thang' retrieved. Substring matches in unrelated parts (Càng i thắng). Legacy uses full phrase 'bo thang' with category intent.",
+    "legacy_top1": 4691,
+    "inverted_top1": 389,
+    "legacy_top20": [4691, 4692, 4693, 4694, 4689, 4690, 2997, 4285, 4726, 4733, 4740, 2998, 4727, 7485, 2999, 4728, 4784, 6359, 389, 1642],
+    "inverted_top20": [389, 390, 4472, 4689, 4690, 4691, 4692, 4693, 4694, 4730, 4731, 4732, 4733, 6359, 603, 604, 605, 664, 665, 666]
+  },
+  {
+    "rank": 4,
+    "query": "má phanh vios",
+    "primary_class": "B",
+    "secondary_classes": ["C", "E"],
+    "top10_parity_pct": 70,
+    "candidate_recall_pct": 100,
+    "why": "6650/6651 tie broken by product_id. Cụm phanh ranks 259+ in inverted vs top-10 legacy. Category sidebar 14 vs 135.",
+    "legacy_top1": 6651,
+    "inverted_top1": 6650,
+    "legacy_top20": [6651, 6660, 6628, 6629, 6650, 5790, 5804, 5811, 5791, 5792, 6086, 7066, 5793, 6102, 5788, 5802, 5942, 6782, 5789, 5803],
+    "inverted_top20": [6650, 6651, 6660, 6628, 6629, 5802, 5803, 5804, 5811, 5942, 7066, 4589, 5832, 5833, 5939, 5940, 5941, 6640, 6641, 6642]
+  },
+  {
+    "rank": 5,
+    "query": "lọc dầu mazda",
+    "primary_class": "C",
+    "secondary_classes": [],
+    "top10_parity_pct": 100,
+    "candidate_recall_pct": 100,
+    "why": "Product ranking perfect. Sidebar category groups 2 vs 28 only.",
+    "legacy_top20": [2346, 2347, 2349, 2350, 2348, 2351],
+    "inverted_top20": [2349, 2350, 2351, 2346, 2347, 2348, 1773, 1774, 2072, 2073, 2362, 2651, 272, 1091, 1092, 1093, 1094, 1095, 1096, 2879]
+  },
+  {
+    "rank": 6,
+    "query": "brake pad",
+    "primary_class": "D",
+    "secondary_classes": ["C"],
+    "top10_parity_pct": 100,
+    "candidate_recall_pct": 100,
+    "why": "Legacy returns 0 (no English path). Inverted returns 63. Legacy gap, not inverted bug.",
+    "legacy_top20": [],
+    "inverted_top20": [437, 603, 604, 605, 606, 698, 703, 704, 1476, 1477, 1478, 1559, 1560, 1561, 1562, 1563, 1638, 1639, 1692, 1693]
+  },
+  {
+    "rank": 7,
+    "query": "04465-0D140",
+    "primary_class": "F",
+    "secondary_classes": [],
+    "top10_parity_pct": 100,
+    "candidate_recall_pct": 100,
+    "why": "Both runtimes empty. Part not in active catalog/index.",
+    "legacy_top20": [],
+    "inverted_top20": []
+  }
+]

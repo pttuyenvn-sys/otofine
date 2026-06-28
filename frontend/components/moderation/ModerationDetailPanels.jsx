@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { productImageDimensionProps } from "@/lib/image/productImageDimensions";
 import { RISK_FLAG_LABELS, REJECT_REASON_LABELS } from "@/components/moderation/ModerationFilters";
 
 export const sectionStyle = {
@@ -68,6 +69,7 @@ export function ModerationGallery({ images = [], compact = false }) {
               transition: "transform 0.15s ease",
               cursor: zoom > 1 ? "zoom-out" : "zoom-in",
             }}
+            {...productImageDimensionProps({ src: url, layout: "pdp-main" })}
             onClick={() => setZoom((z) => (z > 1 ? 1 : 2))}
           />
         ) : (
@@ -111,7 +113,12 @@ export function ModerationGallery({ images = [], compact = false }) {
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img
+                src={img}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                {...productImageDimensionProps({ src: img, layout: "thumb100" })}
+              />
             </button>
           ))}
         </div>

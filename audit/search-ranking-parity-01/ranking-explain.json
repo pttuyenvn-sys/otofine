@@ -1,0 +1,2442 @@
+{
+  "generated_at": "2026-06-27T07:39:14.909Z",
+  "flag": "SEARCH_RANKING_EXPLAIN=1",
+  "samples": [
+    {
+      "query": "bugi toyota",
+      "top10": [
+        {
+          "product_id": 5279,
+          "score": 90748,
+          "title": "Bugi Toyota Vios 2003-2016",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90748,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5286,
+          "score": 90748,
+          "title": "Bugi Toyota Altis",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90748,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5293,
+          "score": 90748,
+          "title": "Bugi Toyota Zace 2000-2005",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90748,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 4440,
+          "score": 90743,
+          "title": "Bugi Toyota Camry 2009",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90743,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5280,
+          "score": 90743,
+          "title": "Bugi Toyota Camry 2015-2019",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90743,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5287,
+          "score": 90743,
+          "title": "Bugi Toyota Vios 2015-2019",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90743,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5294,
+          "score": 90543.2,
+          "title": "Bugi sấy Toyota Hiace",
+          "category": "Bugi Sấy",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 200,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1.2,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90543.2,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 4441,
+          "score": 90738,
+          "title": "Bugi Toyota Camry 2006-2012",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 90738,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5281,
+          "score": 90738,
+          "title": "Bugi Toyota Sienna 2010",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 90738,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5288,
+          "score": 90738,
+          "title": "Bugi Toyota Altis",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 90738,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5295,
+          "score": 90538.2,
+          "title": "Bugi sấy Toyota Hiace",
+          "category": "Bugi Sấy",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 200,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1.2,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 90538.2,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 4442,
+          "score": 90733,
+          "title": "Bugi Toyota Crown 2014",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 90733,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5282,
+          "score": 90733,
+          "title": "Bugi Toyota Camry",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 90733,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5289,
+          "score": 90733,
+          "title": "Bugi Toyota Prado",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 90733,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5283,
+          "score": 90728,
+          "title": "Bugi Toyota Camry 2012-2019",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 15,
+            "freshness": 0
+          },
+          "finalScore": 90728,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5290,
+          "score": 90728,
+          "title": "Bugi Toyota Prado",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 15,
+            "freshness": 0
+          },
+          "finalScore": 90728,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5284,
+          "score": 90723,
+          "title": "Bugi Toyota Zace 2000-2005",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 10,
+            "freshness": 0
+          },
+          "finalScore": 90723,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5291,
+          "score": 90723,
+          "title": "Bugi Toyota Altis 2001-2010",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 10,
+            "freshness": 0
+          },
+          "finalScore": 90723,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5278,
+          "score": 90718,
+          "title": "Bugi Toyota Fortuner 2006-2016",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 5,
+            "freshness": 0
+          },
+          "finalScore": 90718,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5285,
+          "score": 90718,
+          "title": "Bugi Toyota Altis",
+          "category": "Bugi",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 1,
+            "matched_tokens": 2,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 5,
+            "freshness": 0
+          },
+          "finalScore": 90718,
+          "legacyTier": 1
+        }
+      ]
+    },
+    {
+      "query": "đèn hậu kia",
+      "top10": [
+        {
+          "product_id": 792,
+          "score": 90631.8,
+          "title": "Đèn hậu bên trái Kia Carens 2006-2012",
+          "category": "Đèn Hậu Bên Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90631.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 799,
+          "score": 90631.8,
+          "title": "Đèn hậu ngoài phải Kia Cerato 2015-2018",
+          "category": "Đèn Hậu Ngoài Phải",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90631.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 806,
+          "score": 90631.8,
+          "title": "Đèn hậu phải (ko led) Kia Morning 2011-2017",
+          "category": "Đèn Hậu Phải (ko Led)",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90631.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 813,
+          "score": 90631.8,
+          "title": "Đèn hậu trong, trái Kia Sportage 2016",
+          "category": "Đèn Hậu Trong Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90631.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 793,
+          "score": 90626.8,
+          "title": "Đèn hậu miếng ngoài bên lái Kia Sorento 2012-2014",
+          "category": "Đèn Hậu Miếng Ngoài Bên Lái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90626.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 800,
+          "score": 90626.8,
+          "title": "Đèn hậu ngoài phải Kia Carens 2013-2016",
+          "category": "Đèn Hậu Ngoài Phải",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90626.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 807,
+          "score": 90626.8,
+          "title": "Đèn hậu phải (ko led) Kia Morning 2011-2017",
+          "category": "Đèn Hậu Phải (ko Led)",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 280,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.8000000000000003,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90626.8,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 794,
+          "score": 0,
+          "title": "Đèn hậu miếng ngoài trái Kia Optima 2015-2019",
+          "category": "Đèn Hậu Miếng Ngoài Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 801,
+          "score": 0,
+          "title": "Đèn hậu ngoài trái Kia K3 2014",
+          "category": "Đèn Hậu Ngoài Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 808,
+          "score": 0,
+          "title": "Đèn hậu trái Kia Morning 2011-2017",
+          "category": "Đèn Hậu Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 788,
+          "score": 0,
+          "title": "Đèn hậu bên phải Kia Forte",
+          "category": "Đèn Hậu Bên Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 795,
+          "score": 0,
+          "title": "Đèn hậu miếng trong bên lái Kia Sorento 2012-2014",
+          "category": "Đèn Hậu Miếng Trong Bên Lái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 802,
+          "score": 0,
+          "title": "Đèn hậu ngoài trái Kia Seltos 2020",
+          "category": "Đèn Hậu Ngoài Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 809,
+          "score": 0,
+          "title": "Đèn hậu trái Kia Cerato 2015-2018",
+          "category": "Đèn Hậu Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 789,
+          "score": 0,
+          "title": "Đèn hậu bên phải Kia Forte",
+          "category": "Đèn Hậu Bên Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 796,
+          "score": 0,
+          "title": "Đèn hậu ngoài bên phải Kia Sedona 2018-2020",
+          "category": "Đèn Hậu Ngoài Bên Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 803,
+          "score": 0,
+          "title": "Đèn hậu ngoài trái Kia Cerato 2018-2021",
+          "category": "Đèn Hậu Ngoài Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 810,
+          "score": 0,
+          "title": "Đèn hậu trái Kia Cerato 2015-2018",
+          "category": "Đèn Hậu Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 790,
+          "score": 0,
+          "title": "Đèn hậu bên trái Kia Forte",
+          "category": "Đèn Hậu Bên Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 797,
+          "score": 0,
+          "title": "Đèn hậu ngoài lái Kia K7 2010",
+          "category": "Đèn Hậu Ngoài Lái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        }
+      ]
+    },
+    {
+      "query": "lọc dầu mazda",
+      "top10": [
+        {
+          "product_id": 2346,
+          "score": 90751.6,
+          "title": "Lọc dầu Mazda CX-5 2012-2026",
+          "category": "Lọc Dầu",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.6,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 90751.6,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2347,
+          "score": 90746.6,
+          "title": "Lọc dầu Mazda 3 2000",
+          "category": "Lọc Dầu",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 400,
+            "brand": 40,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 2.6,
+            "matched_tokens": 4,
+            "legacy_tier": 90000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 90746.6,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2362,
+          "score": 0,
+          "title": "Lọc xăng Mazda 3 2013-2019",
+          "category": "Lọc Xăng",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2349,
+          "score": 0,
+          "title": "Lọc dầu hộp số Mazda CX-9 2012-2016",
+          "category": "Lọc Dầu Hộp Số",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2350,
+          "score": 0,
+          "title": "Lọc dầu hộp số Mazda 3",
+          "category": "Lọc Dầu Hộp Số",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2348,
+          "score": 0,
+          "title": "Lọc dầu Mazda BT-50",
+          "category": "Lọc Dầu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 2351,
+          "score": 0,
+          "title": "Lọc dầu hộp số Mazda BT-50",
+          "category": "Lọc Dầu Hộp Số",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 1976,
+          "score": 0,
+          "title": "Chân máy dầu Mazda 6 2012-2017",
+          "category": "Chân Máy Dầu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1774,
+          "score": 0,
+          "title": "Bơm dầu hộp số Mazda BT-50 2011-2020",
+          "category": "Bơm Dầu Hộp Số",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1921,
+          "score": 0,
+          "title": "Cao su chân máy đầu xe Mazda CX-5 2017-2026",
+          "category": "Cao Su Chân Máy Đầu Xe",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1978,
+          "score": 0,
+          "title": "Chân máy phải (chân máy dầu) Mazda CX-9 2012-2016",
+          "category": "Chân Máy Phải (chân Máy Dầu)",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1972,
+          "score": 0,
+          "title": "Chân đầu máy Mazda 3 2013-2019",
+          "category": "Chân Đầu Máy",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2651,
+          "score": 0,
+          "title": "Phin lọc ga Mazda 3 2012-2025",
+          "category": "Phin Lọc Ga",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1973,
+          "score": 0,
+          "title": "Chân đầu máy Mazda 3 2013-2019",
+          "category": "Chân Đầu Máy",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2073,
+          "score": 0,
+          "title": "Cụm lọc xăng Mazda 3",
+          "category": "Cụm Lọc Xăng",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1773,
+          "score": 0,
+          "title": "Bơm dầu động cơ Mazda BT-50",
+          "category": "Bơm Dầu Động Cơ",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2051,
+          "score": 0,
+          "title": "Cụm bơm dầu Mazda BT-50",
+          "category": "Cụm Bơm Dầu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2072,
+          "score": 0,
+          "title": "Cụm lọc nhiên liệu Mazda BT-50",
+          "category": "Cụm Lọc Nhiên Liệu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 0
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1723,
+          "score": 0,
+          "title": "Bản lề cửa hậu Mazda CX-5 2019-2025",
+          "category": "Bản Lề Cửa Hậu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 1737,
+          "score": 0,
+          "title": "Bát bèo giảm xóc trước Mazda 6",
+          "category": "Bát Bèo Giảm Xóc Trước",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 9
+        }
+      ]
+    },
+    {
+      "query": "má phanh vios",
+      "top10": [
+        {
+          "product_id": 6651,
+          "score": 0,
+          "title": "Má phanh trước Toyota Vios 2014-2020",
+          "category": "Má Phanh Trước",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 6660,
+          "score": 0,
+          "title": "Má phanh trước Toyota Vios 2007-2013",
+          "category": "Má Phanh Trước",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 6628,
+          "score": 0,
+          "title": "Má phanh sau Toyota Vios 2014-2020",
+          "category": "Má Phanh",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 6629,
+          "score": 0,
+          "title": "Má phanh sau Toyota Vios 2014-2020",
+          "category": "Má Phanh",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 6650,
+          "score": 0,
+          "title": "Má phanh trước Toyota Vios 2014-2020",
+          "category": "Má Phanh Trước",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 1
+        },
+        {
+          "product_id": 5790,
+          "score": 0,
+          "title": "Cụm phanh sau phải Toyota Vios 2003-2006",
+          "category": "Cụm Phanh Sau Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5804,
+          "score": 0,
+          "title": "Cụm xi lanh phanh sau trái Toyota Vios 2010-2013",
+          "category": "Cụm Xi Lanh Phanh Sau Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5811,
+          "score": 0,
+          "title": "Cuppen phanh sau Toyota Vios 2010-2020",
+          "category": "Cuppen Phanh",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5637,
+          "score": 0,
+          "title": "Chân máy dầu Toyota Vios 2010-2013",
+          "category": "Chân Máy Dầu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5791,
+          "score": 0,
+          "title": "Cụm phanh sau trái Toyota Vios 2014-2020",
+          "category": "Cụm Phanh Sau Trái",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5638,
+          "score": 0,
+          "title": "Chân máy dầu Toyota Vios 2007-2009",
+          "category": "Chân Máy Dầu",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5645,
+          "score": 0,
+          "title": "Chân máy số 8 Toyota Vios 2014-2023",
+          "category": "Chân Máy Số 8",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5792,
+          "score": 0,
+          "title": "Cụm phanh trước phải Toyota Vios 2007-2013",
+          "category": "Cụm Phanh Trước Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 6086,
+          "score": 0,
+          "title": "Đèn phanh trên cao Toyota Vios 2010-2013",
+          "category": "Đèn Phanh Trên Cao",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 7066,
+          "score": 0,
+          "title": "Piston phanh sau Toyota Vios 2007-2020",
+          "category": "Piston Phanh",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5646,
+          "score": 0,
+          "title": "Chân máy số 8 Toyota Vios 2014-2023",
+          "category": "Chân Máy Số 8",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5793,
+          "score": 0,
+          "title": "Cụm phanh trước phải Toyota Vios 2007-2013",
+          "category": "Cụm Phanh Trước Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 6102,
+          "score": 0,
+          "title": "Đĩa phanh trước Toyota Vios 2007-2020",
+          "category": "Đĩa Phanh Trước",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5641,
+          "score": 0,
+          "title": "Chân máy phải Toyota Vios 2014-2016",
+          "category": "Chân Máy Phải",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 5662,
+          "score": 0,
+          "title": "Chổi than máy đề Toyota Vios 2001-2013",
+          "category": "Chổi Than Máy Đề",
+          "components": {
+            "part_number_has": 1,
+            "price_has": 1
+          },
+          "finalScore": 0,
+          "legacyTier": 3
+        }
+      ]
+    },
+    {
+      "query": "bố thắng",
+      "top10": [
+        {
+          "product_id": 4691,
+          "score": 80406.8,
+          "title": "Cảm biến báo mòn bố thắng trước Mercedes-Benz V250",
+          "category": "Cảm Biến Báo Mòn Bố Thắng Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 80406.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 4692,
+          "score": 80401.8,
+          "title": "Cảm biến báo mòn bố thắng trước Mercedes-Benz V250",
+          "category": "Cảm Biến Báo Mòn Bố Thắng Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 80401.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 4693,
+          "score": 80396.8,
+          "title": "Cảm biến báo mòn bố thắng trước Mercedes-Benz S450",
+          "category": "Cảm Biến Báo Mòn Bố Thắng Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 80396.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 4694,
+          "score": 80391.8,
+          "title": "Cảm biến báo mòn bố thắng trước Mercedes-Benz S450",
+          "category": "Cảm Biến Báo Mòn Bố Thắng Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 80391.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 4689,
+          "score": 80381.8,
+          "title": "Cảm biến báo mòn bố thắng sau Mercedes-Benz S450",
+          "category": "Cảm Biến Báo Mòn Bố Thắng",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 10,
+            "freshness": 0
+          },
+          "finalScore": 80381.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 4690,
+          "score": 80376.8,
+          "title": "Cảm biến báo mòn bố thắng sau Mercedes-Benz S450",
+          "category": "Cảm Biến Báo Mòn Bố Thắng",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 100,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 80000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 5,
+            "freshness": 0
+          },
+          "finalScore": 80376.8,
+          "legacyTier": 2
+        },
+        {
+          "product_id": 2997,
+          "score": 70166.8,
+          "title": "Càng i thẳng bên phải BMW X3 2003-2023",
+          "category": "Càng I Thẳng Bên Phải",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70166.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4285,
+          "score": 70166.8,
+          "title": "Thanh giằng ngang cầu sau (thẳng) Hyundai SantaFe 2015",
+          "category": "Thanh Giằng Ngang Cầu Sau (thẳng)",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70166.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4726,
+          "score": 70166.8,
+          "title": "Càng i thẳng Mercedes-Benz GLC250 2016",
+          "category": "Càng I Thẳng",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70166.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4733,
+          "score": 70306.8,
+          "title": "Càng i thẳng trước trái, phải Mercedes-Benz GLC300 2018",
+          "category": "Càng I Thẳng Trước Trái, Phải",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70306.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4740,
+          "score": 70166.8,
+          "title": "Càng thẳng bên trái Mercedes-Benz S450 2017",
+          "category": "Càng Thẳng Bên Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70166.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 6105,
+          "score": 70166.8,
+          "title": "Đĩa thắng trước Toyota Camry 2007-2012",
+          "category": "Đĩa Thắng Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 70166.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2998,
+          "score": 70161.8,
+          "title": "Càng i thẳng bên trái BMW X3 2018",
+          "category": "Càng I Thẳng Bên Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 70161.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4727,
+          "score": 70161.8,
+          "title": "Càng i thẳng Mercedes-Benz GLC250 2016",
+          "category": "Càng I Thẳng",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 70161.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 2999,
+          "score": 70156.8,
+          "title": "Càng i thẳng bên trái BMW X3 2018",
+          "category": "Càng I Thẳng Bên Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 70156.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4728,
+          "score": 70156.8,
+          "title": "Càng i thẳng trên bên trái Mercedes-Benz C200 2017",
+          "category": "Càng I Thẳng Trên Bên Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 70156.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 4784,
+          "score": 70156.8,
+          "title": "Đĩa thắng trước trái Mercedes-Benz GLE450",
+          "category": "Đĩa Thắng Trước Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 70156.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 6359,
+          "score": 70296.8,
+          "title": "Heo thắng sau Toyota Fortuner 2009-2016",
+          "category": "Heo Thắng",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 70296.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 389,
+          "score": 70291.8,
+          "title": "Càng i thẳng trước lái Kia Quoris 2016",
+          "category": "Càng I Thẳng Trước Lái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 70291.8,
+          "legacyTier": 3
+        },
+        {
+          "product_id": 1642,
+          "score": 70151.8,
+          "title": "Tỳ cam thẳng Kia Sorento 2012",
+          "category": "Tỳ Cam Thẳng",
+          "components": {
+            "oem": 0,
+            "phrase": 0,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 50,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.8,
+            "matched_tokens": 1,
+            "legacy_tier": 70000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 20,
+            "freshness": 0
+          },
+          "finalScore": 70151.8,
+          "legacyTier": 3
+        }
+      ]
+    },
+    {
+      "query": "brake pad",
+      "top10": [
+        {
+          "product_id": 603,
+          "score": 10296.2,
+          "title": "Chụp bụi phanh trước Kia Morning 2007",
+          "category": "Chụp Bụi Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 1478,
+          "score": 10296.2,
+          "title": "Pittong phanh sau Kia Rondo 2015",
+          "category": "Pittong Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 1562,
+          "score": 10296.2,
+          "title": "Suốt phanh trước Kia Cerato 2010",
+          "category": "Suốt Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 1639,
+          "score": 10296.2,
+          "title": "Tuy ô phanh trước trái Kia Soul",
+          "category": "Tuy Ô Phanh Trước Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 4775,
+          "score": 10296.2,
+          "title": "Đãi phanh sau Mercedes-Benz E250 2014",
+          "category": "Đãi Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5804,
+          "score": 10296.2,
+          "title": "Cụm xi lanh phanh sau trái Toyota Vios 2010-2013",
+          "category": "Cụm Xi Lanh Phanh Sau Trái",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5811,
+          "score": 10296.2,
+          "title": "Cuppen phanh sau Toyota Vios 2010-2020",
+          "category": "Cuppen Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5818,
+          "score": 10296.2,
+          "title": "Cuppen phanh trước Toyota Prado 2009-2014",
+          "category": "Cuppen Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 7071,
+          "score": 10296.2,
+          "title": "Pitong phanh trước Toyota Fortuner 2009-2016",
+          "category": "Pitong Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 35,
+            "freshness": 0
+          },
+          "finalScore": 10296.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 604,
+          "score": 10291.2,
+          "title": "Chụp bụi piston phanh trước Kia Soul",
+          "category": "Chụp Bụi Piston Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 1563,
+          "score": 10291.2,
+          "title": "Suốt phanh trước Kia Cerato 2010",
+          "category": "Suốt Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 4776,
+          "score": 10291.2,
+          "title": "Đãi phanh sau Mercedes-Benz E250 2014",
+          "category": "Đãi Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5805,
+          "score": 10291.2,
+          "title": "Cupen phanh trước Toyota Fortuner 2009-2016",
+          "category": "Cupen Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5812,
+          "score": 10291.2,
+          "title": "Cuppen phanh sau Toyota Altis 2009-2019",
+          "category": "Cuppen Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 5819,
+          "score": 10291.2,
+          "title": "Cuppen phanh trước Toyota Yaris 2010",
+          "category": "Cuppen Phanh Trước",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 30,
+            "freshness": 0
+          },
+          "finalScore": 10291.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 437,
+          "score": 10286.2,
+          "title": "Cao su chụp bụi suốt phanh Kia Morning 2007",
+          "category": "Cao Su Chụp Bụi Suốt Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 10286.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 605,
+          "score": 10286.2,
+          "title": "Chụp bụi piton phanh sau Kia Soul 2000",
+          "category": "Chụp Bụi Piton Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 10286.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 703,
+          "score": 10286.2,
+          "title": "Cúp ben phanh sau Kia Soul 2000",
+          "category": "Cúp Ben Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 10286.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 2082,
+          "score": 10286.2,
+          "title": "Cụm xi lanh phanh sau phải Mazda CX-5 2012-2026",
+          "category": "Cụm Xi Lanh Phanh Sau Phải",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 10286.2,
+          "legacyTier": 9
+        },
+        {
+          "product_id": 3377,
+          "score": 10286.2,
+          "title": "Piston phanh sau Honda Accord",
+          "category": "Piston Phanh",
+          "components": {
+            "oem": 0,
+            "phrase": 140,
+            "category": 0,
+            "brand": 0,
+            "model": 0,
+            "keyword_coverage": 37.5,
+            "popularity": 0,
+            "search_priority": 0,
+            "business_boost": 0,
+            "retrieval": 0.7000000000000001,
+            "matched_tokens": 3,
+            "legacy_tier": 10000,
+            "part_number_has": 50,
+            "price_has": 30,
+            "mod_day": 25,
+            "freshness": 0
+          },
+          "finalScore": 10286.2,
+          "legacyTier": 9
+        }
+      ]
+    }
+  ]
+}

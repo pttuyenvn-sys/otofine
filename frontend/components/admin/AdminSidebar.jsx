@@ -35,6 +35,11 @@ const ITEMS = [
     icon: "📜",
   },
   {
+    href: "/admin/seo/image-coverage",
+    label: "SEO · Image Coverage",
+    icon: "🖼️",
+  },
+  {
     href: "/admin/sessions",
     label: "Sessions",
     icon: "🔐",
