@@ -96,6 +96,7 @@ export const RESERVED_SHOP_SLUGS = new Set([
   "dev",
   "qa",
   "test",
+  "tramsacvinfast",
 ]);
 
 /** Slug must be DNS-safe and 3-40 chars. Same regex everywhere. */

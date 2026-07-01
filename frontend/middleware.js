@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { handleEvcsHostRouting } from "@evcs/lib/evcsMiddleware";
 import {
   HOST_DECISIONS,
   classifyHost,
@@ -170,6 +171,10 @@ export async function middleware(request) {
   }
 
   const host = request.headers.get("host") || "";
+
+  /** EVCS host rewrite — before shop wildcard (tramsacvinfast.otofine.com → /evcs/*). */
+  const evcsResponse = handleEvcsHostRouting(host, request);
+  if (evcsResponse) return evcsResponse;
 
   const cls = classifyHost(host);
   switch (cls.decision) {

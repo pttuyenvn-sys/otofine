@@ -57,6 +57,7 @@ export const RESERVED_SUBDOMAINS = new Set([
   "test",
   "preview",
   "next",
+  "tramsacvinfast",
 ]);
 
 /** DNS-safe slug regex; matches backend SLUG_REGEX exactly. */

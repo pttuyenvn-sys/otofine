@@ -1,0 +1,295 @@
+/**
+ * EVCS Design System — primitives (Logo, Button, Card, Badge)
+ * Không reuse component Marketplace.
+ */
+
+/* ── Logo ── */
+.evcs-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--evcs-space-2);
+}
+
+.evcs-logo__mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
+.evcs-logo--sm .evcs-logo__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.evcs-logo--lg .evcs-logo__mark {
+  width: 3rem;
+  height: 3rem;
+}
+
+.evcs-logo__bg {
+  fill: url(#evcs-logo-gradient);
+}
+
+.evcs-logo__mark defs {
+  display: none;
+}
+
+.evcs-logo__mark {
+  --logo-grad-start: var(--evcs-color-primary);
+  --logo-grad-end: var(--evcs-color-accent);
+}
+
+.evcs-logo__bg {
+  fill: var(--evcs-color-primary);
+}
+
+.evcs-logo__glyph {
+  fill: #fff;
+}
+
+.evcs-logo__dot {
+  fill: var(--evcs-color-electric);
+}
+
+.evcs-logo__wordmark {
+  font-family: var(--evcs-font-display);
+  font-weight: var(--evcs-font-bold);
+  font-size: var(--evcs-text-lg);
+  letter-spacing: var(--evcs-tracking-tight);
+  color: var(--evcs-color-text);
+}
+
+/* ── Badge ── */
+.evcs-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--evcs-space-1) var(--evcs-space-3);
+  font-size: var(--evcs-text-xs);
+  font-weight: var(--evcs-font-semibold);
+  letter-spacing: var(--evcs-tracking-wide);
+  text-transform: uppercase;
+  border-radius: var(--evcs-radius-full);
+  background: var(--evcs-color-bg-muted);
+  color: var(--evcs-color-text-secondary);
+}
+
+.evcs-badge--accent {
+  background: var(--evcs-color-accent-muted);
+  color: var(--evcs-color-primary);
+}
+
+.evcs-badge--outline {
+  background: transparent;
+  border: 1px solid var(--evcs-color-border-strong);
+}
+
+/* ── Card ── */
+.evcs-card {
+  padding: var(--evcs-space-6);
+  background: var(--evcs-color-bg-elevated);
+  border: 1px solid var(--evcs-color-border);
+  border-radius: var(--evcs-radius-xl);
+  box-shadow: var(--evcs-shadow-xs);
+}
+
+.evcs-card--glass {
+  background: var(--evcs-glass-bg);
+  backdrop-filter: blur(var(--evcs-glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--evcs-glass-blur)) saturate(160%);
+  border-color: var(--evcs-glass-border);
+  box-shadow: var(--evcs-shadow-sm), var(--evcs-shadow-inner);
+}
+
+/* ── Button (Design System — CTA layer extends these patterns) ── */
+.evcs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--evcs-space-2);
+  padding: var(--evcs-space-3) var(--evcs-space-5);
+  font-family: var(--evcs-font-sans);
+  font-size: var(--evcs-text-sm);
+  font-weight: var(--evcs-font-semibold);
+  line-height: 1;
+  text-decoration: none;
+  border-radius: var(--evcs-radius-full);
+  border: none;
+  cursor: pointer;
+  transition:
+    transform var(--evcs-duration-fast) var(--evcs-ease-default),
+    box-shadow var(--evcs-duration-normal) var(--evcs-ease-default);
+}
+
+.evcs-btn--primary {
+  background: var(--evcs-gradient-accent);
+  color: #fff;
+  box-shadow: var(--evcs-shadow-sm);
+}
+
+.evcs-btn--accent {
+  background: var(--evcs-color-accent);
+  color: var(--evcs-color-bg-dark);
+}
+
+.evcs-btn--outline {
+  background: transparent;
+  border: 1.5px solid var(--evcs-color-border-strong);
+  color: var(--evcs-color-primary);
+}
+
+.evcs-btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--evcs-color-text-inverse);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.evcs-btn--lg {
+  padding: var(--evcs-space-4) var(--evcs-space-8);
+  font-size: var(--evcs-text-base);
+}
+
+.evcs-btn--sm {
+  padding: var(--evcs-space-2) var(--evcs-space-4);
+  font-size: var(--evcs-text-xs);
+}
+
+/* ── Image ratio utilities ── */
+.evcs-media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--evcs-radius-xl);
+  background: var(--evcs-color-bg-muted);
+}
+
+.evcs-media--hero {
+  aspect-ratio: var(--evcs-ratio-hero);
+}
+
+.evcs-media--card {
+  aspect-ratio: var(--evcs-ratio-card);
+}
+
+.evcs-media--square {
+  aspect-ratio: var(--evcs-ratio-square);
+}
+
+/* ── Case Study ── */
+.evcs-case-study-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--evcs-space-16);
+}
+
+.evcs-case-study__header {
+  margin-bottom: var(--evcs-space-8);
+}
+
+.evcs-case-study__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--evcs-space-3);
+  margin-bottom: var(--evcs-space-4);
+}
+
+.evcs-case-study__grid {
+  display: grid;
+  gap: var(--evcs-space-6);
+  margin-bottom: var(--evcs-space-6);
+}
+
+@media (min-width: 768px) {
+  .evcs-case-study__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.evcs-case-study__label {
+  font-size: var(--evcs-text-xs);
+  font-weight: var(--evcs-font-semibold);
+  letter-spacing: var(--evcs-tracking-wider);
+  text-transform: uppercase;
+  color: var(--evcs-color-accent);
+  margin-bottom: var(--evcs-space-3);
+}
+
+.evcs-case-study__results {
+  margin-bottom: var(--evcs-space-6);
+}
+
+.evcs-case-study__list {
+  margin: 0;
+  padding-left: var(--evcs-space-5);
+  color: var(--evcs-color-text-secondary);
+}
+
+.evcs-case-study__list li {
+  margin-bottom: var(--evcs-space-2);
+}
+
+.evcs-case-study__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--evcs-space-4);
+  margin: 0;
+}
+
+.evcs-case-study__metric {
+  padding: var(--evcs-space-4);
+  text-align: center;
+  background: var(--evcs-color-bg-muted);
+  border-radius: var(--evcs-radius-lg);
+}
+
+.evcs-case-study__metric-value {
+  margin: var(--evcs-space-1) 0 0;
+  font-family: var(--evcs-font-display);
+  font-size: var(--evcs-text-xl);
+  font-weight: var(--evcs-font-semibold);
+  color: var(--evcs-color-primary);
+}
+
+/* ── Calculator module (inside Investment Center) ── */
+.evcs-calculator-module__card {
+  padding: var(--evcs-space-8);
+}
+
+.evcs-calculator-module__placeholder {
+  display: grid;
+  gap: var(--evcs-space-4);
+  margin-top: var(--evcs-space-8);
+}
+
+@media (min-width: 640px) {
+  .evcs-calculator-module__placeholder {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.evcs-calculator-module__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--evcs-space-2);
+}
+
+.evcs-calculator-module__input-mock,
+.evcs-calculator-module__result {
+  padding: var(--evcs-space-4);
+  border-radius: var(--evcs-radius-md);
+  background: var(--evcs-color-bg-muted);
+  border: 1px dashed var(--evcs-color-border-strong);
+  font-family: var(--evcs-font-display);
+  font-weight: var(--evcs-font-medium);
+  color: var(--evcs-color-text-muted);
+}
+
+.evcs-calculator-module__result {
+  color: var(--evcs-color-primary);
+  border-style: solid;
+  background: var(--evcs-color-primary-light);
+}
+
+.evcs-investment-intro {
+  text-align: center;
+  max-width: 36rem;
+  margin-inline: auto;
+}

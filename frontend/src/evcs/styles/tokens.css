@@ -1,0 +1,155 @@
+/**
+ * EVCS Design Tokens
+ * Apple × Tesla × Green Energy — minimal, trustworthy, modern
+ */
+
+.evcs-scope {
+  /* ── Color: Green Energy palette ── */
+  --evcs-color-bg: #f7faf8;
+  --evcs-color-bg-elevated: #ffffff;
+  --evcs-color-bg-muted: #eef4f1;
+  --evcs-color-bg-dark: #0a1f17;
+  --evcs-color-bg-dark-elevated: #122a20;
+
+  --evcs-color-primary: #0d4f3c;
+  --evcs-color-primary-hover: #0a3d2e;
+  --evcs-color-primary-light: #e8f5f0;
+
+  --evcs-color-accent: #00c896;
+  --evcs-color-accent-hover: #00b386;
+  --evcs-color-accent-muted: rgba(0, 200, 150, 0.12);
+  --evcs-color-accent-glow: rgba(0, 200, 150, 0.35);
+
+  --evcs-color-electric: #00e5a8;
+  --evcs-color-electric-dim: rgba(0, 229, 168, 0.15);
+
+  --evcs-color-text: #0f1a15;
+  --evcs-color-text-secondary: #4a5f56;
+  --evcs-color-text-muted: #7a9188;
+  --evcs-color-text-inverse: #f7faf8;
+
+  --evcs-color-border: rgba(13, 79, 60, 0.1);
+  --evcs-color-border-strong: rgba(13, 79, 60, 0.2);
+
+  --evcs-color-success: #00c896;
+  --evcs-color-warning: #f5a623;
+  --evcs-color-error: #e5484d;
+
+  /* ── Typography scale ── */
+  --evcs-font-sans: var(--font-evcs-sans, "DM Sans", system-ui, sans-serif);
+  --evcs-font-display: var(--font-evcs-display, "Outfit", system-ui, sans-serif);
+
+  --evcs-text-xs: 0.75rem;
+  --evcs-text-sm: 0.875rem;
+  --evcs-text-base: 1rem;
+  --evcs-text-lg: 1.125rem;
+  --evcs-text-xl: 1.25rem;
+  --evcs-text-2xl: 1.5rem;
+  --evcs-text-3xl: 1.875rem;
+  --evcs-text-4xl: 2.25rem;
+  --evcs-text-5xl: 3rem;
+  --evcs-text-6xl: 3.75rem;
+
+  --evcs-leading-tight: 1.15;
+  --evcs-leading-snug: 1.35;
+  --evcs-leading-normal: 1.6;
+  --evcs-leading-relaxed: 1.75;
+
+  --evcs-tracking-tight: -0.025em;
+  --evcs-tracking-normal: 0;
+  --evcs-tracking-wide: 0.05em;
+  --evcs-tracking-wider: 0.1em;
+
+  --evcs-font-normal: 400;
+  --evcs-font-medium: 500;
+  --evcs-font-semibold: 600;
+  --evcs-font-bold: 700;
+
+  /* ── Spacing (4px base) ── */
+  --evcs-space-0: 0;
+  --evcs-space-1: 0.25rem;
+  --evcs-space-2: 0.5rem;
+  --evcs-space-3: 0.75rem;
+  --evcs-space-4: 1rem;
+  --evcs-space-5: 1.25rem;
+  --evcs-space-6: 1.5rem;
+  --evcs-space-8: 2rem;
+  --evcs-space-10: 2.5rem;
+  --evcs-space-12: 3rem;
+  --evcs-space-16: 4rem;
+  --evcs-space-20: 5rem;
+  --evcs-space-24: 6rem;
+  --evcs-space-32: 8rem;
+
+  --evcs-container-max: 76rem;
+  --evcs-container-narrow: 48rem;
+  --evcs-header-height: 4.5rem;
+
+  /* ── Radius ── */
+  --evcs-radius-sm: 0.375rem;
+  --evcs-radius-md: 0.625rem;
+  --evcs-radius-lg: 1rem;
+  --evcs-radius-xl: 1.25rem;
+  --evcs-radius-2xl: 1.5rem;
+  --evcs-radius-full: 9999px;
+
+  /* ── Shadow ── */
+  --evcs-shadow-xs: 0 1px 2px rgba(10, 31, 23, 0.04);
+  --evcs-shadow-sm: 0 2px 8px rgba(10, 31, 23, 0.06);
+  --evcs-shadow-md: 0 4px 20px rgba(10, 31, 23, 0.08);
+  --evcs-shadow-lg: 0 12px 40px rgba(10, 31, 23, 0.1);
+  --evcs-shadow-xl: 0 24px 64px rgba(10, 31, 23, 0.12);
+  --evcs-shadow-glow: 0 0 40px var(--evcs-color-accent-glow);
+  --evcs-shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* ── Animation ── */
+  --evcs-duration-fast: 150ms;
+  --evcs-duration-normal: 250ms;
+  --evcs-duration-slow: 400ms;
+  --evcs-duration-slower: 600ms;
+
+  --evcs-ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --evcs-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --evcs-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --evcs-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-index ── */
+  --evcs-z-header: 100;
+  --evcs-z-overlay: 200;
+  --evcs-z-modal: 300;
+
+  /* ── Brand: Glass ── */
+  --evcs-glass-bg: rgba(247, 250, 248, 0.72);
+  --evcs-glass-border: rgba(255, 255, 255, 0.45);
+  --evcs-glass-blur: 16px;
+
+  /* ── Brand: Gradients ── */
+  --evcs-gradient-hero: linear-gradient(
+    160deg,
+    var(--evcs-color-bg-dark) 0%,
+    #0f4a38 45%,
+    var(--evcs-color-primary) 100%
+  );
+  --evcs-gradient-accent: linear-gradient(
+    135deg,
+    var(--evcs-color-primary) 0%,
+    var(--evcs-color-accent) 100%
+  );
+  --evcs-gradient-soft: linear-gradient(
+    180deg,
+    var(--evcs-color-primary-light) 0%,
+    var(--evcs-color-bg) 100%
+  );
+  --evcs-gradient-glow: radial-gradient(
+    ellipse at 70% 20%,
+    var(--evcs-color-electric-dim) 0%,
+    transparent 65%
+  );
+
+  /* ── Brand: Image ratios ── */
+  --evcs-ratio-hero: 16 / 9;
+  --evcs-ratio-card: 4 / 3;
+  --evcs-ratio-portrait: 3 / 4;
+  --evcs-ratio-square: 1 / 1;
+  --evcs-ratio-wide: 21 / 9;
+}
